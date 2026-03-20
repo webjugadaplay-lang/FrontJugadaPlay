@@ -1,4 +1,6 @@
 // app/page.tsx
+import Link from 'next/link';
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50">
@@ -32,9 +34,11 @@ export default function Home() {
             <button className="bg-green-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-green-700">
               QUIERO PARA MI BAR
             </button>
-            <button className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700">
-              QUIERO JUGAR
-            </button>
+            <Link href="/entrar">
+              <button className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700">
+                QUIERO JUGAR
+              </button>
+            </Link>
           </div>
         </div>
       </section>
