@@ -106,7 +106,6 @@ export default function Home() {
             </span>
             <br />
             <span className="text-white">EN TU BAR</span>
-            <span className="text-yellow-500 ml-3 text-5xl md:text-7xl">⚡</span>
           </h1>
 
           {/* Descripción */}
