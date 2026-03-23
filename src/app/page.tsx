@@ -1,6 +1,6 @@
 // app/page.tsx
 "use client";
-
+<div className="absolute bottom-8 left-1/2 transform -translate-x-1/2"></div>
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X, Crown, Sparkles, Star, Zap } from "lucide-react";
@@ -139,12 +139,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
             </Link>
-          </div>
-
-          {/* Indicador de scroll minimalista */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <div className="w-[2px] h-12 bg-gradient-to-b from-yellow-500/50 to-transparent"></div>
-          </div>
+          </div>  
         </div>
       </section>
 
