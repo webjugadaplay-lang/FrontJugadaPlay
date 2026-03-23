@@ -22,11 +22,10 @@ export default function Home() {
     <main className="min-h-screen bg-black">
       {/* Header Minimalista con efecto glass */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
-            : "bg-transparent"
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+          ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
+          : "bg-transparent"
+          }`}
       >
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
@@ -40,13 +39,17 @@ export default function Home() {
 
             {/* Menú Desktop */}
             <div className="hidden md:flex items-center space-x-8">
-              <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm tracking-wide">
-                INICIAR SESIÓN
-              </button>
-              <button className="relative overflow-hidden bg-yellow-500 text-black px-6 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20 group">
-                <span className="relative z-10">REGISTRAR BAR</span>
-                <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
-              </button>
+              <Link href="/login">
+                <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm tracking-wide">
+                  INICIAR SESIÓN
+                </button>
+              </Link>
+              <Link href="/bar/registro">
+                <button className="relative overflow-hidden bg-yellow-500 text-black px-6 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20 group">
+                  <span className="relative z-10">REGISTRAR BAR</span>
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                </button>
+              </Link>
             </div>
 
             {/* Botón menú móvil */}
@@ -62,12 +65,16 @@ export default function Home() {
           {isMenuOpen && (
             <div className="md:hidden py-6 border-t border-yellow-500/20">
               <div className="flex flex-col space-y-4">
-                <button className="text-gray-400 hover:text-yellow-500 py-2 transition-colors text-sm tracking-wide">
-                  INICIAR SESIÓN
-                </button>
-                <button className="bg-yellow-500 text-black px-4 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all text-center">
-                  REGISTRAR BAR
-                </button>
+                <Link href="/login">
+                  <button className="text-gray-400 hover:text-yellow-500 py-2 transition-colors text-sm tracking-wide text-left">
+                    INICIAR SESIÓN
+                  </button>
+                </Link>
+                <Link href="/bar/registro">
+                  <button className="bg-yellow-500 text-black px-4 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all text-center">
+                    REGISTRAR BAR
+                  </button>
+                </Link>
               </div>
             </div>
           )}
@@ -80,7 +87,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black/95"></div>
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-yellow-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        
+
         {/* Contenido */}
         <div className="relative z-10 text-center max-w-4xl mx-auto">
           {/* Badge con brillo */}
@@ -110,20 +117,22 @@ export default function Home() {
 
           {/* Descripción */}
           <p className="text-gray-400 text-lg md:text-xl mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-            Predice marcadores. Gana dinero real. La experiencia premium 
+            Predice marcadores. Gana dinero real. La experiencia premium
             que transforma tu bar en un casino deportivo.
           </p>
 
           {/* Botones con efecto brillo */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="group relative overflow-hidden bg-yellow-500 text-black px-8 py-3 rounded-sm text-base font-medium tracking-wide transition-all hover:bg-yellow-400 shadow-lg shadow-yellow-500/25">
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                QUIERO PARA MI BAR
-                <Star className="w-4 h-4" />
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
-            </button>
-            
+            <Link href="/bar/registro">
+              <button className="group relative overflow-hidden bg-yellow-500 text-black px-8 py-3 rounded-sm text-base font-medium tracking-wide transition-all hover:bg-yellow-400 shadow-lg shadow-yellow-500/25">
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  QUIERO PARA MI BAR
+                  <Star className="w-4 h-4" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
+              </button>
+            </Link>
+
             <Link href="/entrar">
               <button className="group relative overflow-hidden border border-yellow-500/50 text-yellow-500 px-8 py-3 rounded-sm text-base font-medium tracking-wide hover:border-yellow-500 hover:text-yellow-400 transition-all">
                 <span className="relative z-10">QUIERO JUGAR</span>
