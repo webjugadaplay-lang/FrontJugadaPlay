@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Crown, Copy, Check, Clock, Pix, CreditCard, Wallet } from "lucide-react";
+import { ArrowLeft, Crown, Copy, Check, Clock, QrCode, CreditCard, Wallet } from "lucide-react";
 
 export default function PagoPrediccion({ params }: { params: { salaId: string } }) {
   const [metodoPago, setMetodoPago] = useState<"pix" | "tarjeta" | "saldo">("pix");
@@ -93,7 +93,7 @@ export default function PagoPrediccion({ params }: { params: { salaId: string } 
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Pix className="w-5 h-5 text-yellow-500" />
+                        <QrCode className="w-5 h-5 text-yellow-500" />
                         <span className="text-white text-sm">PIX</span>
                       </div>
                       {metodoPago === "pix" && <Check className="w-4 h-4 text-yellow-500" />}
