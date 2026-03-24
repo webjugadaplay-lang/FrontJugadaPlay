@@ -39,16 +39,12 @@ export default function Home() {
 
             {/* Menú Desktop */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/login">
-                <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm tracking-wide">
+              <Link href="/login" className="text-gray-400 hover:text-yellow-500 transition-colors text-sm tracking-wide">
                   INICIAR SESIÓN
-                </button>
               </Link>
-              <Link href="/bar/registro">
-                <button className="relative overflow-hidden bg-yellow-500 text-black px-6 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20 group">
+              <Link href="/bar/registro" className="relative overflow-hidden bg-yellow-500 text-black px-6 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20 group">
                   <span className="relative z-10">REGISTRAR BAR</span>
                   <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
-                </button>
               </Link>
             </div>
 
@@ -65,15 +61,11 @@ export default function Home() {
           {isMenuOpen && (
             <div className="md:hidden py-6 border-t border-yellow-500/20">
               <div className="flex flex-col space-y-4">
-                <Link href="/login">
-                  <button className="text-gray-400 hover:text-yellow-500 py-2 transition-colors text-sm tracking-wide text-left">
+                <Link href="/login" className="text-gray-400 hover:text-yellow-500 py-2 transition-colors text-sm tracking-wide text-left">
                     INICIAR SESIÓN
-                  </button>
                 </Link>
-                <Link href="/bar/registro">
-                  <button className="bg-yellow-500 text-black px-4 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all text-center">
+                <Link href="/bar/registro" className="bg-yellow-500 text-black px-4 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all text-center">
                     REGISTRAR BAR
-                  </button>
                 </Link>
               </div>
             </div>
@@ -123,21 +115,17 @@ export default function Home() {
 
           {/* Botones con efecto brillo */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/bar/registro">
-              <button className="group relative overflow-hidden bg-yellow-500 text-black px-8 py-3 rounded-sm text-base font-medium tracking-wide transition-all hover:bg-yellow-400 shadow-lg shadow-yellow-500/25">
+            <Link href="/bar/registro" className="group relative overflow-hidden bg-yellow-500 text-black px-8 py-3 rounded-sm text-base font-medium tracking-wide transition-all hover:bg-yellow-400 shadow-lg shadow-yellow-500/25">
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   QUIERO PARA MI BAR
                   <Star className="w-4 h-4" />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
-              </button>
             </Link>
 
-            <Link href="/entrar">
-              <button className="group relative overflow-hidden border border-yellow-500/50 text-yellow-500 px-8 py-3 rounded-sm text-base font-medium tracking-wide hover:border-yellow-500 hover:text-yellow-400 transition-all">
+            <Link href="/entrar" className="group relative overflow-hidden border border-yellow-500/50 text-yellow-500 px-8 py-3 rounded-sm text-base font-medium tracking-wide hover:border-yellow-500 hover:text-yellow-400 transition-all">
                 <span className="relative z-10">QUIERO JUGAR</span>
                 <div className="absolute inset-0 bg-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              </button>
             </Link>
           </div>  
         </div>

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, Crown, Mail, Lock, Eye, EyeOff, 
@@ -9,8 +10,12 @@ import {
 } from "lucide-react";
 
 export default function RegistroJugador() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [aceptarTerminos, setAceptarTerminos] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
@@ -20,6 +25,50 @@ export default function RegistroJugador() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    
+    if (!aceptarTerminos) {
+      setError("Debes aceptar los términos y condiciones");
+      return;
+    }
+    
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          role: "player",
+          name: formData.nombre,
+          phone: formData.telefone,
+          playerNickname: formData.nombre,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Error al registrar usuario");
+      }
+
+      // Guardar token y datos del usuario
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      // Redirigir a la página de entrada a sala
+      router.push("/entrar");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,7 +95,7 @@ export default function RegistroJugador() {
           <div className="relative">
             <div className="absolute -inset-1 bg-yellow-500/5 rounded-2xl blur-xl"></div>
             
-            <div className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
+            <form onSubmit={handleSubmit} className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
               
               <div className="border-b border-yellow-500/20 px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
@@ -73,8 +122,9 @@ export default function RegistroJugador() {
                       name="nombre"
                       value={formData.nombre}
                       onChange={handleChange}
+                      required
                       placeholder="Como quieres aparecer en el ranking"
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
                   </div>
                 </div>
@@ -89,8 +139,9 @@ export default function RegistroJugador() {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
+                      required
                       placeholder="tu@email.com"
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
                   </div>
                 </div>
@@ -106,7 +157,7 @@ export default function RegistroJugador() {
                       value={formData.telefone}
                       onChange={handleChange}
                       placeholder="(11) 99999-9999"
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
                   </div>
                 </div>
@@ -121,8 +172,10 @@ export default function RegistroJugador() {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
+                      required
+                      minLength={6}
                       placeholder="••••••••"
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-12 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-12 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
                     <button
                       type="button"
@@ -132,6 +185,7 @@ export default function RegistroJugador() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  <p className="text-gray-600 text-xs">Mínimo 6 caracteres</p>
                 </div>
 
                 {/* Términos */}
@@ -146,6 +200,13 @@ export default function RegistroJugador() {
                     Acepto los <span className="text-yellow-500">términos y condiciones</span> de JugadaPlay
                   </span>
                 </label>
+
+                {/* Error message */}
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-500 text-sm text-center">
+                    {error}
+                  </div>
+                )}
 
                 {/* Beneficios */}
                 <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
@@ -162,24 +223,23 @@ export default function RegistroJugador() {
                 </div>
 
                 {/* Botón de registro */}
-                <Link href="/entrar">
-                  <button
-                    disabled={!aceptarTerminos}
-                    className={`group relative w-full py-3 rounded-lg text-sm font-medium tracking-wide transition-all overflow-hidden ${
-                      aceptarTerminos
-                        ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
-                        : "bg-gray-900 text-gray-600 cursor-not-allowed"
-                    }`}
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      <CheckCircle className="w-4 h-4" />
-                      CREAR CUENTA
-                    </span>
-                    {aceptarTerminos && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
-                    )}
-                  </button>
-                </Link>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`group relative w-full py-3 rounded-lg text-sm font-medium tracking-wide transition-all overflow-hidden ${
+                    !loading && aceptarTerminos
+                      ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
+                      : "bg-gray-900 text-gray-600 cursor-not-allowed"
+                  }`}
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    {loading ? "CREANDO CUENTA..." : "CREAR CUENTA"}
+                  </span>
+                  {!loading && aceptarTerminos && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
+                  )}
+                </button>
 
                 <p className="text-center text-gray-600 text-xs">
                   ¿Ya tienes una cuenta?{" "}
@@ -188,7 +248,7 @@ export default function RegistroJugador() {
                   </Link>
                 </p>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>

@@ -2,14 +2,57 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Crown, Mail, Lock, Eye, EyeOff, User, Building2 } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [tipoUsuario, setTipoUsuario] = useState<"bar" | "jugador">("jugador");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          role: tipoUsuario === "bar" ? "bar" : "player",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Error al iniciar sesión");
+      }
+
+      // Guardar token y datos del usuario
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      // Redirigir según rol
+      if (data.user.role === "bar") {
+        router.push("/bar/dashboard");
+      } else {
+        router.push("/entrar");
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-black">
@@ -31,12 +74,9 @@ export default function LoginPage() {
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-6 min-h-screen flex items-center justify-center">
         <div className="container mx-auto max-w-md">
-          
           <div className="relative">
             <div className="absolute -inset-1 bg-yellow-500/5 rounded-2xl blur-xl"></div>
-            
-            <div className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
-              
+            <form onSubmit={handleSubmit} className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
               <div className="border-b border-yellow-500/20 px-6 pt-6 pb-4">
                 <h1 className="text-2xl font-light tracking-tight text-white">
                   INICIAR <span className="text-yellow-500 font-medium">SESIÓN</span>
@@ -49,6 +89,7 @@ export default function LoginPage() {
                 {/* Selector de tipo de usuario */}
                 <div className="grid grid-cols-2 gap-3">
                   <button
+                    type="button"
                     onClick={() => setTipoUsuario("jugador")}
                     className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
                       tipoUsuario === "jugador"
@@ -60,6 +101,7 @@ export default function LoginPage() {
                     <span className="text-sm">JUGADOR</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => setTipoUsuario("bar")}
                     className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
                       tipoUsuario === "bar"
@@ -81,6 +123,7 @@ export default function LoginPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      required
                       placeholder="tu@email.com"
                       className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
@@ -96,6 +139,7 @@ export default function LoginPage() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      required
                       placeholder="••••••••"
                       className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-12 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
@@ -109,25 +153,23 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Link olvidé contraseña */}
-                <div className="text-right">
-                  <button className="text-xs text-gray-500 hover:text-yellow-500 transition-colors">
-                    ¿Olvidaste tu contraseña?
-                  </button>
-                </div>
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-500 text-sm text-center">
+                    {error}
+                  </div>
+                )}
 
-                {/* Botón de inicio de sesión */}
-                <Link 
-                  href={tipoUsuario === "bar" ? "/bar/dashboard" : "/entrar"}
-                  className="block"
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="group relative w-full overflow-hidden bg-yellow-500 text-black py-3 rounded-lg text-sm font-medium tracking-wide hover:bg-yellow-400 transition-all disabled:opacity-50"
                 >
-                  <button className="group relative w-full overflow-hidden bg-yellow-500 text-black py-3 rounded-lg text-sm font-medium tracking-wide hover:bg-yellow-400 transition-all">
-                    <span className="relative z-10">INICIAR SESIÓN</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
-                  </button>
-                </Link>
+                  <span className="relative z-10">
+                    {loading ? "INGRESANDO..." : "INICIAR SESIÓN"}
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
+                </button>
 
-                {/* Separador */}
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-yellow-500/20"></div>
@@ -137,21 +179,20 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Botones de registro */}
                 <div className="space-y-2">
                   <Link href="/bar/registro">
-                    <button className="w-full border border-yellow-500/30 text-yellow-500 py-3 rounded-lg text-sm font-medium hover:border-yellow-500/50 hover:bg-yellow-500/10 transition-all">
+                    <button type="button" className="w-full border border-yellow-500/30 text-yellow-500 py-3 rounded-lg text-sm font-medium hover:border-yellow-500/50 hover:bg-yellow-500/10 transition-all">
                       REGISTRAR MI BAR
                     </button>
                   </Link>
                   <Link href="/jugador/registro">
-                    <button className="w-full border border-gray-700 text-gray-400 py-3 rounded-lg text-sm hover:border-yellow-500/30 hover:text-yellow-500 transition-all">
+                    <button type="button" className="w-full border border-gray-700 text-gray-400 py-3 rounded-lg text-sm hover:border-yellow-500/30 hover:text-yellow-500 transition-all">
                       REGISTRARME COMO JUGADOR
                     </button>
                   </Link>
                 </div>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
