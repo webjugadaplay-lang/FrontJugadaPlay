@@ -9,7 +9,7 @@ import { ArrowLeft, Crown, Mail, Lock, Eye, EyeOff, User, Building2, Shield } fr
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [tipoUsuario, setTipoUsuario] = useState<"bar" | "jugador" | "admin">("jugador");
+  const [tipoUsuario, setTipoUsuario] = useState<"bar" | "player" | "admin">("player");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,7 +27,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           email,
           password,
-          role: tipoUsuario,
+          role: tipoUsuario,  // Ahora envía "player", "bar" o "admin"
         }),
       });
 
@@ -92,9 +92,9 @@ export default function LoginPage() {
                 <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
-                    onClick={() => setTipoUsuario("jugador")}
+                    onClick={() => setTipoUsuario("player")}
                     className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
-                      tipoUsuario === "jugador"
+                      tipoUsuario === "player"
                         ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
                         : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
                     }`}
