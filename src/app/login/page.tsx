@@ -4,12 +4,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Crown, Mail, Lock, Eye, EyeOff, User, Building2 } from "lucide-react";
+import { ArrowLeft, Crown, Mail, Lock, Eye, EyeOff, User, Building2, Shield } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [tipoUsuario, setTipoUsuario] = useState<"bar" | "jugador">("jugador");
+  const [tipoUsuario, setTipoUsuario] = useState<"bar" | "jugador" | "admin">("jugador");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,7 +27,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           email,
           password,
-          role: tipoUsuario === "bar" ? "bar" : "player",
+          role: tipoUsuario,
         }),
       });
 
@@ -42,10 +42,12 @@ export default function LoginPage() {
       localStorage.setItem("user", JSON.stringify(data.user));
 
       // Redirigir según rol
-      if (data.user.role === "bar") {
+      if (data.user.role === "admin") {
+        router.push("/admin/dashboard");
+      } else if (data.user.role === "bar") {
         router.push("/bar/dashboard");
       } else {
-        router.push("/entrar");
+        router.push("/jugador/dashboard");
       }
     } catch (err: any) {
       setError(err.message);
@@ -86,8 +88,8 @@ export default function LoginPage() {
 
               <div className="p-6 space-y-6">
                 
-                {/* Selector de tipo de usuario */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Selector de tipo de usuario - TRES OPCIONES */}
+                <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setTipoUsuario("jugador")}
@@ -111,6 +113,18 @@ export default function LoginPage() {
                   >
                     <Building2 className="w-4 h-4" />
                     <span className="text-sm">BAR</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTipoUsuario("admin")}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
+                      tipoUsuario === "admin"
+                        ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
+                        : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="text-sm">ADMIN</span>
                   </button>
                 </div>
 

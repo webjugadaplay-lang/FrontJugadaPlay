@@ -1,24 +1,87 @@
 // app/admin/dashboard/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   Crown, Users, Building2, Calendar, DollarSign, 
   TrendingUp, CheckCircle, Clock, AlertCircle,
-  Menu, X, Search, Filter, Download
+  Menu, X, Search, Filter, Download, LogOut, Settings
 } from "lucide-react";
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
-
-  const metricas = {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
     ingresosTotales: 45230,
-    baresActivos: 142,
-    jugadoresUnicos: 18450,
+    baresActivos: 0,
+    jugadoresUnicos: 0,
     prediccionesPagadas: 52000,
+  });
+
+  // Verificar autenticación
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+    
+    if (!token || !userData) {
+      router.push("/login");
+      return;
+    }
+    
+    const parsedUser = JSON.parse(userData);
+    if (parsedUser.role !== "admin") {
+      if (parsedUser.role === "bar") {
+        router.push("/bar/dashboard");
+      } else if (parsedUser.role === "player") {
+        router.push("/jugador/dashboard");
+      } else {
+        router.push("/login");
+      }
+      return;
+    }
+    
+    setUser(parsedUser);
+    
+    // Obtener estadísticas reales del backend
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats`);
+        const data = await response.json();
+        if (data.success) {
+          setStats(prev => ({
+            ...prev,
+            baresActivos: data.data.baresActivos,
+            jugadoresUnicos: data.data.jugadores,
+          }));
+        }
+      } catch (error) {
+        console.error("Error al obtener estadísticas:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchStats();
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    router.push("/login");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-yellow-500">Cargando...</div>
+      </div>
+    );
+  }
 
   const topBares = [
     { nome: "El Goloso FC", receita: 4520, partidos: 24 },
@@ -58,10 +121,19 @@ export default function AdminDashboard() {
 
             {/* Menú Desktop */}
             <div className="hidden md:flex items-center space-x-8">
-              <button className="text-yellow-500 text-sm tracking-wide">ADMIN@JUGADAPLAY.COM</button>
+              <span className="text-yellow-500 text-sm tracking-wide">
+                {user?.email || "ADMIN@JUGADAPLAY.COM"}
+              </span>
               <div className="w-px h-6 bg-yellow-500/20"></div>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm"
+              >
+                <LogOut className="w-4 h-4" />
+                SALIR
+              </button>
               <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm">
-                CONFIGURACIÓN
+                <Settings className="w-4 h-4" />
               </button>
             </div>
 
@@ -75,7 +147,13 @@ export default function AdminDashboard() {
           {isMenuOpen && (
             <div className="md:hidden py-4 border-t border-yellow-500/20">
               <div className="flex flex-col space-y-3">
-                <span className="text-gray-400 text-sm">ADMIN@JUGADAPLAY.COM</span>
+                <span className="text-gray-400 text-sm">{user?.email || "ADMIN@JUGADAPLAY.COM"}</span>
+                <button 
+                  onClick={handleLogout}
+                  className="text-gray-400 hover:text-yellow-500 py-2 text-sm text-left"
+                >
+                  SALIR
+                </button>
                 <button className="text-gray-400 text-sm text-left">CONFIGURACIÓN</button>
               </div>
             </div>
@@ -91,11 +169,17 @@ export default function AdminDashboard() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
               <h1 className="text-3xl font-light tracking-tight text-white">
-                ADMIN DASHBOARD
+                ADMIN <span className="text-yellow-500 font-medium">DASHBOARD</span>
               </h1>
               <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
             </div>
             <div className="flex gap-2">
+              <Link href="/admin/usuarios">
+                <button className="flex items-center gap-2 border border-yellow-500/30 text-yellow-500 px-4 py-2 text-sm rounded-lg hover:border-yellow-500/50 transition-all">
+                  <Users className="w-4 h-4" />
+                  GESTIONAR USUARIOS
+                </button>
+              </Link>
               <button className="p-2 border border-yellow-500/30 rounded-lg hover:border-yellow-500/50 transition-all">
                 <Download className="w-4 h-4 text-yellow-500" />
               </button>
@@ -117,25 +201,25 @@ export default function AdminDashboard() {
                 <DollarSign className="w-5 h-5 text-yellow-500" />
                 <TrendingUp className="w-4 h-4 text-green-500" />
               </div>
-              <div className="text-2xl font-light text-white">R$ {metricas.ingresosTotales.toLocaleString()}</div>
+              <div className="text-2xl font-light text-white">R$ {stats.ingresosTotales.toLocaleString()}</div>
               <div className="text-xs text-gray-500">INGRESOS TOTALES</div>
             </div>
             
             <div className="bg-black/50 border border-yellow-500/20 rounded-xl p-4">
               <Building2 className="w-5 h-5 text-yellow-500 mb-2" />
-              <div className="text-2xl font-light text-white">{metricas.baresActivos}</div>
+              <div className="text-2xl font-light text-white">{stats.baresActivos}</div>
               <div className="text-xs text-gray-500">BARES ACTIVOS</div>
             </div>
             
             <div className="bg-black/50 border border-yellow-500/20 rounded-xl p-4">
               <Users className="w-5 h-5 text-yellow-500 mb-2" />
-              <div className="text-2xl font-light text-white">{metricas.jugadoresUnicos.toLocaleString()}</div>
+              <div className="text-2xl font-light text-white">{stats.jugadoresUnicos.toLocaleString()}</div>
               <div className="text-xs text-gray-500">JUGADORES ÚNICOS</div>
             </div>
             
             <div className="bg-black/50 border border-yellow-500/20 rounded-xl p-4">
               <Calendar className="w-5 h-5 text-yellow-500 mb-2" />
-              <div className="text-2xl font-light text-white">{metricas.prediccionesPagadas.toLocaleString()}</div>
+              <div className="text-2xl font-light text-white">{stats.prediccionesPagadas.toLocaleString()}</div>
               <div className="text-xs text-gray-500">PREDICCIONES PAGADAS</div>
             </div>
           </div>
@@ -199,7 +283,7 @@ export default function AdminDashboard() {
                     <th className="px-6 py-4 text-xs text-gray-500 tracking-wider">BAR</th>
                     <th className="px-6 py-4 text-xs text-gray-500 tracking-wider">RECAUDADO</th>
                     <th className="px-6 py-4 text-xs text-gray-500 tracking-wider">PARTIDOS</th>
-                  </tr>
+                   </tr>
                 </thead>
                 <tbody className="divide-y divide-yellow-500/10">
                   {topBares.map((bar, idx) => (

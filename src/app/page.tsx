@@ -173,19 +173,19 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
               <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
-                {loading ? "..." : stats.baresActivos}+
+                {loading ? "..." : stats.baresActivos}
               </div>
               <div className="text-gray-600 text-xs tracking-wider uppercase">Bares Activos</div>
             </div>
             <div>
               <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
-                {loading ? "..." : stats.jugadores}+
+                {loading ? "..." : stats.jugadores}
               </div>
               <div className="text-gray-600 text-xs tracking-wider uppercase">Jugadores</div>
             </div>
             <div>
               <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
-                R${loading ? "..." : stats.premios.toLocaleString()}+
+                R${loading ? "..." : stats.premios.toLocaleString()}
               </div>
               <div className="text-gray-600 text-xs tracking-wider uppercase">Premios</div>
             </div>
