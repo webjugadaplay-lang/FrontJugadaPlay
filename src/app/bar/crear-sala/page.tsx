@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, Crown, Trophy, Coins, Calendar, Clock, Zap,
-  Building2, Users
+  Building2, Users, Globe, MapPin, ChevronDown
 } from "lucide-react";
 
 // Interfaces para los tipos
@@ -26,6 +26,7 @@ interface Tournament {
   id: number;
   name: string;
   type: string;
+  country_id: number | null;
 }
 
 export default function CrearSala() {
@@ -40,9 +41,9 @@ export default function CrearSala() {
   const [continents, setContinents] = useState<Continent[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [selectedContinent, setSelectedContinent] = useState<Continent | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [selectedContinent, setSelectedContinent] = useState<string>("");
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [selectedTournament, setSelectedTournament] = useState<string>("");
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingTournaments, setLoadingTournaments] = useState(false);
   
@@ -72,6 +73,22 @@ export default function CrearSala() {
     }
   };
 
+  // Cargar países cuando se selecciona un continente
+  useEffect(() => {
+    if (selectedContinent) {
+      fetchCountries(parseInt(selectedContinent));
+      // Limpiar selecciones de país y torneo
+      setSelectedCountry("");
+      setSelectedTournament("");
+      setTournaments([]);
+      // Cargar torneos del continente (torneos internacionales)
+      fetchTournamentsByContinent(parseInt(selectedContinent));
+    } else {
+      setCountries([]);
+      setTournaments([]);
+    }
+  }, [selectedContinent]);
+
   const fetchCountries = async (continentId: number) => {
     setLoadingCountries(true);
     try {
@@ -90,7 +107,35 @@ export default function CrearSala() {
     }
   };
 
-  const fetchTournaments = async (countryId: number) => {
+  // Cargar torneos del continente (internacionales)
+  const fetchTournamentsByContinent = async (continentId: number) => {
+    setLoadingTournaments(true);
+    try {
+      const token = localStorage.getItem("token");
+      // Obtener torneos del continente (torneos sin país asociado)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tournaments/by-continent?continentId=${continentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTournaments(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando torneos del continente:", error);
+    } finally {
+      setLoadingTournaments(false);
+    }
+  };
+
+  // Cargar torneos cuando se selecciona un país
+  useEffect(() => {
+    if (selectedCountry) {
+      fetchTournamentsByCountry(parseInt(selectedCountry));
+      setSelectedTournament("");
+    }
+  }, [selectedCountry]);
+
+  const fetchTournamentsByCountry = async (countryId: number) => {
     setLoadingTournaments(true);
     try {
       const token = localStorage.getItem("token");
@@ -99,33 +144,19 @@ export default function CrearSala() {
       });
       const data = await response.json();
       if (data.success) {
-        setTournaments(data.data);
+        // Combinar torneos existentes con los del país
+        setTournaments(prev => {
+          // Filtrar los que ya tenemos (del continente)
+          const existingIds = prev.map(t => t.id);
+          const newTournaments = data.data.filter((t: Tournament) => !existingIds.includes(t.id));
+          return [...prev, ...newTournaments];
+        });
       }
     } catch (error) {
-      console.error("Error cargando torneos:", error);
+      console.error("Error cargando torneos del país:", error);
     } finally {
       setLoadingTournaments(false);
     }
-  };
-
-  const handleSelectContinent = (continent: Continent) => {
-    setSelectedContinent(continent);
-    setSelectedCountry(null);
-    setSelectedTournament(null);
-    setCountries([]);
-    setTournaments([]);
-    fetchCountries(continent.id);
-  };
-
-  const handleSelectCountry = (country: Country) => {
-    setSelectedCountry(country);
-    setSelectedTournament(null);
-    setTournaments([]);
-    fetchTournaments(country.id);
-  };
-
-  const handleSelectTournament = (tournament: Tournament) => {
-    setSelectedTournament(tournament);
   };
 
   // Crear sala
@@ -137,6 +168,10 @@ export default function CrearSala() {
     }
     if (!matchDate || !matchTime) {
       setError("Fecha y hora del partido son obligatorias");
+      return;
+    }
+    if (!selectedTournament) {
+      setError("Debes seleccionar un torneo");
       return;
     }
     
@@ -153,8 +188,9 @@ export default function CrearSala() {
         closeTime.setMinutes(closeTime.getMinutes() - 15);
       }
       
-      const tournamentName = selectedTournament?.name || 
-                            (selectedCountry ? `${selectedCountry.name} - Torneo Local` : "Partido Amistoso");
+      // Obtener el nombre del torneo seleccionado
+      const tournament = tournaments.find(t => t.id.toString() === selectedTournament);
+      const tournamentName = tournament?.name || "Partido Amistoso";
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms`, {
         method: "POST",
@@ -238,87 +274,81 @@ export default function CrearSala() {
 
               <div className="p-8 space-y-6">
                 
-                {/* Selección de Continente */}
+                {/* Selector de Continente */}
                 <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">
-                    <Trophy className="inline w-3 h-3 mr-1" />
+                  <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
                     CONTINENTE
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {continents.map((continent) => (
-                      <button
-                        key={continent.id}
-                        type="button"
-                        onClick={() => handleSelectContinent(continent)}
-                        className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                          selectedContinent?.id === continent.id
-                            ? "bg-yellow-500 text-black"
-                            : "border border-yellow-500/30 text-gray-400 hover:border-yellow-500/50"
-                        }`}
-                      >
-                        {continent.name}
-                      </button>
-                    ))}
+                  <div className="relative">
+                    <select
+                      value={selectedContinent}
+                      onChange={(e) => setSelectedContinent(e.target.value)}
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
+                    >
+                      <option value="">Selecciona un continente</option>
+                      {continents.map((continent) => (
+                        <option key={continent.id} value={continent.id}>
+                          {continent.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                   </div>
                 </div>
 
-                {/* Selección de País */}
-                {selectedContinent && (
+                {/* Selector de País (solo si hay países disponibles) */}
+                {countries.length > 0 && (
                   <div className="space-y-2">
-                    <label className="block text-xs text-yellow-500 tracking-wider">
-                      <Building2 className="inline w-3 h-3 mr-1" />
-                      PAÍS
+                    <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      PAÍS (OPCIONAL)
                     </label>
-                    {loadingCountries ? (
-                      <div className="text-gray-500 text-sm">Cargando países...</div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
+                    <div className="relative">
+                      <select
+                        value={selectedCountry}
+                        onChange={(e) => setSelectedCountry(e.target.value)}
+                        className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
+                      >
+                        <option value="">Todos los países</option>
                         {countries.map((country) => (
-                          <button
-                            key={country.id}
-                            type="button"
-                            onClick={() => handleSelectCountry(country)}
-                            className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                              selectedCountry?.id === country.id
-                                ? "bg-yellow-500 text-black"
-                                : "border border-yellow-500/30 text-gray-400 hover:border-yellow-500/50"
-                            }`}
-                          >
-                            {country.flag && <span className="mr-1">{country.flag}</span>}
+                          <option key={country.id} value={country.id}>
+                            {country.flag && <span className="mr-2">{country.flag}</span>}
                             {country.name}
-                          </button>
+                          </option>
                         ))}
-                      </div>
-                    )}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
+                    </div>
+                    <p className="text-gray-600 text-xs">Si no seleccionas país, se mostrarán los torneos internacionales del continente</p>
                   </div>
                 )}
 
-                {/* Selección de Torneo */}
-                {selectedCountry && (
+                {/* Selector de Torneo */}
+                {selectedContinent && (
                   <div className="space-y-2">
-                    <label className="block text-xs text-yellow-500 tracking-wider">
-                      <Trophy className="inline w-3 h-3 mr-1" />
-                      TORNEO / CAMPEONATO
+                    <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
+                      <Trophy className="w-4 h-4" />
+                      TORNEO / CAMPEONATO *
                     </label>
-                    {loadingTournaments ? (
-                      <div className="text-gray-500 text-sm">Cargando torneos...</div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
+                    <div className="relative">
+                      <select
+                        value={selectedTournament}
+                        onChange={(e) => setSelectedTournament(e.target.value)}
+                        className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
+                        disabled={loadingTournaments}
+                      >
+                        <option value="">Selecciona un torneo</option>
                         {tournaments.map((tournament) => (
-                          <button
-                            key={tournament.id}
-                            type="button"
-                            onClick={() => handleSelectTournament(tournament)}
-                            className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                              selectedTournament?.id === tournament.id
-                                ? "bg-yellow-500 text-black"
-                                : "border border-yellow-500/30 text-gray-400 hover:border-yellow-500/50"
-                            }`}
-                          >
-                            {tournament.name}
-                          </button>
+                          <option key={tournament.id} value={tournament.id}>
+                            {tournament.name} {tournament.type === 'International' ? '(Internacional)' : ''}
+                          </option>
                         ))}
-                      </div>
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
+                    </div>
+                    {loadingTournaments && (
+                      <p className="text-gray-500 text-xs">Cargando torneos...</p>
                     )}
                   </div>
                 )}
