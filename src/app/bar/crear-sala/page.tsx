@@ -19,7 +19,6 @@ interface Country {
   name: string;
   code: string;
   flag: string;
-  continent_id: number;
 }
 
 interface Tournament {
@@ -59,28 +58,25 @@ export default function CrearSala() {
   const fetchContinents = async () => {
     try {
       const token = localStorage.getItem("token");
-      console.log("Fetching continents...");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/continents`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      console.log("Continents response:", data);
-      if (data.success) {
-        setContinents(data.data);
-      }
+      if (data.success) setContinents(data.data);
     } catch (error) {
       console.error("Error cargando continentes:", error);
     }
   };
 
-  // Cargar países cuando se selecciona un continente
+  // Cuando se selecciona un continente, cargar los países de ese continente
   useEffect(() => {
     if (selectedContinent) {
-      console.log("Selected continent ID:", selectedContinent);
-      fetchCountries(parseInt(selectedContinent));
+      // Resetear selecciones
       setSelectedCountry("");
       setSelectedTournament("");
-      fetchTournamentsByContinent(parseInt(selectedContinent));
+      setTournaments([]);
+      // Cargar países del continente
+      fetchCountries(parseInt(selectedContinent));
     } else {
       setCountries([]);
       setTournaments([]);
@@ -89,17 +85,14 @@ export default function CrearSala() {
 
   const fetchCountries = async (continentId: number) => {
     setLoadingCountries(true);
-    console.log("Fetching countries for continent:", continentId);
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/countries?continentId=${continentId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      console.log("Countries response:", data);
       if (data.success) {
         setCountries(data.data);
-        console.log(`Found ${data.data.length} countries`);
       }
     } catch (error) {
       console.error("Error cargando países:", error);
@@ -108,29 +101,13 @@ export default function CrearSala() {
     }
   };
 
-  const fetchTournamentsByContinent = async (continentId: number) => {
-    setLoadingTournaments(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tournaments/by-continent?continentId=${continentId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTournaments(data.data);
-      }
-    } catch (error) {
-      console.error("Error cargando torneos:", error);
-    } finally {
-      setLoadingTournaments(false);
-    }
-  };
-
-  // Cargar torneos cuando se selecciona un país
+  // Cuando se selecciona un país, cargar SOLO los torneos de ESE país
   useEffect(() => {
     if (selectedCountry) {
-      fetchTournamentsByCountry(parseInt(selectedCountry));
       setSelectedTournament("");
+      fetchTournamentsByCountry(parseInt(selectedCountry));
+    } else {
+      setTournaments([]);
     }
   }, [selectedCountry]);
 
@@ -143,9 +120,7 @@ export default function CrearSala() {
       });
       const data = await response.json();
       if (data.success) {
-        const existingNames = new Set(tournaments.map(t => t.name));
-        const newTournaments = data.data.filter((t: Tournament) => !existingNames.has(t.name));
-        setTournaments(prev => [...prev, ...newTournaments]);
+        setTournaments(data.data);
       }
     } catch (error) {
       console.error("Error cargando torneos del país:", error);
@@ -254,7 +229,7 @@ export default function CrearSala() {
               </div>
 
               <div className="p-8 space-y-6">
-                {/* Selector de Continente */}
+                {/* SELECTOR DE CONTINENTE */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
                     <Globe className="w-4 h-4" /> CONTINENTE
@@ -274,11 +249,11 @@ export default function CrearSala() {
                   </div>
                 </div>
 
-                {/* Selector de País - AHORA CON VERIFICACIÓN */}
+                {/* SELECTOR DE PAÍS - Aparece después de seleccionar continente */}
                 {selectedContinent && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                      <MapPin className="w-4 h-4" /> PAÍS (OPCIONAL)
+                      <MapPin className="w-4 h-4" /> PAÍS
                     </label>
                     <div className="relative">
                       <select
@@ -287,7 +262,7 @@ export default function CrearSala() {
                         className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
                         disabled={loadingCountries}
                       >
-                        <option value="">-- Selecciona un país --</option>
+                        <option value="">Selecciona un país</option>
                         {countries.map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.flag ? `${c.flag} ` : ''}{c.name}
@@ -300,14 +275,11 @@ export default function CrearSala() {
                     {!loadingCountries && countries.length === 0 && selectedContinent && (
                       <p className="text-yellow-500 text-xs">No hay países disponibles para este continente</p>
                     )}
-                    {!loadingCountries && countries.length > 0 && (
-                      <p className="text-green-500 text-xs">{countries.length} países disponibles</p>
-                    )}
                   </div>
                 )}
 
-                {/* Selector de Torneo */}
-                {selectedContinent && (
+                {/* SELECTOR DE TORNEO - Aparece SOLO después de seleccionar país */}
+                {selectedCountry && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
                       <Trophy className="w-4 h-4" /> TORNEO / CAMPEONATO *
@@ -322,17 +294,20 @@ export default function CrearSala() {
                         <option value="">Selecciona un torneo</option>
                         {tournaments.map((t) => (
                           <option key={t.id} value={t.id}>
-                            {t.name} {t.country_id === null ? '(Internacional)' : ''}
+                            {t.name}
                           </option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                     </div>
                     {loadingTournaments && <p className="text-gray-500 text-xs">Cargando torneos...</p>}
+                    {!loadingTournaments && tournaments.length === 0 && selectedCountry && (
+                      <p className="text-yellow-500 text-xs">No hay torneos disponibles para este país</p>
+                    )}
                   </div>
                 )}
 
-                {/* Equipos */}
+                {/* EQUIPOS */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">EQUIPO LOCAL *</label>
@@ -344,7 +319,7 @@ export default function CrearSala() {
                   </div>
                 </div>
 
-                {/* Fecha y Hora */}
+                {/* FECHA Y HORA */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">FECHA *</label>
@@ -356,7 +331,7 @@ export default function CrearSala() {
                   </div>
                 </div>
 
-                {/* Cierre de predicciones */}
+                {/* CIERRE DE PREDICCIONES */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">CIERRE DE PREDICCIONES</label>
                   <div className="flex gap-4">
@@ -365,7 +340,7 @@ export default function CrearSala() {
                   </div>
                 </div>
 
-                {/* Tipo de sala */}
+                {/* TIPO DE SALA */}
                 <div className="grid grid-cols-2 gap-4">
                   <button onClick={() => setTipoSala("practice")} className={`p-4 rounded-lg border ${tipoSala === "practice" ? "border-yellow-500 bg-yellow-500/10" : "border-yellow-500/20"}`}>
                     <div className="text-white font-medium">Modo Práctica</div>
@@ -377,6 +352,7 @@ export default function CrearSala() {
                   </button>
                 </div>
 
+                {/* VALOR DE PREDICCIÓN */}
                 {tipoSala === "paid" && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">VALOR POR PREDICCIÓN (R$)</label>
@@ -384,6 +360,7 @@ export default function CrearSala() {
                   </div>
                 )}
 
+                {/* RESUMEN DEL POZO */}
                 {tipoSala === "paid" && (
                   <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-yellow-500" /><h3 className="text-white text-sm">RESUMEN ESTIMADO (50 jugadores)</h3></div>
