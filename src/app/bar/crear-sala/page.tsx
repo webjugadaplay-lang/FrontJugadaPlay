@@ -1,12 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, Crown, Trophy, Coins, Calendar, Clock, Zap,
-  Building2, MapPin, Users
+  Building2, Users
 } from "lucide-react";
+
+// Interfaces para los tipos
+interface Continent {
+  id: number;
+  name: string;
+  code: string;
+}
+
+interface Country {
+  id: number;
+  name: string;
+  code: string;
+  flag: string;
+}
+
+interface Tournament {
+  id: number;
+  name: string;
+  type: string;
+}
 
 export default function CrearSala() {
   const router = useRouter();
@@ -16,12 +36,97 @@ export default function CrearSala() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
+  // Estados para selección de torneo
+  const [continents, setContinents] = useState<Continent[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [selectedContinent, setSelectedContinent] = useState<Continent | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [loadingTournaments, setLoadingTournaments] = useState(false);
+  
   // Campos del partido
-  const [tournament, setTournament] = useState("");
   const [teamHome, setTeamHome] = useState("");
   const [teamAway, setTeamAway] = useState("");
   const [matchDate, setMatchDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
+
+  // Cargar continentes al inicio
+  useEffect(() => {
+    fetchContinents();
+  }, []);
+
+  const fetchContinents = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/continents`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setContinents(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando continentes:", error);
+    }
+  };
+
+  const fetchCountries = async (continentId: number) => {
+    setLoadingCountries(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/countries?continentId=${continentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCountries(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando países:", error);
+    } finally {
+      setLoadingCountries(false);
+    }
+  };
+
+  const fetchTournaments = async (countryId: number) => {
+    setLoadingTournaments(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tournaments?countryId=${countryId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTournaments(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando torneos:", error);
+    } finally {
+      setLoadingTournaments(false);
+    }
+  };
+
+  const handleSelectContinent = (continent: Continent) => {
+    setSelectedContinent(continent);
+    setSelectedCountry(null);
+    setSelectedTournament(null);
+    setCountries([]);
+    setTournaments([]);
+    fetchCountries(continent.id);
+  };
+
+  const handleSelectCountry = (country: Country) => {
+    setSelectedCountry(country);
+    setSelectedTournament(null);
+    setTournaments([]);
+    fetchTournaments(country.id);
+  };
+
+  const handleSelectTournament = (tournament: Tournament) => {
+    setSelectedTournament(tournament);
+  };
 
   // Crear sala
   const handleCreateRoom = async () => {
@@ -48,6 +153,9 @@ export default function CrearSala() {
         closeTime.setMinutes(closeTime.getMinutes() - 15);
       }
       
+      const tournamentName = selectedTournament?.name || 
+                            (selectedCountry ? `${selectedCountry.name} - Torneo Local` : "Partido Amistoso");
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms`, {
         method: "POST",
         headers: {
@@ -57,7 +165,7 @@ export default function CrearSala() {
         body: JSON.stringify({
           name: `${teamHome} vs ${teamAway}`,
           sport: "Fútbol",
-          tournament: tournament || "Partido Amistoso",
+          tournament: tournamentName,
           team_home: teamHome,
           team_away: teamAway,
           match_date: matchDateTime.toISOString(),
@@ -124,34 +232,101 @@ export default function CrearSala() {
                 </h1>
                 <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
                 <p className="text-gray-500 text-sm mt-2">
-                  Completa los datos del partido para crear una nueva sala
+                  Selecciona el torneo y completa los datos del partido
                 </p>
               </div>
 
               <div className="p-8 space-y-6">
                 
-                {/* Torneo/Campeonato */}
+                {/* Selección de Continente */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">
                     <Trophy className="inline w-3 h-3 mr-1" />
-                    TORNEO / CAMPEONATO
+                    CONTINENTE
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={tournament}
-                      onChange={(e) => setTournament(e.target.value)}
-                      placeholder="Ej: Brasileirão Série A, Libertadores, Copa do Brasil..."
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
-                    />
+                  <div className="flex flex-wrap gap-2">
+                    {continents.map((continent) => (
+                      <button
+                        key={continent.id}
+                        type="button"
+                        onClick={() => handleSelectContinent(continent)}
+                        className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                          selectedContinent?.id === continent.id
+                            ? "bg-yellow-500 text-black"
+                            : "border border-yellow-500/30 text-gray-400 hover:border-yellow-500/50"
+                        }`}
+                      >
+                        {continent.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
+
+                {/* Selección de País */}
+                {selectedContinent && (
+                  <div className="space-y-2">
+                    <label className="block text-xs text-yellow-500 tracking-wider">
+                      <Building2 className="inline w-3 h-3 mr-1" />
+                      PAÍS
+                    </label>
+                    {loadingCountries ? (
+                      <div className="text-gray-500 text-sm">Cargando países...</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {countries.map((country) => (
+                          <button
+                            key={country.id}
+                            type="button"
+                            onClick={() => handleSelectCountry(country)}
+                            className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                              selectedCountry?.id === country.id
+                                ? "bg-yellow-500 text-black"
+                                : "border border-yellow-500/30 text-gray-400 hover:border-yellow-500/50"
+                            }`}
+                          >
+                            {country.flag && <span className="mr-1">{country.flag}</span>}
+                            {country.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Selección de Torneo */}
+                {selectedCountry && (
+                  <div className="space-y-2">
+                    <label className="block text-xs text-yellow-500 tracking-wider">
+                      <Trophy className="inline w-3 h-3 mr-1" />
+                      TORNEO / CAMPEONATO
+                    </label>
+                    {loadingTournaments ? (
+                      <div className="text-gray-500 text-sm">Cargando torneos...</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {tournaments.map((tournament) => (
+                          <button
+                            key={tournament.id}
+                            type="button"
+                            onClick={() => handleSelectTournament(tournament)}
+                            className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                              selectedTournament?.id === tournament.id
+                                ? "bg-yellow-500 text-black"
+                                : "border border-yellow-500/30 text-gray-400 hover:border-yellow-500/50"
+                            }`}
+                          >
+                            {tournament.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Equipos */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">
-                      <Building2 className="inline w-3 h-3 mr-1" />
                       EQUIPO LOCAL *
                     </label>
                     <input
@@ -165,7 +340,6 @@ export default function CrearSala() {
                   </div>
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">
-                      <Users className="inline w-3 h-3 mr-1" />
                       EQUIPO VISITANTE *
                     </label>
                     <input
