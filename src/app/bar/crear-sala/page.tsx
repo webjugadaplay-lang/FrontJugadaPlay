@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, Crown, Trophy, Coins, Calendar, Clock, Zap,
-  Building2, Users, Globe, MapPin, ChevronDown
+  Globe, MapPin, ChevronDown
 } from "lucide-react";
 
 interface Continent {
@@ -19,6 +19,7 @@ interface Country {
   name: string;
   code: string;
   flag: string;
+  continent_id: number;
 }
 
 interface Tournament {
@@ -50,6 +51,7 @@ export default function CrearSala() {
   const [matchDate, setMatchDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
 
+  // Cargar continentes al inicio
   useEffect(() => {
     fetchContinents();
   }, []);
@@ -57,18 +59,24 @@ export default function CrearSala() {
   const fetchContinents = async () => {
     try {
       const token = localStorage.getItem("token");
+      console.log("Fetching continents...");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/continents`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      if (data.success) setContinents(data.data);
+      console.log("Continents response:", data);
+      if (data.success) {
+        setContinents(data.data);
+      }
     } catch (error) {
       console.error("Error cargando continentes:", error);
     }
   };
 
+  // Cargar países cuando se selecciona un continente
   useEffect(() => {
     if (selectedContinent) {
+      console.log("Selected continent ID:", selectedContinent);
       fetchCountries(parseInt(selectedContinent));
       setSelectedCountry("");
       setSelectedTournament("");
@@ -81,13 +89,18 @@ export default function CrearSala() {
 
   const fetchCountries = async (continentId: number) => {
     setLoadingCountries(true);
+    console.log("Fetching countries for continent:", continentId);
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/countries?continentId=${continentId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      if (data.success) setCountries(data.data);
+      console.log("Countries response:", data);
+      if (data.success) {
+        setCountries(data.data);
+        console.log(`Found ${data.data.length} countries`);
+      }
     } catch (error) {
       console.error("Error cargando países:", error);
     } finally {
@@ -103,7 +116,9 @@ export default function CrearSala() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      if (data.success) setTournaments(data.data);
+      if (data.success) {
+        setTournaments(data.data);
+      }
     } catch (error) {
       console.error("Error cargando torneos:", error);
     } finally {
@@ -111,6 +126,7 @@ export default function CrearSala() {
     }
   };
 
+  // Cargar torneos cuando se selecciona un país
   useEffect(() => {
     if (selectedCountry) {
       fetchTournamentsByCountry(parseInt(selectedCountry));
@@ -238,6 +254,7 @@ export default function CrearSala() {
               </div>
 
               <div className="p-8 space-y-6">
+                {/* Selector de Continente */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
                     <Globe className="w-4 h-4" /> CONTINENTE
@@ -257,7 +274,8 @@ export default function CrearSala() {
                   </div>
                 </div>
 
-                {selectedContinent && countries.length > 0 && (
+                {/* Selector de País - AHORA CON VERIFICACIÓN */}
+                {selectedContinent && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
                       <MapPin className="w-4 h-4" /> PAÍS (OPCIONAL)
@@ -267,17 +285,28 @@ export default function CrearSala() {
                         value={selectedCountry}
                         onChange={(e) => setSelectedCountry(e.target.value)}
                         className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
+                        disabled={loadingCountries}
                       >
-                        <option value="">Todos los países</option>
+                        <option value="">-- Selecciona un país --</option>
                         {countries.map((c) => (
-                          <option key={c.id} value={c.id}>{c.flag} {c.name}</option>
+                          <option key={c.id} value={c.id}>
+                            {c.flag ? `${c.flag} ` : ''}{c.name}
+                          </option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                     </div>
+                    {loadingCountries && <p className="text-gray-500 text-xs">Cargando países...</p>}
+                    {!loadingCountries && countries.length === 0 && selectedContinent && (
+                      <p className="text-yellow-500 text-xs">No hay países disponibles para este continente</p>
+                    )}
+                    {!loadingCountries && countries.length > 0 && (
+                      <p className="text-green-500 text-xs">{countries.length} países disponibles</p>
+                    )}
                   </div>
                 )}
 
+                {/* Selector de Torneo */}
                 {selectedContinent && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
@@ -292,7 +321,9 @@ export default function CrearSala() {
                       >
                         <option value="">Selecciona un torneo</option>
                         {tournaments.map((t) => (
-                          <option key={t.id} value={t.id}>{t.name} {t.country_id === null ? '(Internacional)' : ''}</option>
+                          <option key={t.id} value={t.id}>
+                            {t.name} {t.country_id === null ? '(Internacional)' : ''}
+                          </option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
@@ -301,6 +332,7 @@ export default function CrearSala() {
                   </div>
                 )}
 
+                {/* Equipos */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">EQUIPO LOCAL *</label>
@@ -312,6 +344,7 @@ export default function CrearSala() {
                   </div>
                 </div>
 
+                {/* Fecha y Hora */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">FECHA *</label>
@@ -323,6 +356,7 @@ export default function CrearSala() {
                   </div>
                 </div>
 
+                {/* Cierre de predicciones */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">CIERRE DE PREDICCIONES</label>
                   <div className="flex gap-4">
@@ -331,9 +365,16 @@ export default function CrearSala() {
                   </div>
                 </div>
 
+                {/* Tipo de sala */}
                 <div className="grid grid-cols-2 gap-4">
-                  <button onClick={() => setTipoSala("practice")} className={`p-4 rounded-lg border ${tipoSala === "practice" ? "border-yellow-500 bg-yellow-500/10" : "border-yellow-500/20"}`}><div className="text-white font-medium">Modo Práctica</div><div className="text-gray-500 text-xs">Sin dinero real</div></button>
-                  <button onClick={() => setTipoSala("paid")} className={`p-4 rounded-lg border ${tipoSala === "paid" ? "border-yellow-500 bg-yellow-500/10" : "border-yellow-500/20"}`}><div className="text-white font-medium">Modo Pago</div><div className="text-gray-500 text-xs">Premios reales</div></button>
+                  <button onClick={() => setTipoSala("practice")} className={`p-4 rounded-lg border ${tipoSala === "practice" ? "border-yellow-500 bg-yellow-500/10" : "border-yellow-500/20"}`}>
+                    <div className="text-white font-medium">Modo Práctica</div>
+                    <div className="text-gray-500 text-xs">Sin dinero real</div>
+                  </button>
+                  <button onClick={() => setTipoSala("paid")} className={`p-4 rounded-lg border ${tipoSala === "paid" ? "border-yellow-500 bg-yellow-500/10" : "border-yellow-500/20"}`}>
+                    <div className="text-white font-medium">Modo Pago</div>
+                    <div className="text-gray-500 text-xs">Premios reales</div>
+                  </button>
                 </div>
 
                 {tipoSala === "paid" && (
@@ -346,10 +387,12 @@ export default function CrearSala() {
                 {tipoSala === "paid" && (
                   <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-yellow-500" /><h3 className="text-white text-sm">RESUMEN ESTIMADO (50 jugadores)</h3></div>
-                    <div className="space-y-1 text-sm"><div className="flex justify-between"><span className="text-gray-500">Total recaudado:</span><span className="text-white">R$ {pozo.total}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Premios (70%):</span><span className="text-yellow-500">R$ {pozo.premios}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Tu comisión (20%):</span><span className="text-green-500">R$ {pozo.bar}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Plataforma (10%):</span><span className="text-gray-500">R$ {pozo.plataforma}</span></div></div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between"><span className="text-gray-500">Total recaudado:</span><span className="text-white">R$ {pozo.total}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Premios (70%):</span><span className="text-yellow-500">R$ {pozo.premios}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Tu comisión (20%):</span><span className="text-green-500">R$ {pozo.bar}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Plataforma (10%):</span><span className="text-gray-500">R$ {pozo.plataforma}</span></div>
+                    </div>
                   </div>
                 )}
 
@@ -357,7 +400,9 @@ export default function CrearSala() {
 
                 <div className="flex gap-4 pt-2">
                   <Link href="/bar/dashboard" className="flex-1"><button className="w-full border border-yellow-500/30 text-gray-400 py-3 rounded-lg">CANCELAR</button></Link>
-                  <button onClick={handleCreateRoom} disabled={loading} className="group relative flex-1 overflow-hidden bg-yellow-500 text-black py-3 rounded-lg font-medium disabled:opacity-50"><span className="relative z-10">{loading ? "CREANDO..." : "CREAR SALA"}</span></button>
+                  <button onClick={handleCreateRoom} disabled={loading} className="group relative flex-1 overflow-hidden bg-yellow-500 text-black py-3 rounded-lg font-medium disabled:opacity-50">
+                    <span className="relative z-10">{loading ? "CREANDO..." : "CREAR SALA"}</span>
+                  </button>
                 </div>
               </div>
             </div>
