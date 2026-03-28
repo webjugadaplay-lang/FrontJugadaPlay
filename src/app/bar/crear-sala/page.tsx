@@ -59,6 +59,8 @@ export default function CrearSala() {
   const [matchDate, setMatchDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
 
+  const isMundial = selectedContinent === "7";
+
   // Cargar continentes al inicio
   useEffect(() => {
     fetchContinents();
@@ -77,20 +79,33 @@ export default function CrearSala() {
     }
   };
 
-  // Cuando se selecciona un continente, cargar los países
+  // Cuando se selecciona un continente
   useEffect(() => {
-    if (selectedContinent) {
-      setSelectedCountry("");
-      setSelectedTournament("");
-      setSelectedTeamHomeId("");
-      setSelectedTeamAwayId("");
-      setTournaments([]);
-      setTeams([]);
-      fetchCountries(parseInt(selectedContinent));
-    } else {
+    if (!selectedContinent) {
       setCountries([]);
       setTournaments([]);
       setTeams([]);
+      return;
+    }
+
+    // Resetear todos los estados
+    setSelectedCountry("");
+    setSelectedTournament("");
+    setSelectedTeamHomeId("");
+    setSelectedTeamAwayId("");
+    setTeams([]);
+    setTournaments([]);
+    setCountries([]);
+
+    const continentId = parseInt(selectedContinent);
+
+    if (continentId === 7) {
+      // MUNDIAL - Cargar torneos internacionales y selecciones
+      fetchInternationalTournaments();
+      fetchInternationalTeams();
+    } else {
+      // OTROS CONTINENTES - Cargar países
+      fetchCountries(continentId);
     }
   }, [selectedContinent]);
 
@@ -112,17 +127,50 @@ export default function CrearSala() {
     }
   };
 
-  // Cuando se selecciona un país, cargar los torneos
+  const fetchInternationalTournaments = async () => {
+    setLoadingTournaments(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tournaments/international`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTournaments(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando torneos internacionales:", error);
+    } finally {
+      setLoadingTournaments(false);
+    }
+  };
+
+  const fetchInternationalTeams = async () => {
+    setLoadingTeams(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teams/international`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTeams(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando equipos internacionales:", error);
+    } finally {
+      setLoadingTeams(false);
+    }
+  };
+
+  // Cuando se selecciona un país (solo si NO es Mundial)
   useEffect(() => {
-    if (selectedCountry) {
+    if (selectedCountry && !isMundial) {
       setSelectedTournament("");
       setSelectedTeamHomeId("");
       setSelectedTeamAwayId("");
       setTeams([]);
       fetchTournamentsByCountry(parseInt(selectedCountry));
-    } else {
-      setTournaments([]);
-      setTeams([]);
     }
   }, [selectedCountry]);
 
@@ -144,14 +192,12 @@ export default function CrearSala() {
     }
   };
 
-  // Cuando se selecciona un torneo, cargar los equipos
+  // Cuando se selecciona un torneo (solo si NO es Mundial)
   useEffect(() => {
-    if (selectedTournament) {
+    if (selectedTournament && !isMundial) {
       setSelectedTeamHomeId("");
       setSelectedTeamAwayId("");
       fetchTeamsByTournament(parseInt(selectedTournament));
-    } else {
-      setTeams([]);
     }
   }, [selectedTournament]);
 
@@ -173,83 +219,7 @@ export default function CrearSala() {
     }
   };
 
-  // Cuando se selecciona un continente, cargar los países y equipos si es Mundial
-  useEffect(() => {
-    if (selectedContinent) {
-      const continentId = parseInt(selectedContinent);
-      setSelectedCountry("");
-      setSelectedTournament("");
-      setSelectedTeamHomeId("");
-      setSelectedTeamAwayId("");
-      setTournaments([]);
-      setTeams([]);
-      fetchCountries(continentId);
-
-      // Si el continente es "Mundial" (ID 7 según tus datos), cargar equipos internacionales
-      if (continentId === 7) {
-        fetchInternationalTeams();
-      }
-    } else {
-      setCountries([]);
-      setTournaments([]);
-      setTeams([]);
-    }
-  }, [selectedContinent]);
-
-  // Nueva función para cargar equipos internacionales
-  const fetchInternationalTeams = async () => {
-    setLoadingTeams(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teams/international`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTeams(data.data);
-      }
-    } catch (error) {
-      console.error("Error cargando equipos internacionales:", error);
-    } finally {
-      setLoadingTeams(false);
-    }
-  };
-
-  // Cargar torneos por continente (para Mundial, cargar torneos internacionales)
-  useEffect(() => {
-    if (selectedContinent) {
-      const continentId = parseInt(selectedContinent);
-      if (continentId === 7) { // ID del continente Mundial
-        fetchInternationalTournaments();
-      } else if (selectedCountry) {
-        fetchTournamentsByCountry(parseInt(selectedCountry));
-      }
-    }
-  }, [selectedContinent, selectedCountry]);
-
-  // Nueva función para cargar torneos internacionales
-  const fetchInternationalTournaments = async () => {
-    setLoadingTournaments(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tournaments/international`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTournaments(data.data);
-      }
-    } catch (error) {
-      console.error("Error cargando torneos internacionales:", error);
-    } finally {
-      setLoadingTournaments(false);
-    }
-  };
-
-  // Filtrar equipos visitantes para excluir el equipo local seleccionado
   const availableAwayTeams = teams.filter(team => team.id.toString() !== selectedTeamHomeId);
-
-  // Obtener nombres de equipos seleccionados para enviar al backend
   const selectedTeamHome = teams.find(t => t.id.toString() === selectedTeamHomeId)?.name || "";
   const selectedTeamAway = teams.find(t => t.id.toString() === selectedTeamAwayId)?.name || "";
 
@@ -266,10 +236,6 @@ export default function CrearSala() {
       setError("Fecha y hora del partido son obligatorias");
       return;
     }
-    if (!selectedTournament) {
-      setError("Debes seleccionar un torneo");
-      return;
-    }
 
     setLoading(true);
     setError("");
@@ -280,8 +246,14 @@ export default function CrearSala() {
       const closeTime = new Date(matchDateTime);
       if (cierrePredictions === "15min") closeTime.setMinutes(closeTime.getMinutes() - 15);
 
-      const tournament = tournaments.find(t => t.id.toString() === selectedTournament);
-      const tournamentName = tournament?.name || "Partido Amistoso";
+      let tournamentName = "";
+      if (isMundial && selectedTournament) {
+        const tournament = tournaments.find(t => t.id.toString() === selectedTournament);
+        tournamentName = tournament?.name || "Partido Internacional";
+      } else if (selectedTournament) {
+        const tournament = tournaments.find(t => t.id.toString() === selectedTournament);
+        tournamentName = tournament?.name || "Partido Amistoso";
+      }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms`, {
         method: "POST",
@@ -377,8 +349,8 @@ export default function CrearSala() {
                   </div>
                 </div>
 
-                {/* SELECTOR DE PAÍS */}
-                {selectedContinent && (
+                {/* SELECTOR DE PAÍS - SOLO SI NO ES MUNDIAL */}
+                {selectedContinent && !isMundial && countries.length > 0 && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
                       <MapPin className="w-4 h-4" /> PAÍS
@@ -398,14 +370,11 @@ export default function CrearSala() {
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                     </div>
                     {loadingCountries && <p className="text-gray-500 text-xs">Cargando países...</p>}
-                    {!loadingCountries && countries.length === 0 && selectedContinent && (
-                      <p className="text-yellow-500 text-xs">No hay países disponibles para este continente</p>
-                    )}
                   </div>
                 )}
 
                 {/* SELECTOR DE TORNEO */}
-                {selectedCountry && (
+                {selectedContinent && tournaments.length > 0 && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
                       <Trophy className="w-4 h-4" /> TORNEO / CAMPEONATO *
@@ -425,14 +394,11 @@ export default function CrearSala() {
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                     </div>
                     {loadingTournaments && <p className="text-gray-500 text-xs">Cargando torneos...</p>}
-                    {!loadingTournaments && tournaments.length === 0 && selectedCountry && (
-                      <p className="text-yellow-500 text-xs">No hay torneos disponibles para este país</p>
-                    )}
                   </div>
                 )}
 
                 {/* SELECTORES DE EQUIPOS */}
-                {selectedTournament && (
+                {selectedContinent && teams.length > 0 && (
                   <>
                     <div className="space-y-2">
                       <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
@@ -474,10 +440,7 @@ export default function CrearSala() {
                       </div>
                     </div>
 
-                    {loadingTeams && <p className="text-gray-500 text-xs text-center">Cargando equipos del torneo...</p>}
-                    {!loadingTeams && teams.length === 0 && selectedTournament && (
-                      <p className="text-yellow-500 text-xs text-center">No hay equipos disponibles para este torneo</p>
-                    )}
+                    {loadingTeams && <p className="text-gray-500 text-xs text-center">Cargando equipos...</p>}
                   </>
                 )}
 
