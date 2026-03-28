@@ -71,11 +71,9 @@ export default function CrearSala() {
   // Cuando se selecciona un continente, cargar los países de ese continente
   useEffect(() => {
     if (selectedContinent) {
-      // Resetear selecciones
       setSelectedCountry("");
       setSelectedTournament("");
       setTournaments([]);
-      // Cargar países del continente
       fetchCountries(parseInt(selectedContinent));
     } else {
       setCountries([]);
@@ -101,7 +99,7 @@ export default function CrearSala() {
     }
   };
 
-  // Cuando se selecciona un país, cargar SOLO los torneos de ESE país
+  // Cuando se selecciona un país, cargar los torneos de ESE país
   useEffect(() => {
     if (selectedCountry) {
       setSelectedTournament("");
@@ -249,7 +247,7 @@ export default function CrearSala() {
                   </div>
                 </div>
 
-                {/* SELECTOR DE PAÍS - Aparece después de seleccionar continente */}
+                {/* SELECTOR DE PAÍS - CORREGIDO: solo muestra el nombre */}
                 {selectedContinent && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
@@ -265,7 +263,7 @@ export default function CrearSala() {
                         <option value="">Selecciona un país</option>
                         {countries.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.flag ? `${c.flag} ` : ''}{c.name}
+                            {c.name}
                           </option>
                         ))}
                       </select>
@@ -278,7 +276,7 @@ export default function CrearSala() {
                   </div>
                 )}
 
-                {/* SELECTOR DE TORNEO - Aparece SOLO después de seleccionar país */}
+                {/* SELECTOR DE TORNEO */}
                 {selectedCountry && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
