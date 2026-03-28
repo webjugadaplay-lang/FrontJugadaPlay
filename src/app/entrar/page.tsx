@@ -1,4 +1,5 @@
 // app/entrar/page.tsx
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft, Crown } from "lucide-react";
 import EntrarForm from "./EntrarForm";
@@ -23,7 +24,11 @@ export default function EntrarPage() {
       </header>
 
       <div className="pt-32 pb-20 px-6 min-h-screen flex items-center justify-center">
-        <EntrarForm />
+        <Suspense fallback={
+          <div className="text-yellow-500 text-center">Cargando...</div>
+        }>
+          <EntrarForm />
+        </Suspense>
       </div>
 
       <footer className="fixed bottom-0 left-0 right-0 border-t border-yellow-500/10 py-4 px-6 bg-black/80 backdrop-blur-sm">

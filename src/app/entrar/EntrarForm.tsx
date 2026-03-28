@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ScanLine, Crown, Sparkles, ChevronRight, Loader2 } from "lucide-react";
+import { ScanLine, Sparkles, ChevronRight, Loader2 } from "lucide-react";
 
 let jsQR: any;
 
