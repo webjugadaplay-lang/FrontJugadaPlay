@@ -1,7 +1,6 @@
-// app/bar/sala/[id]/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Crown, Users, Coins, Trophy, Copy, Check, RefreshCw, QrCode } from "lucide-react";
@@ -25,7 +24,11 @@ interface Prediction {
   pagada: boolean;
 }
 
-export default function SalaActiva({ params }: { params: { id: string } }) {
+// Next.js 15 - params es una promesa
+export default function SalaActiva({ params }: { params: Promise<{ id: string }> }) {
+  // Resolver params correctamente
+  const { id: salaId } = use(params);
+  
   const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,20 +37,22 @@ export default function SalaActiva({ params }: { params: { id: string } }) {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [closingPredictions, setClosingPredictions] = useState(false);
 
-  const salaId = params.id;
-
   // Generar código de sala (primeros 6 caracteres del ID)
-  const codigoSala = salaId.substring(0, 6).toUpperCase();
+  const codigoSala = salaId ? salaId.substring(0, 6).toUpperCase() : "LOADING";
 
   // URL para que los jugadores se unan a la sala
   const joinUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/entrar?code=${codigoSala}`;
 
   // Cargar datos de la sala
   useEffect(() => {
-    fetchRoomDetails();
+    if (salaId) {
+      fetchRoomDetails();
+    }
   }, [salaId]);
 
   const fetchRoomDetails = async () => {
+    if (!salaId) return;
+    
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`, {
@@ -69,7 +74,7 @@ export default function SalaActiva({ params }: { params: { id: string } }) {
 
   // Generar QR
   useEffect(() => {
-    if (joinUrl) {
+    if (joinUrl && joinUrl !== `${process.env.NEXT_PUBLIC_FRONTEND_URL}/entrar?code=LOADING`) {
       QRCode.toDataURL(joinUrl, {
         width: 200,
         margin: 2,
@@ -94,6 +99,8 @@ export default function SalaActiva({ params }: { params: { id: string } }) {
   };
 
   const handleClosePredictions = async () => {
+    if (!salaId) return;
+    
     setClosingPredictions(true);
     try {
       const token = localStorage.getItem("token");
@@ -115,7 +122,7 @@ export default function SalaActiva({ params }: { params: { id: string } }) {
     }
   };
 
-  if (loading) {
+  if (!salaId || loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-yellow-500">Cargando sala...</div>
