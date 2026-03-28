@@ -173,6 +173,79 @@ export default function CrearSala() {
     }
   };
 
+  // Cuando se selecciona un continente, cargar los países y equipos si es Mundial
+  useEffect(() => {
+    if (selectedContinent) {
+      const continentId = parseInt(selectedContinent);
+      setSelectedCountry("");
+      setSelectedTournament("");
+      setSelectedTeamHomeId("");
+      setSelectedTeamAwayId("");
+      setTournaments([]);
+      setTeams([]);
+      fetchCountries(continentId);
+
+      // Si el continente es "Mundial" (ID 7 según tus datos), cargar equipos internacionales
+      if (continentId === 7) {
+        fetchInternationalTeams();
+      }
+    } else {
+      setCountries([]);
+      setTournaments([]);
+      setTeams([]);
+    }
+  }, [selectedContinent]);
+
+  // Nueva función para cargar equipos internacionales
+  const fetchInternationalTeams = async () => {
+    setLoadingTeams(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teams/international`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTeams(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando equipos internacionales:", error);
+    } finally {
+      setLoadingTeams(false);
+    }
+  };
+
+  // Cargar torneos por continente (para Mundial, cargar torneos internacionales)
+  useEffect(() => {
+    if (selectedContinent) {
+      const continentId = parseInt(selectedContinent);
+      if (continentId === 7) { // ID del continente Mundial
+        fetchInternationalTournaments();
+      } else if (selectedCountry) {
+        fetchTournamentsByCountry(parseInt(selectedCountry));
+      }
+    }
+  }, [selectedContinent, selectedCountry]);
+
+  // Nueva función para cargar torneos internacionales
+  const fetchInternationalTournaments = async () => {
+    setLoadingTournaments(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tournaments/international`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTournaments(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando torneos internacionales:", error);
+    } finally {
+      setLoadingTournaments(false);
+    }
+  };
+
   // Filtrar equipos visitantes para excluir el equipo local seleccionado
   const availableAwayTeams = teams.filter(team => team.id.toString() !== selectedTeamHomeId);
 
