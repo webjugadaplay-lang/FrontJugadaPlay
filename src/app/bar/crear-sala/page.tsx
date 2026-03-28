@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
+import {
   ArrowLeft, Crown, Trophy, Coins, Calendar, Clock, Zap,
-  Globe, MapPin, ChevronDown
+  Globe, MapPin, ChevronDown, Users
 } from "lucide-react";
 
 interface Continent {
@@ -28,6 +28,11 @@ interface Tournament {
   country_id: number | null;
 }
 
+interface Team {
+  id: number;
+  name: string;
+}
+
 export default function CrearSala() {
   const router = useRouter();
   const [tipoSala, setTipoSala] = useState<"practice" | "paid">("paid");
@@ -35,7 +40,7 @@ export default function CrearSala() {
   const [cierrePredictions, setCierrePredictions] = useState("15min");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
+
   const [continents, setContinents] = useState<Continent[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -44,9 +49,13 @@ export default function CrearSala() {
   const [selectedTournament, setSelectedTournament] = useState<string>("");
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingTournaments, setLoadingTournaments] = useState(false);
-  
-  const [teamHome, setTeamHome] = useState("");
-  const [teamAway, setTeamAway] = useState("");
+
+  // Estados para equipos
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamHomeId, setSelectedTeamHomeId] = useState<string>("");
+  const [selectedTeamAwayId, setSelectedTeamAwayId] = useState<string>("");
+  const [loadingTeams, setLoadingTeams] = useState(false);
+
   const [matchDate, setMatchDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
 
@@ -68,16 +77,20 @@ export default function CrearSala() {
     }
   };
 
-  // Cuando se selecciona un continente, cargar los países de ese continente
+  // Cuando se selecciona un continente, cargar los países
   useEffect(() => {
     if (selectedContinent) {
       setSelectedCountry("");
       setSelectedTournament("");
+      setSelectedTeamHomeId("");
+      setSelectedTeamAwayId("");
       setTournaments([]);
+      setTeams([]);
       fetchCountries(parseInt(selectedContinent));
     } else {
       setCountries([]);
       setTournaments([]);
+      setTeams([]);
     }
   }, [selectedContinent]);
 
@@ -99,13 +112,17 @@ export default function CrearSala() {
     }
   };
 
-  // Cuando se selecciona un país, cargar los torneos de ESE país
+  // Cuando se selecciona un país, cargar los torneos
   useEffect(() => {
     if (selectedCountry) {
       setSelectedTournament("");
+      setSelectedTeamHomeId("");
+      setSelectedTeamAwayId("");
+      setTeams([]);
       fetchTournamentsByCountry(parseInt(selectedCountry));
     } else {
       setTournaments([]);
+      setTeams([]);
     }
   }, [selectedCountry]);
 
@@ -127,9 +144,49 @@ export default function CrearSala() {
     }
   };
 
+  // Cuando se selecciona un torneo, cargar los equipos
+  useEffect(() => {
+    if (selectedTournament) {
+      setSelectedTeamHomeId("");
+      setSelectedTeamAwayId("");
+      fetchTeamsByTournament(parseInt(selectedTournament));
+    } else {
+      setTeams([]);
+    }
+  }, [selectedTournament]);
+
+  const fetchTeamsByTournament = async (tournamentId: number) => {
+    setLoadingTeams(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teams-by-tournament?tournamentId=${tournamentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTeams(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando equipos:", error);
+    } finally {
+      setLoadingTeams(false);
+    }
+  };
+
+  // Filtrar equipos visitantes para excluir el equipo local seleccionado
+  const availableAwayTeams = teams.filter(team => team.id.toString() !== selectedTeamHomeId);
+
+  // Obtener nombres de equipos seleccionados para enviar al backend
+  const selectedTeamHome = teams.find(t => t.id.toString() === selectedTeamHomeId)?.name || "";
+  const selectedTeamAway = teams.find(t => t.id.toString() === selectedTeamAwayId)?.name || "";
+
   const handleCreateRoom = async () => {
-    if (!teamHome || !teamAway) {
-      setError("Los nombres de los equipos son obligatorios");
+    if (!selectedTeamHomeId || !selectedTeamAwayId) {
+      setError("Debes seleccionar los dos equipos");
+      return;
+    }
+    if (selectedTeamHomeId === selectedTeamAwayId) {
+      setError("Los equipos local y visitante deben ser diferentes");
       return;
     }
     if (!matchDate || !matchTime) {
@@ -140,19 +197,19 @@ export default function CrearSala() {
       setError("Debes seleccionar un torneo");
       return;
     }
-    
+
     setLoading(true);
     setError("");
-    
+
     try {
       const token = localStorage.getItem("token");
       const matchDateTime = new Date(`${matchDate}T${matchTime}`);
       const closeTime = new Date(matchDateTime);
       if (cierrePredictions === "15min") closeTime.setMinutes(closeTime.getMinutes() - 15);
-      
+
       const tournament = tournaments.find(t => t.id.toString() === selectedTournament);
       const tournamentName = tournament?.name || "Partido Amistoso";
-      
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms`, {
         method: "POST",
         headers: {
@@ -160,11 +217,11 @@ export default function CrearSala() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: `${teamHome} vs ${teamAway}`,
+          name: `${selectedTeamHome} vs ${selectedTeamAway}`,
           sport: "Fútbol",
           tournament: tournamentName,
-          team_home: teamHome,
-          team_away: teamAway,
+          team_home: selectedTeamHome,
+          team_away: selectedTeamAway,
           match_date: matchDateTime.toISOString(),
           prediction_close_time: closeTime.toISOString(),
           entry_fee: tipoSala === "paid" ? parseFloat(valorPrediccion) : 0,
@@ -223,7 +280,7 @@ export default function CrearSala() {
                   CREAR <span className="text-yellow-500 font-medium">SALA</span>
                 </h1>
                 <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
-                <p className="text-gray-500 text-sm mt-2">Selecciona el torneo y completa los datos del partido</p>
+                <p className="text-gray-500 text-sm mt-2">Selecciona el torneo, los equipos y completa los datos del partido</p>
               </div>
 
               <div className="p-8 space-y-6">
@@ -247,7 +304,7 @@ export default function CrearSala() {
                   </div>
                 </div>
 
-                {/* SELECTOR DE PAÍS - CORREGIDO: solo muestra el nombre */}
+                {/* SELECTOR DE PAÍS */}
                 {selectedContinent && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
@@ -262,9 +319,7 @@ export default function CrearSala() {
                       >
                         <option value="">Selecciona un país</option>
                         {countries.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
+                          <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
@@ -291,9 +346,7 @@ export default function CrearSala() {
                       >
                         <option value="">Selecciona un torneo</option>
                         {tournaments.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
+                          <option key={t.id} value={t.id}>{t.name}</option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
@@ -305,17 +358,55 @@ export default function CrearSala() {
                   </div>
                 )}
 
-                {/* EQUIPOS */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-xs text-yellow-500 tracking-wider">EQUIPO LOCAL *</label>
-                    <input type="text" value={teamHome} onChange={(e) => setTeamHome(e.target.value)} placeholder="Ej: Flamengo" className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs text-yellow-500 tracking-wider">EQUIPO VISITANTE *</label>
-                    <input type="text" value={teamAway} onChange={(e) => setTeamAway(e.target.value)} placeholder="Ej: Vasco" className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white" />
-                  </div>
-                </div>
+                {/* SELECTORES DE EQUIPOS */}
+                {selectedTournament && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
+                        <Users className="w-4 h-4" /> EQUIPO LOCAL *
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedTeamHomeId}
+                          onChange={(e) => setSelectedTeamHomeId(e.target.value)}
+                          className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
+                          disabled={loadingTeams}
+                        >
+                          <option value="">Selecciona equipo local</option>
+                          {teams.map((team) => (
+                            <option key={team.id} value={team.id}>{team.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
+                        <Users className="w-4 h-4" /> EQUIPO VISITANTE *
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedTeamAwayId}
+                          onChange={(e) => setSelectedTeamAwayId(e.target.value)}
+                          className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
+                          disabled={loadingTeams || !selectedTeamHomeId}
+                        >
+                          <option value="">Selecciona equipo visitante</option>
+                          {availableAwayTeams.map((team) => (
+                            <option key={team.id} value={team.id}>{team.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {loadingTeams && <p className="text-gray-500 text-xs text-center">Cargando equipos del torneo...</p>}
+                    {!loadingTeams && teams.length === 0 && selectedTournament && (
+                      <p className="text-yellow-500 text-xs text-center">No hay equipos disponibles para este torneo</p>
+                    )}
+                  </>
+                )}
 
                 {/* FECHA Y HORA */}
                 <div className="grid md:grid-cols-2 gap-4">
@@ -333,8 +424,14 @@ export default function CrearSala() {
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">CIERRE DE PREDICCIONES</label>
                   <div className="flex gap-4">
-                    <label className="flex items-center gap-2"><input type="radio" name="cierre" checked={cierrePredictions === "inicio"} onChange={() => setCierrePredictions("inicio")} className="w-4 h-4" /> Al inicio del partido</label>
-                    <label className="flex items-center gap-2"><input type="radio" name="cierre" checked={cierrePredictions === "15min"} onChange={() => setCierrePredictions("15min")} className="w-4 h-4" /> 15 minutos antes</label>
+                    <label className="flex items-center gap-2">
+                      <input type="radio" name="cierre" checked={cierrePredictions === "inicio"} onChange={() => setCierrePredictions("inicio")} className="w-4 h-4" />
+                      <span className="text-gray-400 text-sm">Al inicio del partido</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input type="radio" name="cierre" checked={cierrePredictions === "15min"} onChange={() => setCierrePredictions("15min")} className="w-4 h-4" />
+                      <span className="text-gray-400 text-sm">15 minutos antes</span>
+                    </label>
                   </div>
                 </div>
 
@@ -374,7 +471,9 @@ export default function CrearSala() {
                 {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-500 text-sm text-center">{error}</div>}
 
                 <div className="flex gap-4 pt-2">
-                  <Link href="/bar/dashboard" className="flex-1"><button className="w-full border border-yellow-500/30 text-gray-400 py-3 rounded-lg">CANCELAR</button></Link>
+                  <Link href="/bar/dashboard" className="flex-1">
+                    <button className="w-full border border-yellow-500/30 text-gray-400 py-3 rounded-lg">CANCELAR</button>
+                  </Link>
                   <button onClick={handleCreateRoom} disabled={loading} className="group relative flex-1 overflow-hidden bg-yellow-500 text-black py-3 rounded-lg font-medium disabled:opacity-50">
                     <span className="relative z-10">{loading ? "CREANDO..." : "CREAR SALA"}</span>
                   </button>
