@@ -8,6 +8,7 @@ import QRCode from "qrcode";
 
 interface Room {
   id: string;
+  room_code?: string;  // <-- AGREGAR ESTA LÍNEA
   partido: string;
   fecha: string;
   cierre: string;
@@ -37,8 +38,8 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [closingPredictions, setClosingPredictions] = useState(false);
 
-  // Generar código de sala (primeros 6 caracteres del ID)
-  const codigoSala = salaId ? salaId.substring(0, 6).toUpperCase() : "LOADING";
+  // Generar código de sala (usar room_code de la API o generarlo del ID)
+  const codigoSala = room?.room_code || (salaId ? salaId.substring(0, 6).toUpperCase() : "LOADING");
 
   // URL para que los jugadores se unan a la sala
   const joinUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/entrar?code=${codigoSala}`;
@@ -74,7 +75,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
 
   // Generar QR
   useEffect(() => {
-    if (joinUrl && joinUrl !== `${process.env.NEXT_PUBLIC_FRONTEND_URL}/entrar?code=LOADING`) {
+    if (joinUrl && !joinUrl.includes("LOADING")) {
       QRCode.toDataURL(joinUrl, {
         width: 200,
         margin: 2,
