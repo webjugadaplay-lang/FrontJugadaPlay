@@ -49,8 +49,9 @@ export default function EntrarForm() {
       const userData = localStorage.getItem("user");
       
       if (!token || !userData) {
+        // Guardar código en sessionStorage y redirigir al login con el código
         sessionStorage.setItem("pendingRoomCode", salaCode);
-        router.push("/login?redirect=entrar");
+        router.push(`/login?redirect=entrar&code=${salaCode}`);
         return;
       }
 
@@ -61,6 +62,7 @@ export default function EntrarForm() {
         return;
       }
 
+      // Buscar la sala por código
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${salaCode}`, {
         headers: { Authorization: `Bearer ${token}` },
       });

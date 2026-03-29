@@ -1,19 +1,27 @@
-// app/login/page.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Crown, Mail, Lock, Eye, EyeOff, User, Building2, Shield } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [tipoUsuario, setTipoUsuario] = useState<"bar" | "player" | "admin">("player");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Si hay código en la URL, guardarlo en sessionStorage para después
+  useEffect(() => {
+    const code = searchParams?.get("code");
+    if (code) {
+      sessionStorage.setItem("pendingRoomCode", code);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +35,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           email,
           password,
-          role: tipoUsuario,  // Ahora envía "player", "bar" o "admin"
+          role: tipoUsuario,
         }),
       });
 
@@ -40,6 +48,14 @@ export default function LoginPage() {
       // Guardar token y datos del usuario
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+
+      // Verificar si hay un código de sala pendiente
+      const pendingCode = sessionStorage.getItem("pendingRoomCode");
+      if (pendingCode) {
+        sessionStorage.removeItem("pendingRoomCode");
+        router.push(`/entrar?code=${pendingCode}`);
+        return;
+      }
 
       // Redirigir según rol
       if (data.user.role === "admin") {
@@ -88,7 +104,7 @@ export default function LoginPage() {
 
               <div className="p-6 space-y-6">
                 
-                {/* Selector de tipo de usuario - TRES OPCIONES */}
+                {/* Selector de tipo de usuario */}
                 <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
