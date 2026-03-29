@@ -35,8 +35,8 @@ export default function EntrarForm() {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
       
-      //const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`);
-      const response = await fetch(`${codigo}`);
+      // ✅ CORRECTO: Llamar al backend con la URL completa
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -61,12 +61,12 @@ export default function EntrarForm() {
       router.push(`/jugador/prediccion/${data.roomId}`);
       
     } catch (err: any) {
+      console.error("Error en procesarCodigo:", err);
       setError(err.message || "Error al ingresar a la sala");
       setLoading(false);
     }
   };
 
-  // onScan recibe un array de IDetectedBarcode[]
   const handleQRResult = (detectedCodes: any[]) => {
     if (detectedCodes && detectedCodes.length > 0) {
       const result = detectedCodes[0].rawValue;
