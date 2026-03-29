@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { QrScanner } from "@yudiel/react-qr-scanner";
+import { Scanner } from "@yudiel/react-qr-scanner";
 import { Sparkles, ChevronRight, Loader2 } from "lucide-react";
 
 export default function EntrarForm() {
@@ -35,7 +35,6 @@ export default function EntrarForm() {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
       
-      // Buscar sala en backend (público)
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`);
       const data = await response.json();
       
@@ -66,11 +65,21 @@ export default function EntrarForm() {
     }
   };
 
-  const handleQRResult = (result: string) => {
+  // onScan recibe un array de IDetectedBarcode[]
+  const handleQRResult = (detectedCodes: any[]) => {
+    if (detectedCodes && detectedCodes.length > 0) {
+      const result = detectedCodes[0].rawValue;
+      setShowScanner(false);
+      const scannedCode = result.toUpperCase();
+      setCodigoSala(scannedCode);
+      procesarCodigo(scannedCode);
+    }
+  };
+
+  const handleScannerError = (err: unknown) => {
+    console.error("Error escaneando QR:", err);
+    setError("Error al acceder a la cámara. Verifica los permisos.");
     setShowScanner(false);
-    const scannedCode = result.toUpperCase();
-    setCodigoSala(scannedCode);
-    procesarCodigo(scannedCode);
   };
 
   const handleIngresar = () => {
@@ -97,7 +106,6 @@ export default function EntrarForm() {
           </div>
 
           <div className="p-8 space-y-8">
-            {/* Escáner QR moderno - igual que Nubank */}
             {!showScanner ? (
               <button 
                 onClick={() => setShowScanner(true)}
@@ -116,17 +124,13 @@ export default function EntrarForm() {
               </button>
             ) : (
               <div className="space-y-3">
-                <div className="relative rounded-xl overflow-hidden border border-yellow-500/30">
-                  <QrScanner
-                    onDecode={handleQRResult}
-                    onError={(err) => {
-                      console.error("Error escaneando:", err);
-                      setError("Error al acceder a la cámara");
-                      setShowScanner(false);
-                    }}
+                <div className="relative rounded-xl overflow-hidden border border-yellow-500/30 bg-black">
+                  <Scanner
+                    onScan={handleQRResult}
+                    onError={handleScannerError}
                     scanDelay={500}
                     constraints={{ facingMode: "environment" }}
-                    containerStyle={{ width: "100%", aspectRatio: "1/1" }}
+                    styles={{ container: { width: "100%", aspectRatio: "1/1" } }}
                   />
                 </div>
                 <button
@@ -155,7 +159,7 @@ export default function EntrarForm() {
                 onChange={(e) => setCodigoSala(e.target.value.toUpperCase())}
                 placeholder="EJ: FX27"
                 maxLength={6}
-                className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white text-center text-lg tracking-wider focus:outline-none focus:border-yellow-500/60 transition-all"
+                className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white text-center text-lg tracking-wider focus:outline-none focus:border-yellow-500/60 transition-all placeholder:text-gray-800"
               />
               <p className="text-gray-700 text-xs text-center">Ingresa el código de 4-6 caracteres</p>
             </div>
