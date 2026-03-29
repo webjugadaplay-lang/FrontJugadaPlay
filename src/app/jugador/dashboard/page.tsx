@@ -366,44 +366,40 @@ export default function PlayerDashboard() {
             {partidosActivos.length > 0 ? (
               <div className="space-y-3">
                 {partidosActivos.map((prediccion) => (
-                  <div
+                  <Link
                     key={prediccion.id}
-                    className="bg-black/30 border border-yellow-500/20 rounded-lg p-4"
+                    href={`/jugador/en-vivo/${prediccion.room_id}`}
+                    className="block"
                   >
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                      <div>
-                        <h3 className="text-white font-medium mb-1">
-                          {prediccion.room?.team_home} vs {prediccion.room?.team_away}
-                        </h3>
+                    <div className="bg-black/30 border border-yellow-500/20 rounded-lg p-4 hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-all cursor-pointer">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                          <h3 className="text-white font-medium mb-1">
+                            {prediccion.room?.team_home} vs {prediccion.room?.team_away}
+                          </h3>
 
-                        <div className="flex flex-col md:flex-row gap-2 md:gap-4 text-sm">
-                          <span className="flex items-center gap-1 text-gray-500">
-                            <Clock className="w-3 h-3" />
-                            {new Date(prediccion.room?.match_date).toLocaleString()}
-                          </span>
+                          <div className="flex flex-col md:flex-row gap-2 md:gap-4 text-sm">
+                            <span className="flex items-center gap-1 text-gray-500">
+                              <Clock className="w-3 h-3" />
+                              {new Date(prediccion.room?.match_date).toLocaleString()}
+                            </span>
 
-                          <span className="text-yellow-500">
-                            Pozo: R$ {prediccion.room?.total_pool}
-                          </span>
+                            <span className="text-yellow-500">
+                              Pozo: R$ {prediccion.room?.total_pool}
+                            </span>
 
-                          <span className="text-green-500">
-                            Tu predicción: {prediccion.score_home} x {prediccion.score_away}
-                          </span>
+                            <span className="text-green-500">
+                              Tu predicción: {prediccion.score_home} x {prediccion.score_away}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-yellow-500 text-sm font-medium">
+                          VER EN VIVO
                         </div>
                       </div>
-
-                      <div className="flex gap-2 w-full md:w-auto">
-                        <Link
-                          href={`/jugador/prediccion/${prediccion.room_id}`}
-                          className="flex-1 md:flex-none"
-                        >
-                          <button className="w-full border border-yellow-500/50 text-yellow-500 px-4 py-2 text-sm rounded-sm hover:bg-yellow-500/10 transition-all">
-                            MODIFICAR
-                          </button>
-                        </Link>
-                      </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -443,9 +439,7 @@ export default function PlayerDashboard() {
                           </span>
                         </div>
                         <p className="text-gray-600 text-xs mt-1">
-                          {item.fecha
-                            ? new Date(item.fecha).toLocaleDateString()
-                            : ""}
+                          {item.fecha ? new Date(item.fecha).toLocaleDateString() : ""}
                         </p>
                       </div>
 
