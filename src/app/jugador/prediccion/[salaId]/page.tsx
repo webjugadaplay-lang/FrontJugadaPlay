@@ -3,12 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Plus,
-  Minus,
-  Loader2,
-} from "lucide-react";
+import { ArrowLeft, Plus, Minus, Loader2 } from "lucide-react";
 
 interface Room {
   id: string;
@@ -17,10 +12,12 @@ interface Room {
   team_away: string;
   match_date: string;
   prediction_close_time: string;
-  entry_fee: number;
-  total_pool: number;
+  entry_fee: number | string;
+  total_pool: number | string;
   status: string;
+  room_code?: string;
   bar: {
+    id?: string;
     name: string;
     bar_name: string;
   };
@@ -72,7 +69,6 @@ export default function PredecirMarcador() {
 
   useEffect(() => {
     if (!salaId) {
-      console.log("⛔ salaId no disponible");
       setError("ID de sala inválido");
       setLoading(false);
       return;
@@ -86,7 +82,6 @@ export default function PredecirMarcador() {
         console.log("🧪 salaId:", salaId);
         console.log("🧪 API URL:", process.env.NEXT_PUBLIC_API_URL);
         console.log("🧪 token existe:", !!token);
-        console.log("🧪 token valor:", token);
 
         if (!token || !userData) {
           router.push("/login");
@@ -102,34 +97,56 @@ export default function PredecirMarcador() {
 
         // ===== ROOM =====
         const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${salaId}`;
-        console.log("🌐 ROOM URL:", roomUrl);
-
-        const roomData = await safeFetchJson(roomUrl, {
+        const roomResponse = await safeFetchJson(roomUrl, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        setRoom(roomData.data);
+        if (!roomResponse?.data) {
+          throw new Error("La respuesta de la sala no tiene data");
+        }
+
+        setRoom(roomResponse.data);
 
         // ===== PREDICTION =====
-        const predUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${salaId}`;
-        console.log("🌐 PRED URL:", predUrl);
+        // Si falla, no debe romper la pantalla
+        try {
+          const predUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${salaId}`;
+          const predResponse = await fetch(predUrl, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
-        const predData = await safeFetchJson(predUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+          const predText = await predResponse.text();
+          const predContentType = predResponse.headers.get("content-type") || "";
 
-        if (predData.success && predData.data) {
-          setExistingPrediction(predData.data);
-          setGolesLocal(predData.data.score_home);
-          setGolesVisitante(predData.data.score_away);
-          setAceptarTerminos(true);
+          console.log("PRED URL:", predUrl);
+          console.log("PRED STATUS:", predResponse.status);
+          console.log("PRED CONTENT-TYPE:", predContentType);
+          console.log("PRED RAW:", predText);
+
+          if (
+            predResponse.ok &&
+            predContentType.includes("application/json")
+          ) {
+            const predData = JSON.parse(predText);
+
+            if (predData?.success && predData?.data) {
+              setExistingPrediction(predData.data);
+              setGolesLocal(Number(predData.data.score_home) || 0);
+              setGolesVisitante(Number(predData.data.score_away) || 0);
+              setAceptarTerminos(true);
+            }
+          } else {
+            console.log("⚠️ Prediction no disponible o endpoint incorrecto");
+          }
+        } catch (predError) {
+          console.log("⚠️ Error cargando predicción previa:", predError);
         }
       } catch (err: any) {
-        console.error("❌ Error cargando datos:", err);
+        console.error("❌ Error cargando sala:", err);
         setError(err.message || "Error al cargar la sala");
       } finally {
         setLoading(false);
@@ -176,7 +193,18 @@ export default function PredecirMarcador() {
         }
       );
 
-      const data = await response.json();
+      const text = await response.text();
+      const contentType = response.headers.get("content-type") || "";
+
+      console.log("SAVE STATUS:", response.status);
+      console.log("SAVE CONTENT-TYPE:", contentType);
+      console.log("SAVE RAW:", text);
+
+      if (!contentType.includes("application/json")) {
+        throw new Error("La respuesta al guardar no fue JSON");
+      }
+
+      const data = JSON.parse(text);
 
       if (!response.ok) {
         throw new Error(data.message || "Error al guardar la predicción");
@@ -202,11 +230,24 @@ export default function PredecirMarcador() {
     );
   }
 
-  if (error || !room) {
+  if (error) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-red-500 text-center px-4">
-          <p>{error || "Sala no encontrada"}</p>
+          <p>{error}</p>
+          <Link href="/entrar" className="text-yellow-500 mt-4 inline-block">
+            Volver
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (!room) {
+    return (
+      <main className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-red-500 text-center px-4">
+          <p>Sala no encontrada</p>
           <Link href="/entrar" className="text-yellow-500 mt-4 inline-block">
             Volver
           </Link>
@@ -217,7 +258,7 @@ export default function PredecirMarcador() {
 
   const fechaPartido = new Date(room.match_date).toLocaleString();
   const cierreFecha = new Date(room.prediction_close_time).toLocaleString();
-  const premioEstimado = room.total_pool;
+  const premioEstimado = Number(room.total_pool) || 0;
 
   return (
     <main className="min-h-screen bg-black">
@@ -291,8 +332,6 @@ export default function PredecirMarcador() {
           </label>
         )}
 
-        {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-
         <button
           onClick={handleSubmit}
           disabled={saving}
@@ -308,5 +347,4 @@ export default function PredecirMarcador() {
       </div>
     </main>
   );
-  
 }
