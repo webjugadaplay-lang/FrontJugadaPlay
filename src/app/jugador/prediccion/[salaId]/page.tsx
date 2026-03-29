@@ -32,6 +32,29 @@ interface ExistingPrediction {
   score_away: number;
 }
 
+async function safeFetchJson(url: string, options?: RequestInit) {
+  const response = await fetch(url, options);
+  const text = await response.text();
+  const contentType = response.headers.get("content-type") || "";
+
+  console.log("FETCH URL:", url);
+  console.log("FETCH STATUS:", response.status);
+  console.log("FETCH CONTENT-TYPE:", contentType);
+  console.log("FETCH RAW:", text);
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(`El endpoint no devolvió JSON: ${url}`);
+  }
+
+  const data = JSON.parse(text);
+
+  if (!response.ok) {
+    throw new Error(data.message || "Error en la petición");
+  }
+
+  return data;
+}
+
 export default function PredecirMarcador() {
   const router = useRouter();
   const params = useParams<{ salaId: string }>();
@@ -60,6 +83,11 @@ export default function PredecirMarcador() {
         const token = localStorage.getItem("token");
         const userData = localStorage.getItem("user");
 
+        console.log("🧪 salaId:", salaId);
+        console.log("🧪 API URL:", process.env.NEXT_PUBLIC_API_URL);
+        console.log("🧪 token existe:", !!token);
+        console.log("🧪 token valor:", token);
+
         if (!token || !userData) {
           router.push("/login");
           return;
@@ -72,37 +100,29 @@ export default function PredecirMarcador() {
           return;
         }
 
-        console.log("🚀 Cargando sala:", salaId);
+        // ===== ROOM =====
+        const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${salaId}`;
+        console.log("🌐 ROOM URL:", roomUrl);
 
-        const roomResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${salaId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const roomData = await roomResponse.json();
-
-        if (!roomResponse.ok) {
-          throw new Error(roomData.message || "Error al cargar la sala");
-        }
+        const roomData = await safeFetchJson(roomUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         setRoom(roomData.data);
 
-        const predResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${salaId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        // ===== PREDICTION =====
+        const predUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${salaId}`;
+        console.log("🌐 PRED URL:", predUrl);
 
-        const predData = await predResponse.json();
+        const predData = await safeFetchJson(predUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-        if (predResponse.ok && predData.success && predData.data) {
+        if (predData.success && predData.data) {
           setExistingPrediction(predData.data);
           setGolesLocal(predData.data.score_home);
           setGolesVisitante(predData.data.score_away);
