@@ -15,19 +15,11 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Si hay código en la URL, guardarlo para después del login
-  const [pendingCode, setPendingCode] = useState<string | null>(null);
-
+  // Si hay código en la URL (desde QR), guardarlo para después
   useEffect(() => {
     const code = searchParams?.get("code");
     if (code) {
-      setPendingCode(code);
       sessionStorage.setItem("pendingRoomCode", code);
-    } else {
-      const storedCode = sessionStorage.getItem("pendingRoomCode");
-      if (storedCode) {
-        setPendingCode(storedCode);
-      }
     }
   }, [searchParams]);
 
@@ -53,18 +45,19 @@ export default function LoginForm() {
         throw new Error(data.message || "Error al iniciar sesión");
       }
 
+      // Guardar token y datos del usuario
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Verificar si hay un código de sala pendiente
-      const code = pendingCode || sessionStorage.getItem("pendingRoomCode");
-      if (code) {
+      // Verificar si hay un código de sala pendiente (desde QR)
+      const pendingCode = sessionStorage.getItem("pendingRoomCode");
+      if (pendingCode) {
         sessionStorage.removeItem("pendingRoomCode");
-        router.push(`/entrar?code=${code}`);
+        router.push(`/entrar?code=${pendingCode}`);
         return;
       }
 
-      // Redirigir según rol
+      // Redirigir según el rol del usuario
       if (data.user.role === "admin") {
         router.push("/admin/dashboard");
       } else if (data.user.role === "bar") {

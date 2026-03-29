@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -16,7 +15,6 @@ export default function Home() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Efecto para el header al hacer scroll
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -25,7 +23,6 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Obtener estadísticas del backend
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -46,7 +43,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-black">
-      {/* Header - mantiene el mismo código que tenías */}
+      {/* Header - solo con botón Iniciar Sesión */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
           ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
@@ -62,17 +59,11 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Menú Desktop */}
+            {/* Menú Desktop - Solo botón Iniciar Sesión */}
             <div className="hidden md:flex items-center space-x-8">
               <Link href="/login">
                 <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm tracking-wide">
                   INICIAR SESIÓN
-                </button>
-              </Link>
-              <Link href="/bar/registro">
-                <button className="relative overflow-hidden bg-yellow-500 text-black px-6 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20 group">
-                  <span className="relative z-10">REGISTRAR BAR</span>
-                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
                 </button>
               </Link>
             </div>
@@ -93,11 +84,6 @@ export default function Home() {
                 <Link href="/login">
                   <button className="text-gray-400 hover:text-yellow-500 py-2 transition-colors text-sm tracking-wide text-left">
                     INICIAR SESIÓN
-                  </button>
-                </Link>
-                <Link href="/bar/registro">
-                  <button className="bg-yellow-500 text-black px-4 py-2 text-sm font-medium tracking-wide rounded-sm hover:bg-yellow-400 transition-all text-center">
-                    REGISTRAR BAR
                   </button>
                 </Link>
               </div>
@@ -153,7 +139,7 @@ export default function Home() {
               </button>
             </Link>
             
-            <Link href="/entrar">
+            <Link href="/login">
               <button className="group relative overflow-hidden border border-yellow-500/50 text-yellow-500 px-8 py-3 rounded-sm text-base font-medium tracking-wide hover:border-yellow-500 hover:text-yellow-400 transition-all">
                 <span className="relative z-10">QUIERO JUGAR</span>
                 <div className="absolute inset-0 bg-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -167,7 +153,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Sección de Estadísticas - CON DATOS REALES */}
+      {/* Sección de Estadísticas */}
       <section className="py-20 px-6 border-t border-yellow-500/10">
         <div className="container mx-auto max-w-5xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
