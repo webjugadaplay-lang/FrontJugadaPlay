@@ -308,4 +308,5 @@ export default function PredecirMarcador() {
       </div>
     </main>
   );
+  
 }
