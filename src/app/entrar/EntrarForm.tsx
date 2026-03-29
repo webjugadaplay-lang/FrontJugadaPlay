@@ -34,19 +34,31 @@ export default function EntrarForm() {
     try {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
-      
-      // ✅ CORRECTO: Llamar al backend con la URL completa
+
+      console.log("🔍 Enviando código al backend:", codigo);
+      console.log("🔍 URL:", `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`);
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`);
       const data = await response.json();
-      
+
+      console.log("📦 Respuesta del backend:", data);
+
       if (!response.ok) {
         throw new Error(data.message || "Sala no encontrada");
       }
-      
+
+      // Verificar que tenemos el roomId
+      if (!data.roomId) {
+        throw new Error("No se pudo obtener el ID de la sala");
+      }
+
+      console.log("✅ Sala encontrada, roomId:", data.roomId);
+
       sessionStorage.setItem("currentRoomCode", codigo);
       sessionStorage.setItem("currentRoomId", data.roomId);
-      
+
       if (!token || !userData) {
+        console.log("❌ Usuario no logueado - redirigiendo a login con código:", codigo);
         router.push(`/login?code=${codigo}`);
         return;
       }
@@ -58,10 +70,11 @@ export default function EntrarForm() {
         return;
       }
 
+      console.log("✅ Usuario logueado - redirigiendo a predicción con ID:", data.roomId);
       router.push(`/jugador/prediccion/${data.roomId}`);
-      
+
     } catch (err: any) {
-      console.error("Error en procesarCodigo:", err);
+      console.error("❌ Error al procesar código:", err);
       setError(err.message || "Error al ingresar a la sala");
       setLoading(false);
     }
@@ -108,7 +121,7 @@ export default function EntrarForm() {
 
           <div className="p-8 space-y-8">
             {!showScanner ? (
-              <button 
+              <button
                 onClick={() => setShowScanner(true)}
                 className="group relative w-full py-12 rounded-xl border border-yellow-500/30 bg-black hover:border-yellow-500/60 transition-all duration-300 overflow-hidden"
               >
@@ -171,14 +184,13 @@ export default function EntrarForm() {
               </div>
             )}
 
-            <button 
+            <button
               onClick={handleIngresar}
               disabled={codigoSala.length < 3 || loading}
-              className={`group relative w-full py-3 rounded-lg font-medium tracking-wide transition-all overflow-hidden ${
-                codigoSala.length >= 3 && !loading
+              className={`group relative w-full py-3 rounded-lg font-medium tracking-wide transition-all overflow-hidden ${codigoSala.length >= 3 && !loading
                   ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
                   : "bg-gray-900 text-gray-600 cursor-not-allowed"
-              }`}
+                }`}
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
                 {loading ? (
