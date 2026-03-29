@@ -304,4 +304,4 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       </div>
     </main>
   );
-}
+} 
