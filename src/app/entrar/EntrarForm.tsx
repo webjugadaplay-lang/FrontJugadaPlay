@@ -29,13 +29,15 @@ export default function EntrarForm() {
   useEffect(() => {
     const codeFromUrl = searchParams?.get("code");
     if (codeFromUrl) {
+      console.log("📱 Código recibido desde URL:", codeFromUrl);
       setCodigoSala(codeFromUrl.toUpperCase());
-      // Procesar el código automáticamente
       procesarCodigo(codeFromUrl.toUpperCase());
     }
   }, [searchParams]);
 
   const procesarCodigo = async (codigo: string) => {
+    console.log("🔍 Procesando código:", codigo);
+    
     if (codigo.length < 3) {
       setError("El código debe tener al menos 3 caracteres");
       return;
@@ -48,13 +50,19 @@ export default function EntrarForm() {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
       
-      // Primero, buscar la sala en el backend
+      console.log("🔍 Buscando sala en backend con código:", codigo);
+      
+      // Buscar la sala en el backend (ruta pública, no requiere token)
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`);
       const data = await response.json();
+      
+      console.log("📦 Respuesta del backend:", data);
       
       if (!response.ok) {
         throw new Error(data.message || "Sala no encontrada");
       }
+      
+      console.log("✅ Sala encontrada:", data.roomId);
       
       // Guardar el código en sessionStorage para después
       sessionStorage.setItem("currentRoomCode", codigo);
@@ -62,7 +70,7 @@ export default function EntrarForm() {
       
       // Verificar si el usuario está logueado
       if (!token || !userData) {
-        // No está logueado - redirigir al login con el código
+        console.log("❌ Usuario no logueado - redirigiendo a login con código:", codigo);
         router.push(`/login?code=${codigo}`);
         return;
       }
@@ -74,10 +82,11 @@ export default function EntrarForm() {
         return;
       }
 
-      // Usuario logueado - redirigir a la predicción
+      console.log("✅ Usuario logueado - redirigiendo a predicción:", data.roomId);
       router.push(`/jugador/prediccion/${data.roomId}`);
       
     } catch (err: any) {
+      console.error("❌ Error al procesar código:", err.message);
       setError(err.message || "Error al ingresar a la sala");
       setLoading(false);
     }
@@ -128,10 +137,13 @@ export default function EntrarForm() {
         const code = jsQR(imageData.data, canvas.width, canvas.height);
         
         if (code) {
+          console.log("📷 QR escaneado:", code.data);
+          
           if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
           const stream = video.srcObject as MediaStream;
           if (stream) stream.getTracks().forEach(track => track.stop());
           setScannerActive(false);
+          
           const scannedCode = code.data;
           setCodigoSala(scannedCode.toUpperCase());
           procesarCodigo(scannedCode.toUpperCase());
