@@ -59,7 +59,6 @@ export default function PredecirMarcador() {
 
   const [golesLocal, setGolesLocal] = useState(0);
   const [golesVisitante, setGolesVisitante] = useState(0);
-  const [aceptarTerminos, setAceptarTerminos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -79,10 +78,6 @@ export default function PredecirMarcador() {
         const token = localStorage.getItem("token");
         const userData = localStorage.getItem("user");
 
-        console.log("🧪 salaId:", salaId);
-        console.log("🧪 API URL:", process.env.NEXT_PUBLIC_API_URL);
-        console.log("🧪 token existe:", !!token);
-
         if (!token || !userData) {
           router.push("/login");
           return;
@@ -95,7 +90,6 @@ export default function PredecirMarcador() {
           return;
         }
 
-        // ===== ROOM =====
         const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${salaId}`;
         const roomResponse = await safeFetchJson(roomUrl, {
           headers: {
@@ -103,14 +97,8 @@ export default function PredecirMarcador() {
           },
         });
 
-        if (!roomResponse?.data) {
-          throw new Error("La respuesta de la sala no tiene data");
-        }
-
         setRoom(roomResponse.data);
 
-        // ===== PREDICTION =====
-        // Si falla, no debe romper la pantalla
         try {
           const predUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${salaId}`;
           const predResponse = await fetch(predUrl, {
@@ -120,33 +108,22 @@ export default function PredecirMarcador() {
           });
 
           const predText = await predResponse.text();
-          const predContentType = predResponse.headers.get("content-type") || "";
+          const predContentType =
+            predResponse.headers.get("content-type") || "";
 
-          console.log("PRED URL:", predUrl);
-          console.log("PRED STATUS:", predResponse.status);
-          console.log("PRED CONTENT-TYPE:", predContentType);
-          console.log("PRED RAW:", predText);
-
-          if (
-            predResponse.ok &&
-            predContentType.includes("application/json")
-          ) {
+          if (predResponse.ok && predContentType.includes("application/json")) {
             const predData = JSON.parse(predText);
 
             if (predData?.success && predData?.data) {
               setExistingPrediction(predData.data);
               setGolesLocal(Number(predData.data.score_home) || 0);
               setGolesVisitante(Number(predData.data.score_away) || 0);
-              setAceptarTerminos(true);
             }
-          } else {
-            console.log("⚠️ Prediction no disponible o endpoint incorrecto");
           }
-        } catch (predError) {
-          console.log("⚠️ Error cargando predicción previa:", predError);
+        } catch {
+          console.log("Sin predicción previa");
         }
       } catch (err: any) {
-        console.error("❌ Error cargando sala:", err);
         setError(err.message || "Error al cargar la sala");
       } finally {
         setLoading(false);
@@ -157,11 +134,6 @@ export default function PredecirMarcador() {
   }, [salaId, router]);
 
   const handleSubmit = async () => {
-    if (!aceptarTerminos && !existingPrediction) {
-      setError("Debes aceptar los términos y condiciones");
-      return;
-    }
-
     if (!salaId) {
       setError("No se encontró el ID de la sala");
       return;
@@ -172,10 +144,6 @@ export default function PredecirMarcador() {
 
     try {
       const token = localStorage.getItem("token");
-
-      if (!token) {
-        throw new Error("Sesión no válida");
-      }
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction`,
@@ -193,21 +161,10 @@ export default function PredecirMarcador() {
         }
       );
 
-      const text = await response.text();
-      const contentType = response.headers.get("content-type") || "";
-
-      console.log("SAVE STATUS:", response.status);
-      console.log("SAVE CONTENT-TYPE:", contentType);
-      console.log("SAVE RAW:", text);
-
-      if (!contentType.includes("application/json")) {
-        throw new Error("La respuesta al guardar no fue JSON");
-      }
-
-      const data = JSON.parse(text);
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Error al guardar la predicción");
+        throw new Error(data.message || "Error al guardar");
       }
 
       if (!existingPrediction) {
@@ -216,8 +173,7 @@ export default function PredecirMarcador() {
         router.push("/jugador/dashboard");
       }
     } catch (err: any) {
-      console.error("❌ Error guardando predicción:", err);
-      setError(err.message || "Error al guardar la predicción");
+      setError(err.message);
       setSaving(false);
     }
   };
@@ -233,9 +189,9 @@ export default function PredecirMarcador() {
   if (error) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-red-500 text-center px-4">
+        <div className="text-red-500 text-center">
           <p>{error}</p>
-          <Link href="/entrar" className="text-yellow-500 mt-4 inline-block">
+          <Link href="/entrar" className="text-yellow-500">
             Volver
           </Link>
         </div>
@@ -246,103 +202,76 @@ export default function PredecirMarcador() {
   if (!room) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-red-500 text-center px-4">
-          <p>Sala no encontrada</p>
-          <Link href="/entrar" className="text-yellow-500 mt-4 inline-block">
-            Volver
-          </Link>
-        </div>
+        <p className="text-red-500">Sala no encontrada</p>
       </main>
     );
   }
 
   const fechaPartido = new Date(room.match_date).toLocaleString();
-  const cierreFecha = new Date(room.prediction_close_time).toLocaleString();
-  const premioEstimado = Number(room.total_pool) || 0;
 
   return (
     <main className="min-h-screen bg-black">
-      <header className="fixed top-0 left-0 right-0 bg-black border-b border-yellow-500/20 p-4">
+      <header className="fixed top-0 left-0 right-0 bg-black p-4 border-b border-yellow-500/20">
         <Link href="/entrar" className="flex items-center gap-2 text-white">
           <ArrowLeft className="w-4 h-4" />
           Volver
         </Link>
       </header>
 
-      <div className="pt-24 max-w-md mx-auto p-4 space-y-6">
-        <h2 className="text-white text-center text-xl">
-          {room.team_home} vs {room.team_away}
-        </h2>
+      <div className="pt-24 max-w-md mx-auto p-4 space-y-8">
+        {/* GRID CON VS */}
+        <div className="grid grid-cols-3 gap-4 items-center">
+          
+          {/* LOCAL */}
+          <div className="text-center space-y-4">
+            <h2 className="text-white text-xl">{room.team_home}</h2>
+            <div className="flex justify-center gap-3 text-white text-2xl">
+              <button onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}>
+                <Minus />
+              </button>
+              <span>{golesLocal}</span>
+              <button onClick={() => setGolesLocal(golesLocal + 1)}>
+                <Plus />
+              </button>
+            </div>
+          </div>
 
-        <div className="text-center text-gray-400 text-sm space-y-1">
+          {/* VS */}
+          <div className="text-center text-yellow-500 text-2xl font-bold">
+            VS
+          </div>
+
+          {/* VISITANTE */}
+          <div className="text-center space-y-4">
+            <h2 className="text-white text-xl">{room.team_away}</h2>
+            <div className="flex justify-center gap-3 text-white text-2xl">
+              <button
+                onClick={() =>
+                  setGolesVisitante(Math.max(0, golesVisitante - 1))
+                }
+              >
+                <Minus />
+              </button>
+              <span>{golesVisitante}</span>
+              <button onClick={() => setGolesVisitante(golesVisitante + 1)}>
+                <Plus />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* INFO */}
+        <div className="text-center text-gray-400 text-sm">
           <p>{fechaPartido}</p>
-          <p>Cierre: {cierreFecha}</p>
-          <p>Premio estimado: {premioEstimado}</p>
-          <p>Bar: {room.bar?.bar_name || room.bar?.name}</p>
+          <p>{room.bar?.bar_name || room.bar?.name}</p>
         </div>
-
-        <div className="flex justify-center items-center gap-6 text-white text-2xl">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
-              className="p-2 border border-yellow-500/30 rounded"
-              type="button"
-            >
-              <Minus />
-            </button>
-            <span>{golesLocal}</span>
-            <button
-              onClick={() => setGolesLocal(golesLocal + 1)}
-              className="p-2 border border-yellow-500/30 rounded"
-              type="button"
-            >
-              <Plus />
-            </button>
-          </div>
-
-          <span>-</span>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setGolesVisitante(Math.max(0, golesVisitante - 1))}
-              className="p-2 border border-yellow-500/30 rounded"
-              type="button"
-            >
-              <Minus />
-            </button>
-            <span>{golesVisitante}</span>
-            <button
-              onClick={() => setGolesVisitante(golesVisitante + 1)}
-              className="p-2 border border-yellow-500/30 rounded"
-              type="button"
-            >
-              <Plus />
-            </button>
-          </div>
-        </div>
-
-        {!existingPrediction && (
-          <label className="flex items-center gap-2 text-white text-sm">
-            <input
-              type="checkbox"
-              checked={aceptarTerminos}
-              onChange={(e) => setAceptarTerminos(e.target.checked)}
-            />
-            Acepto los términos y condiciones
-          </label>
-        )}
 
         <button
           onClick={handleSubmit}
           disabled={saving}
-          className="w-full bg-yellow-500 text-black py-3 rounded flex items-center justify-center gap-2 disabled:opacity-70"
+          className="w-full bg-yellow-500 text-black py-3 rounded"
         >
-          {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saving
-            ? "Guardando..."
-            : existingPrediction
-            ? "Actualizar predicción"
-            : "Confirmar"}
+          {saving ? "Guardando..." : "Confirmar"}
         </button>
       </div>
     </main>
