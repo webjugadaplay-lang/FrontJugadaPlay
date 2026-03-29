@@ -15,11 +15,19 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Si hay código en la URL, guardarlo en sessionStorage para después
+  // Si hay código en la URL, guardarlo para después del login
+  const [pendingCode, setPendingCode] = useState<string | null>(null);
+
   useEffect(() => {
     const code = searchParams?.get("code");
     if (code) {
+      setPendingCode(code);
       sessionStorage.setItem("pendingRoomCode", code);
+    } else {
+      const storedCode = sessionStorage.getItem("pendingRoomCode");
+      if (storedCode) {
+        setPendingCode(storedCode);
+      }
     }
   }, [searchParams]);
 
@@ -49,10 +57,10 @@ export default function LoginForm() {
       localStorage.setItem("user", JSON.stringify(data.user));
 
       // Verificar si hay un código de sala pendiente
-      const pendingCode = sessionStorage.getItem("pendingRoomCode");
-      if (pendingCode) {
+      const code = pendingCode || sessionStorage.getItem("pendingRoomCode");
+      if (code) {
         sessionStorage.removeItem("pendingRoomCode");
-        router.push(`/entrar?code=${pendingCode}`);
+        router.push(`/entrar?code=${code}`);
         return;
       }
 

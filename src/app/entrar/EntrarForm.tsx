@@ -25,18 +25,18 @@ export default function EntrarForm() {
     });
   }, []);
 
-  // Leer código de la URL
+  // Leer código de la URL cuando se carga la página (desde QR o link directo)
   useEffect(() => {
     const codeFromUrl = searchParams?.get("code");
     if (codeFromUrl) {
       setCodigoSala(codeFromUrl.toUpperCase());
-      handleIngresar(codeFromUrl.toUpperCase());
+      // Procesar el código automáticamente
+      procesarCodigo(codeFromUrl.toUpperCase());
     }
   }, [searchParams]);
 
-  const handleIngresar = async (code?: string) => {
-    const salaCode = code || codigoSala;
-    if (salaCode.length < 3) {
+  const procesarCodigo = async (codigo: string) => {
+    if (codigo.length < 3) {
       setError("El código debe tener al menos 3 caracteres");
       return;
     }
@@ -48,10 +48,22 @@ export default function EntrarForm() {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
       
+      // Primero, buscar la sala en el backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Sala no encontrada");
+      }
+      
+      // Guardar el código en sessionStorage para después
+      sessionStorage.setItem("currentRoomCode", codigo);
+      sessionStorage.setItem("currentRoomId", data.roomId);
+      
+      // Verificar si el usuario está logueado
       if (!token || !userData) {
-        // Guardar código en sessionStorage y redirigir al login con el código
-        sessionStorage.setItem("pendingRoomCode", salaCode);
-        router.push(`/login?redirect=entrar&code=${salaCode}`);
+        // No está logueado - redirigir al login con el código
+        router.push(`/login?code=${codigo}`);
         return;
       }
 
@@ -62,22 +74,20 @@ export default function EntrarForm() {
         return;
       }
 
-      // Buscar la sala por código
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${salaCode}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || "Sala no encontrada");
-      }
-      
+      // Usuario logueado - redirigir a la predicción
       router.push(`/jugador/prediccion/${data.roomId}`);
       
     } catch (err: any) {
       setError(err.message || "Error al ingresar a la sala");
       setLoading(false);
+    }
+  };
+
+  const handleIngresar = () => {
+    if (codigoSala.length >= 3) {
+      procesarCodigo(codigoSala);
+    } else {
+      setError("El código debe tener al menos 3 caracteres");
     }
   };
 
@@ -122,8 +132,9 @@ export default function EntrarForm() {
           const stream = video.srcObject as MediaStream;
           if (stream) stream.getTracks().forEach(track => track.stop());
           setScannerActive(false);
-          setCodigoSala(code.data.toUpperCase());
-          handleIngresar(code.data.toUpperCase());
+          const scannedCode = code.data;
+          setCodigoSala(scannedCode.toUpperCase());
+          procesarCodigo(scannedCode.toUpperCase());
         }
       }
     };
@@ -233,7 +244,7 @@ export default function EntrarForm() {
             )}
 
             <button 
-              onClick={() => handleIngresar()}
+              onClick={handleIngresar}
               disabled={codigoSala.length < 3 || loading}
               className={`group relative w-full py-3 rounded-lg font-medium tracking-wide transition-all overflow-hidden ${
                 codigoSala.length >= 3 && !loading
