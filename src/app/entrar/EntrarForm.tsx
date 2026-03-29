@@ -35,7 +35,8 @@ export default function EntrarForm() {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`);
+      //const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`);
+      const response = await fetch(`${codigo}`);
       const data = await response.json();
       
       if (!response.ok) {
