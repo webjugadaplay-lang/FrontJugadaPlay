@@ -3,33 +3,34 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Scanner } from "@yudiel/react-qr-scanner";
-import { Sparkles, ChevronRight, Loader2 } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 
 export default function EntrarForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const executedRef = useRef(false); // ✅ evita doble ejecución
+  const executedRef = useRef(false);
 
   const [codigoSala, setCodigoSala] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showScanner, setShowScanner] = useState(false);
 
-  // Leer código de la URL (CORREGIDO)
   useEffect(() => {
     const codeFromUrl = searchParams?.get("code");
 
     if (codeFromUrl && !executedRef.current) {
       executedRef.current = true;
 
-      const upperCode = codeFromUrl.toUpperCase();
+      const upperCode = codeFromUrl.trim().toUpperCase();
       setCodigoSala(upperCode);
       procesarCodigo(upperCode);
     }
   }, [searchParams]);
 
   const procesarCodigo = async (codigo: string) => {
-    if (!codigo || codigo.length < 3) {
+    const codigoLimpio = codigo.trim().toUpperCase();
+
+    if (!codigoLimpio || codigoLimpio.length < 3) {
       setError("El código debe tener al menos 3 caracteres");
       return;
     }
@@ -41,10 +42,10 @@ export default function EntrarForm() {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
 
-      console.log("🔍 Enviando código al backend:", codigo);
+      console.log("🔍 Enviando código al backend:", codigoLimpio);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigo}`
+        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${encodeURIComponent(codigoLimpio)}`
       );
 
       const data = await response.json();
@@ -55,48 +56,46 @@ export default function EntrarForm() {
         throw new Error(data.message || "Sala no encontrada");
       }
 
-      // ✅ validación crítica
       if (!data.roomId) {
         throw new Error("No se pudo obtener el ID de la sala");
       }
 
       console.log("✅ Sala encontrada, roomId:", data.roomId);
 
-      sessionStorage.setItem("currentRoomCode", codigo);
+      sessionStorage.setItem("currentRoomCode", codigoLimpio);
       sessionStorage.setItem("currentRoomId", data.roomId);
 
       if (!token || !userData) {
         console.log("❌ Usuario no logueado");
-        router.push(`/login?code=${codigo}`);
+        router.push(`/login?code=${codigoLimpio}`);
         return;
       }
 
       const user = JSON.parse(userData);
 
       if (user.role !== "player") {
-        setError("Solo los jugadores pueden unirse a las salas");
-        setLoading(false);
-        return;
+        throw new Error("Solo los jugadores pueden unirse a las salas");
       }
 
       console.log("✅ Redirigiendo con ID:", data.roomId);
-
-      // ✅ protección extra
       router.push(`/jugador/prediccion/${data.roomId}`);
-
     } catch (err: any) {
       console.error("❌ Error:", err);
       setError(err.message || "Error al ingresar a la sala");
+    } finally {
       setLoading(false);
     }
   };
 
   const handleQRResult = (detectedCodes: any[]) => {
     if (detectedCodes && detectedCodes.length > 0) {
-      const result = detectedCodes[0].rawValue;
+      const result = detectedCodes[0]?.rawValue;
+
+      if (!result) return;
+
       setShowScanner(false);
 
-      const scannedCode = result.toUpperCase();
+      const scannedCode = result.trim().toUpperCase();
       setCodigoSala(scannedCode);
       procesarCodigo(scannedCode);
     }
@@ -104,16 +103,13 @@ export default function EntrarForm() {
 
   const handleScannerError = (err: unknown) => {
     console.error("Error escaneando QR:", err);
-    setError("Error al acceder a la cámara.");
+    setError("Error al acceder a la cámara");
     setShowScanner(false);
   };
 
   const handleIngresar = () => {
-    if (codigoSala.length >= 3) {
-      procesarCodigo(codigoSala);
-    } else {
-      setError("El código debe tener al menos 3 caracteres");
-    }
+    if (loading) return;
+    procesarCodigo(codigoSala);
   };
 
   return (
@@ -132,29 +128,46 @@ export default function EntrarForm() {
           </div>
 
           <div className="p-8 space-y-6">
-
             <input
               type="text"
               value={codigoSala}
-              onChange={(e) => setCodigoSala(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setCodigoSala(e.target.value.toUpperCase());
+                if (error) setError("");
+              }}
               placeholder="EJ: FX27"
               className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white text-center"
             />
 
             {error && (
-              <div className="text-red-500 text-center text-sm">
-                {error}
-              </div>
+              <div className="text-red-500 text-center text-sm">{error}</div>
             )}
 
             <button
               onClick={handleIngresar}
               disabled={loading}
-              className="w-full py-3 bg-yellow-500 text-black rounded-lg"
+              className="w-full py-3 bg-yellow-500 text-black rounded-lg flex items-center justify-center gap-2 disabled:opacity-70"
             >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? "INGRESANDO..." : "INGRESAR"}
             </button>
 
+            <button
+              onClick={() => setShowScanner(!showScanner)}
+              type="button"
+              className="w-full py-3 border border-yellow-500/30 text-yellow-500 rounded-lg"
+            >
+              {showScanner ? "Cerrar escáner" : "Escanear QR"}
+            </button>
+
+            {showScanner && (
+              <div className="rounded-lg overflow-hidden border border-yellow-500/20">
+                <Scanner
+                  onScan={handleQRResult}
+                  onError={handleScannerError}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
