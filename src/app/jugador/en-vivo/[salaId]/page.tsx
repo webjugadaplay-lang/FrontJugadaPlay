@@ -184,44 +184,43 @@ export default function EnVivo() {
 
       <div className="pt-24 pb-20 px-6">
         <div className="container mx-auto max-w-2xl">
+
           <div className="bg-black/50 border border-yellow-500/20 rounded-2xl p-6 mb-6">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <div className="grid grid-cols-3 items-center text-center gap-4">
+
               {/* Equipo local */}
-              <div className="text-right min-w-0">
-                <p className="text-white text-xl md:text-2xl font-light truncate">
+              <div className="flex flex-col items-center">
+                <p className="text-white text-xl md:text-2xl font-light">
                   {room.team_home}
                 </p>
+                <span className="mt-3 text-yellow-500 text-4xl md:text-6xl font-bold leading-none">
+                  {room.current_score_home}
+                </span>
               </div>
 
               {/* VS */}
-              <div className="text-right min-w-0">
-                <p className="text-white text-xl md:text-2xl font-light truncate">
+              <div className="flex flex-col items-center justify-center">
+                <p className="text-white text-xl md:text-2xl font-light">
                   VS
                 </p>
+                <span className="mt-3 text-gray-500 text-4xl md:text-6xl font-light leading-none">
+                  -
+                </span>
               </div>
 
               {/* Equipo visitante */}
-              <div className="text-left min-w-0">
-                <p className="text-white text-xl md:text-2xl font-light truncate">
+              <div className="flex flex-col items-center">
+                <p className="text-white text-xl md:text-2xl font-light">
                   {room.team_away}
                 </p>
+                <span className="mt-3 text-yellow-500 text-4xl md:text-6xl font-bold leading-none">
+                  {room.current_score_away}
+                </span>
               </div>
             </div>
 
-            {/* Marcador */}
-            <div className="flex items-center justify-center gap-3 md:gap-4">
-              <span className="text-yellow-500 text-3xl md:text-5xl font-bold leading-none">
-                {room.current_score_home}
-              </span>
-              <span className="text-gray-500 text-2xl md:text-4xl font-light leading-none">
-                -
-              </span>
-              <span className="text-yellow-500 text-3xl md:text-5xl font-bold leading-none">
-                {room.current_score_away}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 mt-4">
+            {/* Tiempo */}
+            <div className="flex items-center justify-center gap-2 mt-6">
               <Clock className="w-4 h-4 text-yellow-500" />
               <span className="text-gray-400 text-sm">
                 {room.current_minute}' • {room.current_phase}
