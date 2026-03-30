@@ -184,24 +184,37 @@ export default function EnVivo() {
 
       <div className="pt-24 pb-20 px-6">
         <div className="container mx-auto max-w-2xl">
-          <div className="bg-black/50 border border-yellow-500/20 rounded-2xl p-6 mb-6 text-center">
-            <div className="flex items-center justify-center gap-4 mb-3 flex-wrap">
-              <span className="text-2xl font-light text-white">
-                {room.team_home}
-              </span>
-              <span className="text-3xl font-bold text-yellow-500">
-                {room.current_score_home}
-              </span>
-              <span className="text-2xl text-gray-500">-</span>
-              <span className="text-3xl font-bold text-yellow-500">
-                {room.current_score_away}
-              </span>
-              <span className="text-2xl font-light text-white">
-                {room.team_away}
-              </span>
+          <div className="bg-black/50 border border-yellow-500/20 rounded-2xl p-6 mb-6">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+              {/* Equipo local */}
+              <div className="text-right min-w-0">
+                <p className="text-white text-xl md:text-2xl font-light truncate">
+                  {room.team_home}
+                </p>
+              </div>
+
+              {/* Marcador */}
+              <div className="flex items-center justify-center gap-3 md:gap-4">
+                <span className="text-yellow-500 text-3xl md:text-5xl font-bold leading-none">
+                  {room.current_score_home}
+                </span>
+                <span className="text-gray-500 text-2xl md:text-4xl font-light leading-none">
+                  -
+                </span>
+                <span className="text-yellow-500 text-3xl md:text-5xl font-bold leading-none">
+                  {room.current_score_away}
+                </span>
+              </div>
+
+              {/* Equipo visitante */}
+              <div className="text-left min-w-0">
+                <p className="text-white text-xl md:text-2xl font-light truncate">
+                  {room.team_away}
+                </p>
+              </div>
             </div>
 
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-2 mt-4">
               <Clock className="w-4 h-4 text-yellow-500" />
               <span className="text-gray-400 text-sm">
                 {room.current_minute}' • {room.current_phase}
@@ -280,23 +293,20 @@ export default function EnVivo() {
                 ranking.slice(0, 10).map((item) => (
                   <div
                     key={item.user_id}
-                    className={`px-6 py-3 flex justify-between items-center ${
-                      item.is_user ? "bg-yellow-500/5" : ""
-                    }`}
+                    className={`px-6 py-3 flex justify-between items-center ${item.is_user ? "bg-yellow-500/5" : ""
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span
-                        className={`text-sm font-mono w-8 ${
-                          item.position === 1 ? "text-yellow-500" : "text-gray-500"
-                        }`}
+                        className={`text-sm font-mono w-8 ${item.position === 1 ? "text-yellow-500" : "text-gray-500"
+                          }`}
                       >
                         {item.position}°
                       </span>
 
                       <span
-                        className={`text-sm ${
-                          item.is_user ? "text-yellow-500" : "text-white"
-                        }`}
+                        className={`text-sm ${item.is_user ? "text-yellow-500" : "text-white"
+                          }`}
                       >
                         {item.is_user ? "TÚ" : item.user_name}
                       </span>
