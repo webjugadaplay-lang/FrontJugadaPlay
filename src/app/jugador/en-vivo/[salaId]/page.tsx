@@ -193,17 +193,11 @@ export default function EnVivo() {
                 </p>
               </div>
 
-              {/* Marcador */}
-              <div className="flex items-center justify-center gap-3 md:gap-4">
-                <span className="text-yellow-500 text-3xl md:text-5xl font-bold leading-none">
-                  {room.current_score_home}
-                </span>
-                <span className="text-gray-500 text-2xl md:text-4xl font-light leading-none">
-                  -
-                </span>
-                <span className="text-yellow-500 text-3xl md:text-5xl font-bold leading-none">
-                  {room.current_score_away}
-                </span>
+              {/* VS */}
+              <div className="text-right min-w-0">
+                <p className="text-white text-xl md:text-2xl font-light truncate">
+                  VS
+                </p>
               </div>
 
               {/* Equipo visitante */}
@@ -212,6 +206,19 @@ export default function EnVivo() {
                   {room.team_away}
                 </p>
               </div>
+            </div>
+
+            {/* Marcador */}
+            <div className="flex items-center justify-center gap-3 md:gap-4">
+              <span className="text-yellow-500 text-3xl md:text-5xl font-bold leading-none">
+                {room.current_score_home}
+              </span>
+              <span className="text-gray-500 text-2xl md:text-4xl font-light leading-none">
+                -
+              </span>
+              <span className="text-yellow-500 text-3xl md:text-5xl font-bold leading-none">
+                {room.current_score_away}
+              </span>
             </div>
 
             <div className="flex items-center justify-center gap-2 mt-4">
