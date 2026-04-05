@@ -8,7 +8,7 @@ import QRCode from "qrcode";
 
 interface Room {
   id: string;
-  room_code?: string;  // <-- AGREGAR ESTA LÍNEA
+  room_code?: string;
   partido: string;
   fecha: string;
   cierre: string;
