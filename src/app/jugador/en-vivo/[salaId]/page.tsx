@@ -16,44 +16,29 @@ import {
 } from "lucide-react";
 
 interface LiveRoomData {
-  room: {
-    id: string;
-    name: string;
-    team_home: string;
-    team_away: string;
-    match_date: string;
-    status: string;
-    total_pool: number | string;
-    current_score_home: number;
-    current_score_away: number;
-    current_minute: number;
-    current_phase: string;
-    bar?: {
-      id?: string;
-      name?: string;
-      bar_name?: string;
-    } | null;
-  };
-  user_prediction: {
-    id: string;
+  id: string;
+  team_home: string;
+  team_away: string;
+  match_date: string;
+  status: string;
+  total_pool: number | string;
+  current_score_home: number;
+  current_score_away: number;
+  entry_fee: number | string;
+  bar?: {
+    id?: string;
+    name?: string;
+    bar_name?: string;
+  } | null;
+  userPrediction: {
     score_home: number;
     score_away: number;
-    paid: boolean;
-  } | null;
-  user_ranking: {
-    position: number;
-    total_players: number;
   } | null;
   ranking: Array<{
-    position: number;
-    user_id: string;
-    user_name: string;
-    score_home: number;
-    score_away: number;
+    userId: string;
+    name: string;
     prediction: string;
-    distance: number;
-    is_user: boolean;
-    paid: boolean;
+    isUser: boolean;
   }>;
 }
 
@@ -99,18 +84,8 @@ export default function EnVivo() {
           }
         );
 
-        const text = await response.text();
-        const contentType = response.headers.get("content-type") || "";
-
-        console.log("LIVE ROOM STATUS:", response.status);
-        console.log("LIVE ROOM CONTENT-TYPE:", contentType);
-        console.log("LIVE ROOM RAW:", text);
-
-        if (!contentType.includes("application/json")) {
-          throw new Error("La respuesta de sala en vivo no fue JSON");
-        }
-
-        const data = JSON.parse(text);
+        const data = await response.json();
+        console.log("📦 Datos recibidos:", data);
 
         if (!response.ok) {
           throw new Error(data.message || "Error al cargar la sala en vivo");
@@ -153,15 +128,16 @@ export default function EnVivo() {
     );
   }
 
-  const { room, user_prediction, user_ranking, ranking } = liveData;
-
-  const prediccionUsuario = user_prediction
-    ? `${user_prediction.score_home} x ${user_prediction.score_away}`
+  const prediccionUsuario = liveData.userPrediction
+    ? `${liveData.userPrediction.score_home} x ${liveData.userPrediction.score_away}`
     : "-- x --";
 
-  const posicionActual = user_ranking?.position || "-";
-  const totalJugadores = user_ranking?.total_players || ranking.length || 0;
-  const pozoActual = Number(room.total_pool) || 0;
+  const totalJugadores = liveData.ranking?.length || 0;
+  const pozoActual = Number(liveData.total_pool) || 0;
+
+  // Encontrar la posición del usuario en el ranking
+  const userPosition = liveData.ranking?.findIndex(r => r.isUser) ?? -1;
+  const posicionActual = userPosition >= 0 ? userPosition + 1 : "-";
 
   return (
     <main className="min-h-screen bg-black">
@@ -185,20 +161,18 @@ export default function EnVivo() {
       <div className="pt-24 pb-20 px-6">
         <div className="container mx-auto max-w-2xl">
 
+          {/* Marcador */}
           <div className="bg-black/50 border border-yellow-500/20 rounded-2xl p-6 mb-6">
             <div className="grid grid-cols-3 items-center text-center gap-4">
-
-              {/* Equipo local */}
               <div className="flex flex-col items-center">
                 <p className="text-white text-xl md:text-2xl font-light">
-                  {room.team_home}
+                  {liveData.team_home}
                 </p>
                 <span className="mt-3 text-yellow-500 text-4xl md:text-6xl font-bold leading-none">
-                  {room.current_score_home}
+                  {liveData.current_score_home}
                 </span>
               </div>
 
-              {/* VS */}
               <div className="flex flex-col items-center justify-center">
                 <p className="text-white text-xl md:text-2xl font-light">
                   VS
@@ -208,26 +182,25 @@ export default function EnVivo() {
                 </span>
               </div>
 
-              {/* Equipo visitante */}
               <div className="flex flex-col items-center">
                 <p className="text-white text-xl md:text-2xl font-light">
-                  {room.team_away}
+                  {liveData.team_away}
                 </p>
                 <span className="mt-3 text-yellow-500 text-4xl md:text-6xl font-bold leading-none">
-                  {room.current_score_away}
+                  {liveData.current_score_away}
                 </span>
               </div>
             </div>
 
-            {/* Tiempo */}
             <div className="flex items-center justify-center gap-2 mt-6">
               <Clock className="w-4 h-4 text-yellow-500" />
               <span className="text-gray-400 text-sm">
-                {room.current_minute}' • {room.current_phase}
+                {new Date(liveData.match_date).toLocaleString()}
               </span>
             </div>
           </div>
 
+          {/* Tu predicción */}
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 mb-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="text-center md:text-left">
@@ -259,6 +232,7 @@ export default function EnVivo() {
             </div>
           </div>
 
+          {/* Estado del ranking */}
           <div className="bg-black/30 border border-yellow-500/20 rounded-2xl p-6 mb-6">
             <h3 className="text-white text-sm font-light tracking-wide mb-4 flex items-center gap-2">
               <Target className="w-4 h-4 text-yellow-500" />
@@ -269,22 +243,23 @@ export default function EnVivo() {
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Marcador actual:</span>
                 <span className="text-white">
-                  {room.current_score_home} x {room.current_score_away}
+                  {liveData.current_score_home} x {liveData.current_score_away}
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-gray-400">Tu pronóstico:</span>
-                <span className="text-yellow-500">{prediccionUsuario}</span>
+                <span className="text-gray-400">Valor entrada:</span>
+                <span className="text-yellow-500">R$ {Number(liveData.entry_fee)}</span>
               </div>
 
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Jugadores en ranking:</span>
-                <span className="text-white">{ranking.length}</span>
+                <span className="text-white">{totalJugadores}</span>
               </div>
             </div>
           </div>
 
+          {/* Ranking en vivo */}
           <div className="bg-black/30 border border-yellow-500/20 rounded-2xl overflow-hidden">
             <div className="border-b border-yellow-500/20 px-6 py-4 flex justify-between items-center">
               <h3 className="text-white text-sm font-light tracking-wide flex items-center gap-2">
@@ -295,35 +270,32 @@ export default function EnVivo() {
             </div>
 
             <div className="divide-y divide-yellow-500/10">
-              {ranking.length > 0 ? (
-                ranking.slice(0, 10).map((item) => (
+              {liveData.ranking && liveData.ranking.length > 0 ? (
+                liveData.ranking.map((item, idx) => (
                   <div
-                    key={item.user_id}
-                    className={`px-6 py-3 flex justify-between items-center ${item.is_user ? "bg-yellow-500/5" : ""
+                    key={item.userId}
+                    className={`px-6 py-3 flex justify-between items-center ${item.isUser ? "bg-yellow-500/5" : ""
                       }`}
                   >
                     <div className="flex items-center gap-3">
                       <span
-                        className={`text-sm font-mono w-8 ${item.position === 1 ? "text-yellow-500" : "text-gray-500"
+                        className={`text-sm font-mono w-8 ${idx === 0 ? "text-yellow-500" : "text-gray-500"
                           }`}
                       >
-                        {item.position}°
+                        {idx + 1}°
                       </span>
 
                       <span
-                        className={`text-sm ${item.is_user ? "text-yellow-500" : "text-white"
+                        className={`text-sm ${item.isUser ? "text-yellow-500" : "text-white"
                           }`}
                       >
-                        {item.is_user ? "TÚ" : item.user_name}
+                        {item.isUser ? "TÚ" : item.name}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-4">
                       <span className="text-gray-400 text-sm font-mono">
                         {item.prediction}
-                      </span>
-                      <span className="text-yellow-500 text-xs">
-                        Δ {item.distance}
                       </span>
                     </div>
                   </div>
@@ -333,12 +305,6 @@ export default function EnVivo() {
                   No hay predicciones para esta sala
                 </div>
               )}
-            </div>
-
-            <div className="border-t border-yellow-500/20 px-6 py-4">
-              <button className="w-full text-center text-yellow-500 text-sm hover:text-yellow-400 transition-colors">
-                VER RANKING COMPLETO
-              </button>
             </div>
           </div>
         </div>

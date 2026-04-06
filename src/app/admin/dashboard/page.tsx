@@ -102,6 +102,9 @@ export default function AdminDashboard() {
       setLoadingLiveMatches(true);
       const token = customToken || localStorage.getItem("token");
 
+      console.log("🔍 Fetching live matches...");
+      console.log("🔍 URL:", `${process.env.NEXT_PUBLIC_API_URL}/api/admin/live-matches`);
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/live-matches`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -109,21 +112,17 @@ export default function AdminDashboard() {
       });
 
       const data = await response.json();
+      console.log("📦 Respuesta del backend:", data);
 
       if (data.success) {
+        console.log(`✅ ${data.data.length} partidos encontrados`);
         setLiveMatches(data.data);
-
-        const initialScores: Record<string, { home: number; away: number }> = {};
-        data.data.forEach((match: LiveMatch) => {
-          initialScores[match.id] = {
-            home: match.current_score_home || 0,
-            away: match.current_score_away || 0,
-          };
-        });
-        setEditableScores(initialScores);
+        // ... resto del código
+      } else {
+        console.error("❌ Error en la respuesta:", data.message);
       }
     } catch (error) {
-      console.error("Error al obtener partidos activos:", error);
+      console.error("❌ Error al obtener partidos activos:", error);
     } finally {
       setLoadingLiveMatches(false);
     }
@@ -380,33 +379,30 @@ export default function AdminDashboard() {
           <div className="flex space-x-6 mb-6 border-b border-yellow-500/20 overflow-x-auto">
             <button
               onClick={() => setActiveTab("general")}
-              className={`pb-3 text-sm tracking-wide transition-all whitespace-nowrap ${
-                activeTab === "general"
+              className={`pb-3 text-sm tracking-wide transition-all whitespace-nowrap ${activeTab === "general"
                   ? "text-yellow-500 border-b-2 border-yellow-500"
                   : "text-gray-500 hover:text-gray-400"
-              }`}
+                }`}
             >
               TOP BARES
             </button>
 
             <button
               onClick={() => setActiveTab("partidos")}
-              className={`pb-3 text-sm tracking-wide transition-all whitespace-nowrap ${
-                activeTab === "partidos"
+              className={`pb-3 text-sm tracking-wide transition-all whitespace-nowrap ${activeTab === "partidos"
                   ? "text-yellow-500 border-b-2 border-yellow-500"
                   : "text-gray-500 hover:text-gray-400"
-              }`}
+                }`}
             >
               PRÓXIMOS PARTIDOS
             </button>
 
             <button
               onClick={() => setActiveTab("activos")}
-              className={`pb-3 text-sm tracking-wide transition-all whitespace-nowrap ${
-                activeTab === "activos"
+              className={`pb-3 text-sm tracking-wide transition-all whitespace-nowrap ${activeTab === "activos"
                   ? "text-yellow-500 border-b-2 border-yellow-500"
                   : "text-gray-500 hover:text-gray-400"
-              }`}
+                }`}
             >
               PARTIDOS ACTIVOS
             </button>
