@@ -1,4 +1,5 @@
 // app/bar/dashboard/page.tsx
+// app/bar/dashboard/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,8 +15,9 @@ export default function BarDashboard() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("activas");
   const [loading, setLoading] = useState(true);
+  const [barName, setBarName] = useState("");
   const [stats, setStats] = useState({
-    bar: { name: "", balance: 0 },
+    bar: { name: "", bar_name: "", balance: 0 },
     stats: {
       activeRooms: 0,
       totalPlayers: 0,
@@ -47,6 +49,10 @@ export default function BarDashboard() {
         return;
       }
       
+      // Obtener el nombre del bar del localStorage o del usuario
+      const barNombre = user.bar_name || user.name || "";
+      setBarName(barNombre);
+      
       try {
         // Obtener estadísticas
         const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/stats`, {
@@ -54,7 +60,13 @@ export default function BarDashboard() {
         });
         const statsData = await statsRes.json();
         if (statsData.success) {
-          setStats(statsData.data);
+          setStats({
+            ...statsData.data,
+            bar: {
+              ...statsData.data.bar,
+              bar_name: barNombre
+            }
+          });
         }
         
         // Obtener salas activas
@@ -112,7 +124,10 @@ export default function BarDashboard() {
             </Link>
 
             <div className="hidden md:flex items-center space-x-8">
-              <span className="text-yellow-500 text-sm tracking-wide">{stats.bar.name}</span>
+              {/* Mostrar nombre del bar en mayúsculas */}
+              <span className="text-yellow-500 text-sm tracking-wide uppercase">
+                {barName || stats.bar.bar_name || stats.bar.name}
+              </span>
               <div className="w-px h-6 bg-yellow-500/20"></div>
               <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm">
                 SALDO: R$ {stats.bar.balance.toFixed(2)}
@@ -137,7 +152,10 @@ export default function BarDashboard() {
           {isMenuOpen && (
             <div className="md:hidden py-4 border-t border-yellow-500/20">
               <div className="flex flex-col space-y-3">
-                <span className="text-yellow-500 text-sm">{stats.bar.name}</span>
+                {/* Mostrar nombre del bar en mayúsculas en menú móvil */}
+                <span className="text-yellow-500 text-sm uppercase">
+                  {barName || stats.bar.bar_name || stats.bar.name}
+                </span>
                 <span className="text-gray-400 text-sm">SALDO: R$ {stats.bar.balance.toFixed(2)}</span>
                 <button
                   onClick={handleLogout}
