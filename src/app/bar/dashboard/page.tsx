@@ -50,7 +50,7 @@ export default function BarDashboard() {
       }
       
       // Obtener el nombre del bar del localStorage o del usuario
-      const barNombre = user.bar_name || user.name || "";
+      const barNombre = user.bar_name;
       setBarName(barNombre);
       
       try {
@@ -126,7 +126,7 @@ export default function BarDashboard() {
             <div className="hidden md:flex items-center space-x-8">
               {/* Mostrar nombre del bar en mayúsculas */}
               <span className="text-yellow-500 text-sm tracking-wide uppercase">
-                {barName}
+                {stats.bar.bar_name}
               </span>
               <div className="w-px h-6 bg-yellow-500/20"></div>
               <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm">
