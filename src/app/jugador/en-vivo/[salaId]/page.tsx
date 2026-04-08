@@ -1,7 +1,7 @@
 // app/jugador/en-vivo/[salaId]/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -53,7 +53,66 @@ export default function EnVivo() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [liveData, setLiveData] = useState<LiveRoomData | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const fetchLiveRoom = async (showRefreshIndicator = false) => {
+    if (!salaId) return;
+
+    if (showRefreshIndicator) {
+      setIsRefreshing(true);
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const userData = localStorage.getItem("user");
+
+      if (!token || !userData) {
+        router.push("/login");
+        return;
+      }
+
+      const user = JSON.parse(userData);
+
+      if (user.role !== "player") {
+        router.push("/login");
+        return;
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/player/live-room/${salaId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Error al cargar la sala en vivo");
+      }
+
+      if (!data.success || !data.data) {
+        throw new Error("No se pudo cargar la información en vivo");
+      }
+
+      setLiveData(data.data);
+      setLastUpdate(new Date());
+    } catch (err: any) {
+      console.error("❌ Error cargando sala en vivo:", err);
+      setError(err.message || "Error al cargar la sala en vivo");
+    } finally {
+      if (showRefreshIndicator) {
+        setIsRefreshing(false);
+      }
+      setLoading(false);
+    }
+  };
+
+  // Cargar inicial y configurar intervalo
   useEffect(() => {
     if (!salaId) {
       setError("ID de sala inválido");
@@ -61,54 +120,26 @@ export default function EnVivo() {
       return;
     }
 
-    const fetchLiveRoom = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const userData = localStorage.getItem("user");
+    // Cargar inmediatamente
+    fetchLiveRoom(true);
 
-        if (!token || !userData) {
-          router.push("/login");
-          return;
-        }
+    // Configurar intervalo para actualizar cada 15 segundos
+    intervalRef.current = setInterval(() => {
+      fetchLiveRoom(true);
+    }, 15000);
 
-        const user = JSON.parse(userData);
-
-        if (user.role !== "player") {
-          router.push("/login");
-          return;
-        }
-
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/player/live-room/${salaId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = await response.json();
-        console.log("📦 Datos recibidos:", data);
-
-        if (!response.ok) {
-          throw new Error(data.message || "Error al cargar la sala en vivo");
-        }
-
-        if (!data.success || !data.data) {
-          throw new Error("No se pudo cargar la información en vivo");
-        }
-
-        setLiveData(data.data);
-      } catch (err: any) {
-        console.error("❌ Error cargando sala en vivo:", err);
-        setError(err.message || "Error al cargar la sala en vivo");
-      } finally {
-        setLoading(false);
+    // Limpiar intervalo al desmontar el componente
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
     };
-
-    fetchLiveRoom();
   }, [salaId, router]);
+
+  // Refrescar manualmente con el botón
+  const handleManualRefresh = () => {
+    fetchLiveRoom(true);
+  };
 
   if (loading) {
     return (
@@ -156,13 +187,32 @@ export default function EnVivo() {
                 JUGADA<span className="text-yellow-500">PLAY</span>
               </span>
             </div>
-            <span className="text-xs text-yellow-500">EN VIVO</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="text-xs text-gray-500 hover:text-yellow-500 transition-colors"
+              >
+                {isRefreshing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "🔄"
+                )}
+              </button>
+              <span className="text-xs text-yellow-500">EN VIVO</span>
+            </div>
           </div>
         </div>
       </header>
 
       <div className="pt-24 pb-20 px-6">
         <div className="container mx-auto max-w-2xl">
+
+          {/* Indicador de última actualización */}
+          <div className="text-right text-gray-600 text-xs mb-2">
+            Última actualización: {lastUpdate.toLocaleTimeString()}
+            {isRefreshing && <span className="ml-2 text-yellow-500">Actualizando...</span>}
+          </div>
 
           {/* Marcador */}
           <div className="bg-black/50 border border-yellow-500/20 rounded-2xl p-6 mb-6">
