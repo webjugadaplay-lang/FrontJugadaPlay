@@ -39,6 +39,9 @@ interface LiveRoomData {
     name: string;
     prediction: string;
     isUser: boolean;
+    position?: number;
+    emoji?: string;
+    status?: string;
   }>;
 }
 
@@ -282,20 +285,26 @@ export default function EnVivo() {
                         className={`text-sm font-mono w-8 ${idx === 0 ? "text-yellow-500" : "text-gray-500"
                           }`}
                       >
-                        {idx + 1}°
+                        {item.position || idx + 1}°
                       </span>
 
-                      <span
-                        className={`text-sm ${item.isUser ? "text-yellow-500" : "text-white"
-                          }`}
-                      >
-                        {item.isUser ? "TÚ" : item.name}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{item.emoji || '⚽'}</span>
+                        <span
+                          className={`text-sm ${item.isUser ? "text-yellow-500" : "text-white"
+                            }`}
+                        >
+                          {item.isUser ? "TÚ" : item.name}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-4">
                       <span className="text-gray-400 text-sm font-mono">
                         {item.prediction}
+                      </span>
+                      <span className="text-gray-500 text-xs">
+                        {item.status || ''}
                       </span>
                     </div>
                   </div>
@@ -306,6 +315,7 @@ export default function EnVivo() {
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </div>
