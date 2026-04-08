@@ -290,10 +290,7 @@ export default function EnVivo() {
 
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{item.emoji || '⚽'}</span>
-                        <span
-                          className={`text-sm ${item.isUser ? "text-yellow-500" : "text-white"
-                            }`}
-                        >
+                        <span className={`text-sm ${item.isUser ? "text-yellow-500" : "text-white"}`}>
                           {item.isUser ? "TÚ" : item.name}
                         </span>
                       </div>
