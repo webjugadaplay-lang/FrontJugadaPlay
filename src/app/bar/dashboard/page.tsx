@@ -1,5 +1,4 @@
 // app/bar/dashboard/page.tsx
-// app/bar/dashboard/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,9 +14,8 @@ export default function BarDashboard() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("activas");
   const [loading, setLoading] = useState(true);
-  const [barName, setBarName] = useState("");
   const [stats, setStats] = useState({
-    bar: { name: "", bar_name: "", balance: 0 },
+    bar: { bar_name: "", balance: 0 },
     stats: {
       activeRooms: 0,
       totalPlayers: 0,
@@ -49,10 +47,6 @@ export default function BarDashboard() {
         return;
       }
       
-      // Obtener el nombre del bar del localStorage o del usuario
-      const barNombre = user.bar_name;
-      setBarName(barNombre);
-      
       try {
         // Obtener estadísticas
         const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/stats`, {
@@ -60,13 +54,7 @@ export default function BarDashboard() {
         });
         const statsData = await statsRes.json();
         if (statsData.success) {
-          setStats({
-            ...statsData.data,
-            bar: {
-              ...statsData.data.bar,
-              bar_name: barNombre
-            }
-          });
+          setStats(statsData.data);
         }
         
         // Obtener salas activas
@@ -78,7 +66,7 @@ export default function BarDashboard() {
           setRooms(prev => ({ ...prev, activas: roomsData.data }));
         }
         
-        // Obtener próximos partidos (status != active)
+        // Obtener próximos partidos
         const upcomingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms?status=upcoming`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -124,7 +112,7 @@ export default function BarDashboard() {
             </Link>
 
             <div className="hidden md:flex items-center space-x-8">
-              {/* Mostrar nombre del bar en mayúsculas */}
+              {/* DIRECTAMENTE el nombre del bar en mayúsculas */}
               <span className="text-yellow-500 text-sm tracking-wide uppercase">
                 {stats.bar.bar_name}
               </span>
@@ -152,9 +140,9 @@ export default function BarDashboard() {
           {isMenuOpen && (
             <div className="md:hidden py-4 border-t border-yellow-500/20">
               <div className="flex flex-col space-y-3">
-                {/* Mostrar nombre del bar en mayúsculas en menú móvil */}
+                {/* DIRECTAMENTE el nombre del bar en mayúsculas en menú móvil */}
                 <span className="text-yellow-500 text-sm uppercase">
-                  {barName || stats.bar.bar_name || stats.bar.name}
+                  {stats.bar.bar_name}
                 </span>
                 <span className="text-gray-400 text-sm">SALDO: R$ {stats.bar.balance.toFixed(2)}</span>
                 <button
