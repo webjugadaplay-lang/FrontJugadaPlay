@@ -43,6 +43,7 @@ export default function BarDashboard() {
       }
 
       const user = JSON.parse(userData);
+      console.log("Datos del usuario:", user);
 
       // ✅ AGREGAR ESTA LÍNEA - Guarda el nombre del bar desde localStorage
       setBarName(user.bar_name || user.name || "MI BAR");
@@ -53,7 +54,7 @@ export default function BarDashboard() {
       }
 
       // Obtener el nombre del bar del localStorage o del usuario
-      const barNombre = user.bar_name || user.name || "";
+      const barNombre = user.barName || user.name || "";
       setBarName(barNombre);
 
       try {
