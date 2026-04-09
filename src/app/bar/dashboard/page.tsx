@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
+import {
   Crown, Plus, Users, Trophy, Coins, Calendar,
   ChevronRight, Menu, X, TrendingUp, Clock, Star, LogOut
 } from "lucide-react";
@@ -36,22 +36,26 @@ export default function BarDashboard() {
     const fetchData = async () => {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
-      
+
       if (!token || !userData) {
         router.push("/login");
         return;
       }
-      
+
       const user = JSON.parse(userData);
+
+      // ✅ AGREGAR ESTA LÍNEA - Guarda el nombre del bar desde localStorage
+      setBarName(user.bar_name || user.name || "MI BAR");
+
       if (user.role !== "bar") {
         router.push(user.role === "admin" ? "/admin/dashboard" : "/jugador/dashboard");
         return;
       }
-      
+
       // Obtener el nombre del bar del localStorage o del usuario
       const barNombre = user.bar_name || user.name || "";
       setBarName(barNombre);
-      
+
       try {
         // Obtener estadísticas
         const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/stats`, {
@@ -67,7 +71,7 @@ export default function BarDashboard() {
             }
           });
         }
-        
+
         // Obtener salas activas
         const roomsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms?status=active`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -76,7 +80,7 @@ export default function BarDashboard() {
         if (roomsData.success) {
           setRooms(prev => ({ ...prev, activas: roomsData.data }));
         }
-        
+
         // Obtener próximos partidos (status != active)
         const upcomingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms?status=upcoming`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -91,7 +95,7 @@ export default function BarDashboard() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [router]);
 
@@ -125,7 +129,7 @@ export default function BarDashboard() {
             <div className="hidden md:flex items-center space-x-8">
               {/* Mostrar nombre del bar en mayúsculas */}
               <span className="text-yellow-500 text-sm tracking-wide uppercase">
-                {barName || stats.bar.bar_name || stats.bar.name}
+                {barName}
               </span>
               <div className="w-px h-6 bg-yellow-500/20"></div>
               <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm">
@@ -153,7 +157,7 @@ export default function BarDashboard() {
               <div className="flex flex-col space-y-3">
                 {/* Mostrar nombre del bar en mayúsculas en menú móvil */}
                 <span className="text-yellow-500 text-sm uppercase">
-                  {barName || stats.bar.bar_name || stats.bar.name}
+                  {barName}
                 </span>
                 <span className="text-gray-400 text-sm">SALDO: R$ {stats.bar.balance.toFixed(2)}</span>
                 <button
@@ -174,7 +178,7 @@ export default function BarDashboard() {
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-7xl">
-          
+
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
               <h1 className="text-3xl font-light tracking-tight text-white">
@@ -201,7 +205,7 @@ export default function BarDashboard() {
               <div className="text-2xl font-light text-white">{stats.stats.totalPlayers}</div>
               <div className="text-xs text-gray-500 tracking-wide">JUGADORES TOTALES</div>
             </div>
-            
+
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <Coins className="w-5 h-5 text-yellow-500/60" strokeWidth={1.5} />
@@ -209,7 +213,7 @@ export default function BarDashboard() {
               <div className="text-2xl font-light text-white">R$ {stats.stats.todayRevenue}</div>
               <div className="text-xs text-gray-500 tracking-wide">RECAUDADO HOY</div>
             </div>
-            
+
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <Trophy className="w-5 h-5 text-yellow-500/60" strokeWidth={1.5} />
@@ -217,7 +221,7 @@ export default function BarDashboard() {
               <div className="text-2xl font-light text-white">R$ {stats.stats.totalRevenue}</div>
               <div className="text-xs text-gray-500 tracking-wide">TOTAL RECIBIDO</div>
             </div>
-            
+
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <Star className="w-5 h-5 text-yellow-500/60" strokeWidth={1.5} />
@@ -231,21 +235,19 @@ export default function BarDashboard() {
           <div className="flex space-x-6 mb-6 border-b border-yellow-500/20">
             <button
               onClick={() => setActiveTab("activas")}
-              className={`pb-3 text-sm tracking-wide transition-all ${
-                activeTab === "activas"
+              className={`pb-3 text-sm tracking-wide transition-all ${activeTab === "activas"
                   ? "text-yellow-500 border-b-2 border-yellow-500"
                   : "text-gray-500 hover:text-gray-400"
-              }`}
+                }`}
             >
               SALAS ACTIVAS ({rooms.activas.length})
             </button>
             <button
               onClick={() => setActiveTab("proximos")}
-              className={`pb-3 text-sm tracking-wide transition-all ${
-                activeTab === "proximos"
+              className={`pb-3 text-sm tracking-wide transition-all ${activeTab === "proximos"
                   ? "text-yellow-500 border-b-2 border-yellow-500"
                   : "text-gray-500 hover:text-gray-400"
-              }`}
+                }`}
             >
               PRÓXIMOS PARTIDOS ({rooms.proximos.length})
             </button>
