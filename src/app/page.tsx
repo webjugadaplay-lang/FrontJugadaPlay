@@ -7,9 +7,9 @@ import {
   X,
   Sparkles,
   Star,
-  InstagramIcon,
   MessageCircle,
-  Mail
+  Mail,
+  AtSign
 } from "lucide-react";
 
 export default function Home() {
@@ -198,34 +198,15 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-yellow-500/10 py-12 px-6">
         <div className="container mx-auto text-center">
-          <div className="flex justify-center items-center gap-6 mb-6">
-            <a
-              href="https://instagram.com/jugadaplay"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-500 hover:text-yellow-500 transition-colors text-sm"
-            >
-              Instagram
-            </a>
-
-            <a
-              href="https://wa.me/5599999999999"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-500 hover:text-yellow-500 transition-colors"
-              aria-label="WhatsApp"
-            >
-              <MessageCircle size={22} />
-            </a>
-
-            <a
-              href="mailto:contacto@jugadaplay.com"
-              className="text-gray-500 hover:text-yellow-500 transition-colors"
-              aria-label="Correo"
-            >
-              <Mail size={22} />
-            </a>
-          </div>
+          <a
+            href="https://instagram.com/jugadaplay"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-500 hover:text-yellow-500 transition-colors"
+            aria-label="Instagram"
+          >
+            <AtSign size={22} />
+          </a>
 
           <div className="flex justify-center gap-8 mb-4 flex-wrap">
             <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
