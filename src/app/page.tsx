@@ -162,8 +162,8 @@ export default function Home() {
 
       {/* Sección de Estadísticas */}
       <section className="py-20 px-6 border-t border-yellow-500/10">
-        <div className="container mx-auto max-w-3xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div className="container mx-auto max-w-5xl">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-center">
             <div>
               <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
                 {loading ? "..." : stats.baresActivos}
@@ -198,28 +198,17 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-yellow-500/10 py-12 px-6">
         <div className="container mx-auto text-center">
-          <a
-            href="https://instagram.com/jugadaplay"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-500 hover:text-yellow-500 transition-colors"
-            aria-label="Instagram"
-          >
-            <AtSign size={22} />
-          </a>
-
-          <div className="flex justify-center gap-8 mb-4 flex-wrap">
+          <div className="flex justify-center space-x-8 mb-6">
             <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
               TÉRMINOS
             </span>
             <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
               CONTACTO
             </span>
-            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 transition-colors">
+            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
               @JUGADAPLAY
             </span>
           </div>
-
           <p className="text-gray-700 text-xs tracking-wide">
             © 2026 JUGADAPLAY. TODOS LOS DERECHOS RESERVADOS.
           </p>
