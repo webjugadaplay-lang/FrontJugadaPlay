@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Crown, Sparkles, Star, Zap, Trophy, Users, Coins, Target } from "lucide-react";
+import { Menu, X, Sparkles, Star } from "lucide-react";
 
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,7 +11,7 @@ export default function Home() {
     baresActivos: 0,
     jugadores: 0,
     premios: 0,
-    deportes: 10
+    deportes: 10,
   });
   const [loading, setLoading] = useState(true);
 
@@ -19,6 +19,7 @@ export default function Home() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -28,38 +29,42 @@ export default function Home() {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats`);
         const data = await response.json();
+
         if (data.success) {
           setStats(data.data);
         }
       } catch (error) {
-        console.error('Error al obtener estadísticas:', error);
+        console.error("Error al obtener estadísticas:", error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchStats();
   }, []);
 
   return (
     <main className="min-h-screen bg-black">
-      {/* Header - solo con botón Iniciar Sesión */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
-          : "bg-transparent"
-      }`}>
+      {/* Header */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
+            : "bg-transparent"
+        }`}
+      >
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <div className="flex items-center space-x-2">
-              <Crown className="w-6 h-6 text-yellow-500" strokeWidth={1.5} />
-              <span className="text-xl font-light tracking-wider text-white">
-                JUGADA<span className="text-yellow-500 font-medium">PLAY</span>
-              </span>
-            </div>
+            <Link href="/" className="flex items-center">
+              <img
+                src="/logo-jugadaplay.svg"
+                alt="Jugada Play"
+                className="h-10 md:h-12 lg:h-14 w-auto object-contain"
+              />
+            </Link>
 
-            {/* Menú Desktop - Solo botón Iniciar Sesión */}
+            {/* Menú Desktop */}
             <div className="hidden md:flex items-center space-x-8">
               <Link href="/login">
                 <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm tracking-wide">
@@ -72,12 +77,13 @@ export default function Home() {
             <button
               className="md:hidden text-yellow-500"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Abrir menú"
             >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
 
-          {/* Menú Móvil */}
+          {/* Menú móvil */}
           {isMenuOpen && (
             <div className="md:hidden py-6 border-t border-yellow-500/20">
               <div className="flex flex-col space-y-4">
@@ -97,14 +103,16 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black/95"></div>
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-yellow-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        
+
         <div className="relative z-10 text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center justify-center mb-8">
             <div className="relative">
               <div className="absolute inset-0 bg-yellow-500/20 blur-md rounded-full"></div>
               <div className="relative bg-black/50 backdrop-blur-sm border border-yellow-500/30 rounded-full px-4 py-1.5">
                 <Sparkles className="w-3 h-3 text-yellow-500 inline mr-2" />
-                <span className="text-yellow-500 text-xs tracking-wider">PREMIUM SPORTS PREDICTION</span>
+                <span className="text-yellow-500 text-xs tracking-wider">
+                  PREMIUM SPORTS PREDICTION
+                </span>
               </div>
             </div>
           </div>
@@ -124,7 +132,7 @@ export default function Home() {
           </h1>
 
           <p className="text-gray-400 text-lg md:text-xl mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-            Predice marcadores. Gana dinero real. La experiencia premium 
+            Predice marcadores. Gana dinero real. La experiencia premium
             que transforma tu bar en un casino deportivo.
           </p>
 
@@ -138,7 +146,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
               </button>
             </Link>
-            
+
             <Link href="/login">
               <button className="group relative overflow-hidden border border-yellow-500/50 text-yellow-500 px-8 py-3 rounded-sm text-base font-medium tracking-wide hover:border-yellow-500 hover:text-yellow-400 transition-all">
                 <span className="relative z-10">QUIERO JUGAR</span>
@@ -161,25 +169,36 @@ export default function Home() {
               <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
                 {loading ? "..." : stats.baresActivos}
               </div>
-              <div className="text-gray-600 text-xs tracking-wider uppercase">Bares Activos</div>
+              <div className="text-gray-600 text-xs tracking-wider uppercase">
+                Bares Activos
+              </div>
             </div>
+
             <div>
               <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
                 {loading ? "..." : stats.jugadores}
               </div>
-              <div className="text-gray-600 text-xs tracking-wider uppercase">Jugadores</div>
+              <div className="text-gray-600 text-xs tracking-wider uppercase">
+                Jugadores
+              </div>
             </div>
+
             <div>
               <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
                 R${loading ? "..." : stats.premios.toLocaleString()}
               </div>
-              <div className="text-gray-600 text-xs tracking-wider uppercase">Premios</div>
+              <div className="text-gray-600 text-xs tracking-wider uppercase">
+                Premios
+              </div>
             </div>
+
             <div>
               <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
                 {stats.deportes}+
               </div>
-              <div className="text-gray-600 text-xs tracking-wider uppercase">Deportes</div>
+              <div className="text-gray-600 text-xs tracking-wider uppercase">
+                Deportes
+              </div>
             </div>
           </div>
         </div>
@@ -189,11 +208,19 @@ export default function Home() {
       <footer className="border-t border-yellow-500/10 py-12 px-6">
         <div className="container mx-auto text-center">
           <div className="flex justify-center space-x-8 mb-6">
-            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">TÉRMINOS</span>
-            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">CONTACTO</span>
-            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">@JUGADAPLAY</span>
+            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
+              TÉRMINOS
+            </span>
+            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
+              CONTACTO
+            </span>
+            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
+              @JUGADAPLAY
+            </span>
           </div>
-          <p className="text-gray-700 text-xs tracking-wide">© 2026 JUGADAPLAY. TODOS LOS DERECHOS RESERVADOS.</p>
+          <p className="text-gray-700 text-xs tracking-wide">
+            © 2026 JUGADAPLAY. TODOS LOS DERECHOS RESERVADOS.
+          </p>
         </div>
       </footer>
     </main>
