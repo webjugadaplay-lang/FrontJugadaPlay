@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Sparkles, Star } from "lucide-react";
+import {
+  Menu,
+  X,
+  Sparkles,
+  Star,
+  InstagramIcon,
+  MessageCircle,
+  Mail
+} from "lucide-react";
 
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -48,8 +56,8 @@ export default function Home() {
       {/* Header */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-            ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
-            : "bg-transparent"
+          ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
+          : "bg-transparent"
           }`}
       >
         <div className="container mx-auto px-6">
@@ -190,17 +198,47 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-yellow-500/10 py-12 px-6">
         <div className="container mx-auto text-center">
-          <div className="flex justify-center space-x-8 mb-6">
+          <div className="flex justify-center items-center gap-6 mb-6">
+            <a
+              href="https://instagram.com/jugadaplay"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 hover:text-yellow-500 transition-colors text-sm"
+            >
+              Instagram
+            </a>
+
+            <a
+              href="https://wa.me/5599999999999"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 hover:text-yellow-500 transition-colors"
+              aria-label="WhatsApp"
+            >
+              <MessageCircle size={22} />
+            </a>
+
+            <a
+              href="mailto:contacto@jugadaplay.com"
+              className="text-gray-500 hover:text-yellow-500 transition-colors"
+              aria-label="Correo"
+            >
+              <Mail size={22} />
+            </a>
+          </div>
+
+          <div className="flex justify-center gap-8 mb-4 flex-wrap">
             <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
               TÉRMINOS
             </span>
             <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
               CONTACTO
             </span>
-            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
+            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 transition-colors">
               @JUGADAPLAY
             </span>
           </div>
+
           <p className="text-gray-700 text-xs tracking-wide">
             © 2026 JUGADAPLAY. TODOS LOS DERECHOS RESERVADOS.
           </p>
