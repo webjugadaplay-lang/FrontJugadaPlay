@@ -35,14 +35,32 @@ export default function Home() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats`);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/stats`,
+          { cache: "no-store" }
+        );
+
+        if (!response.ok) throw new Error("Error en API");
+
         const data = await response.json();
 
-        if (data.success) {
-          setStats(data.data);
+        if (data?.success) {
+          setStats({
+            baresActivos: Number(data.data.baresActivos) || 0,
+            jugadores: Number(data.data.jugadores) || 0,
+            premios: Number(data.data.premios) || 0,
+            deportes: Number(data.data.deportes) || 10,
+          });
         }
       } catch (error) {
         console.error("Error al obtener estadísticas:", error);
+
+        setStats({
+          baresActivos: 0,
+          jugadores: 0,
+          premios: 0,
+          deportes: 10,
+        });
       } finally {
         setLoading(false);
       }
