@@ -47,11 +47,10 @@ export default function Home() {
     <main className="min-h-screen bg-black">
       {/* Header */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
             ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
             : "bg-transparent"
-        }`}
+          }`}
       >
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
@@ -105,16 +104,10 @@ export default function Home() {
         <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-yellow-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
 
         <div className="relative z-10 text-center max-w-4xl mx-auto">
-          <div className="inline-flex items-center justify-center mb-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-yellow-500/20 blur-md rounded-full"></div>
-              <div className="relative bg-black/50 backdrop-blur-sm border border-yellow-500/30 rounded-full px-4 py-1.5">
-                <Sparkles className="w-3 h-3 text-yellow-500 inline mr-2" />
-                <span className="text-yellow-500 text-xs tracking-wider">
-                  PREMIUM SPORTS PREDICTION
-                </span>
-              </div>
-            </div>
+          <div className="mb-8 flex justify-center">
+            <span className="text-yellow-500 text-xs md:text-sm tracking-[0.25em] uppercase font-light">
+              Predice • Gana • Celebra
+            </span>
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-light mb-6 tracking-tight">
@@ -128,12 +121,10 @@ export default function Home() {
             </span>
             <br />
             <span className="text-white">EN TU BAR</span>
-            <span className="text-yellow-500 ml-3 text-5xl md:text-7xl">⚡</span>
           </h1>
 
           <p className="text-gray-400 text-lg md:text-xl mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-            Predice marcadores. Gana dinero real. La experiencia premium
-            que transforma tu bar en un casino deportivo.
+            Predice y gana disfrutando en tu bar favorito.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -192,14 +183,6 @@ export default function Home() {
               </div>
             </div>
 
-            <div>
-              <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
-                {stats.deportes}+
-              </div>
-              <div className="text-gray-600 text-xs tracking-wider uppercase">
-                Deportes
-              </div>
-            </div>
           </div>
         </div>
       </section>
