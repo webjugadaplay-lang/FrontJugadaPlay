@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import InputMask from "react-input-mask";
+import { IMaskInput } from "react-imask";
+
 import {
   ArrowLeft,
   Mail,
@@ -183,23 +184,25 @@ export default function RegistroBar() {
                         TIPO DE DOCUMENTO *
                       </label>
 
-                      <div className="flex gap-4 bg-black border border-yellow-500/30 rounded-lg px-4 py-3">
+                      <div className="flex gap-6 bg-black border border-yellow-500/30 rounded-lg px-4 py-3">
                         <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
                           <input
-                            type="checkbox"
+                            type="radio"
+                            name="tipoDocumento"
                             checked={tipoDocumento === "cpf"}
                             onChange={() => handleTipoDocumentoChange("cpf")}
-                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30 rounded"
+                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30"
                           />
                           CPF
                         </label>
 
                         <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
                           <input
-                            type="checkbox"
+                            type="radio"
+                            name="tipoDocumento"
                             checked={tipoDocumento === "cnpj"}
                             onChange={() => handleTipoDocumentoChange("cnpj")}
-                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30 rounded"
+                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30"
                           />
                           CNPJ
                         </label>
@@ -212,30 +215,19 @@ export default function RegistroBar() {
                       {tipoDocumento === "cpf" ? "CPF *" : "CNPJ *"}
                     </label>
 
-                    <InputMask
-                      mask={tipoDocumento === "cpf" ? "999.999.999-99" : "99.999.999/9999-99"}
+                    <IMaskInput
+                      mask={tipoDocumento === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"}
                       value={formData.documento}
-                      onChange={(e) =>
+                      unmask={false}
+                      onAccept={(value) =>
                         setFormData((prev) => ({
                           ...prev,
-                          documento: e.target.value,
+                          documento: String(value),
                         }))
                       }
-                    >
-                      {(inputProps: any) => (
-                        <input
-                          {...inputProps}
-                          type="text"
-                          required
-                          placeholder={
-                            tipoDocumento === "cpf"
-                              ? "000.000.000-00"
-                              : "00.000.000/0001-00"
-                          }
-                          className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
-                        />
-                      )}
-                    </InputMask>
+                      placeholder={tipoDocumento === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"}
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
+                    />
                   </div>
                 </div>
 
@@ -378,11 +370,10 @@ export default function RegistroBar() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`group relative w-full py-3 rounded-lg text-sm font-medium tracking-wide transition-all overflow-hidden ${
-                    !loading && aceptarTerminos
-                      ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
-                      : "bg-gray-900 text-gray-600 cursor-not-allowed"
-                  }`}
+                  className={`group relative w-full py-3 rounded-lg text-sm font-medium tracking-wide transition-all overflow-hidden ${!loading && aceptarTerminos
+                    ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
+                    : "bg-gray-900 text-gray-600 cursor-not-allowed"
+                    }`}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4" />
