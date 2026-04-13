@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Crown,
   Trophy,
   Calendar,
   Clock,
@@ -120,9 +119,6 @@ export default function PlayerDashboard() {
             p.room &&
             (p.room.status === "finished" || p.room.status === "closed")
         );
-
-        console.log("ACTIVAS:", activas);
-        console.log("FINALIZADAS:", finalizadas);
 
         setPartidosActivos(activas);
 
@@ -268,11 +264,12 @@ export default function PlayerDashboard() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
-            <Link href="/" className="flex items-center space-x-2">
-              <Crown className="w-6 h-6 text-yellow-500" strokeWidth={1.5} />
-              <span className="text-xl font-light tracking-wider text-white">
-                JUGADA<span className="text-yellow-500 font-medium">PLAY</span>
-              </span>
+            <Link href="/" className="flex items-center">
+              <img
+                src="/logo-jugadaplay.svg"
+                alt="Jugada Play"
+                className="h-10 md:h-12 w-auto object-contain"
+              />
             </Link>
 
             <div className="hidden md:flex items-center space-x-8">
@@ -349,7 +346,7 @@ export default function PlayerDashboard() {
             </div>
 
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
-              <Crown className="w-5 h-5 text-yellow-500 mb-2" />
+              <Trophy className="w-5 h-5 text-yellow-500 mb-2" />
               <div className="text-2xl font-light text-white">
                 R$ {stats.totalGanado}
               </div>
