@@ -1,13 +1,23 @@
-// app/bar/registro/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  ArrowLeft, Crown, Mail, Lock, Eye, EyeOff, 
-  Building2, Phone, MapPin, User, CheckCircle 
+import InputMask from "react-input-mask";
+import {
+  ArrowLeft,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Building2,
+  Phone,
+  MapPin,
+  User,
+  CheckCircle,
 } from "lucide-react";
+
+type DocumentoTipo = "cpf" | "cnpj";
 
 export default function RegistroBar() {
   const router = useRouter();
@@ -15,30 +25,53 @@ export default function RegistroBar() {
   const [aceptarTerminos, setAceptarTerminos] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
+  const [tipoDocumento, setTipoDocumento] = useState<DocumentoTipo>("cnpj");
+
   const [formData, setFormData] = useState({
     nombreBar: "",
     email: "",
     telefone: "",
     endereco: "",
-    cnpj: "",
+    documento: "",
     responsavel: "",
     password: "",
   });
+
+  const soloNumeros = (value: string) => value.replace(/\D/g, "");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleTipoDocumentoChange = (tipo: DocumentoTipo) => {
+    setTipoDocumento(tipo);
+    setFormData((prev) => ({
+      ...prev,
+      documento: "",
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     if (!aceptarTerminos) {
       setError("Debes aceptar los términos y condiciones");
       return;
     }
-    
+
+    const documentoLimpio = soloNumeros(formData.documento);
+
+    if (tipoDocumento === "cpf" && documentoLimpio.length !== 11) {
+      setError("El CPF debe tener 11 dígitos");
+      return;
+    }
+
+    if (tipoDocumento === "cnpj" && documentoLimpio.length !== 14) {
+      setError("El CNPJ debe tener 14 dígitos");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -52,8 +85,10 @@ export default function RegistroBar() {
           name: formData.responsavel,
           phone: formData.telefone,
           barName: formData.nombreBar,
-          cnpj: formData.cnpj,
           address: formData.endereco,
+          documentType: tipoDocumento,
+          cpf: tipoDocumento === "cpf" ? documentoLimpio : null,
+          cnpj: tipoDocumento === "cnpj" ? documentoLimpio : null,
         }),
       });
 
@@ -63,11 +98,9 @@ export default function RegistroBar() {
         throw new Error(data.message || "Error al registrar bar");
       }
 
-      // Guardar token y datos del usuario
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Redirigir al dashboard del bar
       router.push("/bar/dashboard");
     } catch (err: any) {
       setError(err.message);
@@ -84,10 +117,12 @@ export default function RegistroBar() {
           <div className="flex items-center h-20">
             <Link href="/" className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-              <Crown className="w-5 h-5 text-yellow-500" strokeWidth={1.5} />
-              <span className="text-lg font-light tracking-wider text-white">
-                JUGADA<span className="text-yellow-500 font-medium">PLAY</span>
-              </span>
+
+              <img
+                src="/logo-jugadaplay.svg"
+                alt="Jugada Play"
+                className="h-10 md:h-12 w-auto object-contain"
+              />
             </Link>
           </div>
         </div>
@@ -96,12 +131,13 @@ export default function RegistroBar() {
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-2xl">
-          
           <div className="relative">
             <div className="absolute -inset-1 bg-yellow-500/5 rounded-2xl blur-xl"></div>
-            
-            <form onSubmit={handleSubmit} className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
-              
+
+            <form
+              onSubmit={handleSubmit}
+              className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden"
+            >
               <div className="border-b border-yellow-500/20 px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <Building2 className="w-6 h-6 text-yellow-500" />
@@ -111,21 +147,23 @@ export default function RegistroBar() {
                 </div>
                 <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
                 <p className="text-gray-500 text-sm mt-3">
-                  Únete a JugadaPlay y aumenta tus ventas hasta un 30%
+                  Únete a JugadaPlay y ofrece una experiencia deportiva única en tu bar
                 </p>
               </div>
 
               <div className="p-6 space-y-6">
-                
                 {/* Información del bar */}
                 <div>
                   <h3 className="text-white text-sm font-light tracking-wide mb-4 flex items-center gap-2">
                     <span className="w-1 h-1 bg-yellow-500 rounded-full"></span>
                     INFORMACIÓN DEL BAR
                   </h3>
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="block text-xs text-yellow-500 tracking-wider">NOMBRE DEL BAR *</label>
+                      <label className="block text-xs text-yellow-500 tracking-wider">
+                        NOMBRE DEL BAR *
+                      </label>
                       <div className="relative">
                         <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                         <input
@@ -139,18 +177,65 @@ export default function RegistroBar() {
                         />
                       </div>
                     </div>
+
                     <div className="space-y-2">
-                      <label className="block text-xs text-yellow-500 tracking-wider">CNPJ *</label>
-                      <input
-                        type="text"
-                        name="cnpj"
-                        value={formData.cnpj}
-                        onChange={handleChange}
-                        required
-                        placeholder="00.000.000/0001-00"
-                        className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
-                      />
+                      <label className="block text-xs text-yellow-500 tracking-wider">
+                        TIPO DE DOCUMENTO *
+                      </label>
+
+                      <div className="flex gap-4 bg-black border border-yellow-500/30 rounded-lg px-4 py-3">
+                        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={tipoDocumento === "cpf"}
+                            onChange={() => handleTipoDocumentoChange("cpf")}
+                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30 rounded"
+                          />
+                          CPF
+                        </label>
+
+                        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={tipoDocumento === "cnpj"}
+                            onChange={() => handleTipoDocumentoChange("cnpj")}
+                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30 rounded"
+                          />
+                          CNPJ
+                        </label>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <label className="block text-xs text-yellow-500 tracking-wider">
+                      {tipoDocumento === "cpf" ? "CPF *" : "CNPJ *"}
+                    </label>
+
+                    <InputMask
+                      mask={tipoDocumento === "cpf" ? "999.999.999-99" : "99.999.999/9999-99"}
+                      value={formData.documento}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          documento: e.target.value,
+                        }))
+                      }
+                    >
+                      {(inputProps: any) => (
+                        <input
+                          {...inputProps}
+                          type="text"
+                          required
+                          placeholder={
+                            tipoDocumento === "cpf"
+                              ? "000.000.000-00"
+                              : "00.000.000/0001-00"
+                          }
+                          className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
+                        />
+                      )}
+                    </InputMask>
                   </div>
                 </div>
 
@@ -173,6 +258,7 @@ export default function RegistroBar() {
                         className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
                       />
                     </div>
+
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                       <input
@@ -207,6 +293,7 @@ export default function RegistroBar() {
                         className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
                       />
                     </div>
+
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                       <input
@@ -245,7 +332,11 @@ export default function RegistroBar() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-yellow-500"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                   <p className="text-gray-600 text-xs mt-2">Mínimo 6 caracteres</p>
