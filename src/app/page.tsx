@@ -66,11 +66,10 @@ export default function Home() {
     <main className="min-h-screen bg-black">
       {/* Header */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
             ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
             : "bg-transparent"
-        }`}
+          }`}
       >
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
@@ -87,7 +86,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
+      <section className="relative min-h-[80vh] md:min-h-screen flex items-start md:items-center justify-center px-6 pt-28 md:pt-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black/95"></div>
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-yellow-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
