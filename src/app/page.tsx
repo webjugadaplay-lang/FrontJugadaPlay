@@ -141,7 +141,7 @@ export default function Home() {
       </section>
 
       {/* Sección de Estadísticas */}
-      <section className="py-20 px-6 border-t border-yellow-500/10">
+      <section className="py-10 md:py-20 px-6 border-t border-yellow-500/10">
         <div className="container mx-auto max-w-5xl">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-center">
             <div>
