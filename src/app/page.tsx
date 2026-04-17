@@ -67,8 +67,8 @@ export default function Home() {
       {/* Header */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-            ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
-            : "bg-transparent"
+          ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
+          : "bg-transparent"
           }`}
       >
         <div className="container mx-auto px-6">
@@ -162,7 +162,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div>
+            <div className="col-span-2 md:col-span-1 text-center">
               <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
                 R${loading ? "..." : stats.premios.toLocaleString()}
               </div>
@@ -170,6 +170,7 @@ export default function Home() {
                 Premios
               </div>
             </div>
+
           </div>
         </div>
       </section>
