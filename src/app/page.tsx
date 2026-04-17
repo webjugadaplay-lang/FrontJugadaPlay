@@ -3,17 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Menu,
-  X,
-  Sparkles,
   Star,
-  MessageCircle,
-  Mail,
-  AtSign
 } from "lucide-react";
 
 export default function Home() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [stats, setStats] = useState({
     baresActivos: 0,
@@ -73,10 +66,11 @@ export default function Home() {
     <main className="min-h-screen bg-black">
       {/* Header */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-          ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
-          : "bg-transparent"
-          }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
+            : "bg-transparent"
+        }`}
       >
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
@@ -88,38 +82,7 @@ export default function Home() {
                 className="h-10 md:h-12 lg:h-14 w-auto object-contain"
               />
             </Link>
-
-            {/* Menú Desktop */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="/login">
-                <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm tracking-wide">
-                  INICIAR SESIÓN
-                </button>
-              </Link>
-            </div>
-
-            {/* Botón menú móvil */}
-            <button
-              className="md:hidden text-yellow-500"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Abrir menú"
-            >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
           </div>
-
-          {/* Menú móvil */}
-          {isMenuOpen && (
-            <div className="md:hidden py-6 border-t border-yellow-500/20">
-              <div className="flex flex-col space-y-4">
-                <Link href="/login">
-                  <button className="text-gray-400 hover:text-yellow-500 py-2 transition-colors text-sm tracking-wide text-left">
-                    INICIAR SESIÓN
-                  </button>
-                </Link>
-              </div>
-            </div>
-          )}
         </div>
       </header>
 
@@ -166,7 +129,7 @@ export default function Home() {
 
             <Link href="/login">
               <button className="group relative overflow-hidden border border-yellow-500/50 text-yellow-500 px-8 py-3 rounded-sm text-base font-medium tracking-wide hover:border-yellow-500 hover:text-yellow-400 transition-all">
-                <span className="relative z-10">QUIERO JUGAR</span>
+                <span className="relative z-10">INICIAR SESIÓN</span>
                 <div className="absolute inset-0 bg-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
             </Link>
@@ -208,7 +171,6 @@ export default function Home() {
                 Premios
               </div>
             </div>
-
           </div>
         </div>
       </section>
