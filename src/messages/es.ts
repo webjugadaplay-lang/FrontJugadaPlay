@@ -21,6 +21,28 @@ const es = {
     contact: "CONTACTO",
     rights: "© 2026 JUGADAPLAY. TODOS LOS DERECHOS RESERVADOS.",
   },
+  login: {
+    loading: "Cargando...",
+    title1: "INICIAR",
+    title2: "SESIÓN",
+    roles: {
+      player: "JUGADOR",
+      bar: "BAR",
+      admin: "ADMIN",
+    },
+    email: "EMAIL",
+    emailPlaceholder: "tu@email.com",
+    password: "CONTRASEÑA",
+    submit: "INICIAR SESIÓN",
+    submitting: "INGRESANDO...",
+    noAccount: "¿NO TIENES CUENTA?",
+    registerBar: "REGISTRAR MI BAR",
+    registerPlayer: "REGISTRARME COMO JUGADOR",
+    errors: {
+      login: "Error al iniciar sesión",
+      api: "Error en API",
+    },
+  },
   currencyPrefix: "R$",
 };
 

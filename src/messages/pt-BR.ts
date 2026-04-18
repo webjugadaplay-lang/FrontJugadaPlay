@@ -21,6 +21,28 @@ const ptBR = {
     contact: "CONTATO",
     rights: "© 2026 JUGADAPLAY. TODOS OS DIREITOS RESERVADOS.",
   },
+  login: {
+    loading: "Carregando...",
+    title1: "INICIAR",
+    title2: "SESSÃO",
+    roles: {
+      player: "JOGADOR",
+      bar: "BAR",
+      admin: "ADMIN",
+    },
+    email: "EMAIL",
+    emailPlaceholder: "seu@email.com",
+    password: "SENHA",
+    submit: "INICIAR SESSÃO",
+    submitting: "ENTRANDO...",
+    noAccount: "NÃO TEM CONTA?",
+    registerBar: "CADASTRAR MEU BAR",
+    registerPlayer: "CADASTRAR-ME COMO JOGADOR",
+    errors: {
+      login: "Erro ao iniciar sessão",
+      api: "Erro na API",
+    },
+  },
   currencyPrefix: "R$",
 };
 

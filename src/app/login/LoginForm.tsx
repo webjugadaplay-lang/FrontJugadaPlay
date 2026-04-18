@@ -4,8 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, Eye, EyeOff, User, Building2, Shield } from "lucide-react";
+import { translations, type Locale } from "@/messages";
 
-export default function LoginForm() {
+type Props = {
+  locale: Locale;
+};
+
+export default function LoginForm({ locale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
@@ -15,7 +20,8 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Si hay código en la URL (desde QR), guardarlo para después
+  const t = translations[locale];
+
   useEffect(() => {
     const code = searchParams?.get("code");
     if (code) {
@@ -42,14 +48,12 @@ export default function LoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Error al iniciar sesión");
+        throw new Error(data.message || t.login.errors.login);
       }
 
-      // Guardar token y datos del usuario
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Verificar si hay un código de sala pendiente (desde QR)
       const pendingCode = sessionStorage.getItem("pendingRoomCode");
       if (pendingCode) {
         sessionStorage.removeItem("pendingRoomCode");
@@ -57,7 +61,6 @@ export default function LoginForm() {
         return;
       }
 
-      // Redirigir según el rol del usuario
       if (data.user.role === "admin") {
         router.push("/admin/dashboard");
       } else if (data.user.role === "bar") {
@@ -76,17 +79,19 @@ export default function LoginForm() {
     <div className="container mx-auto max-w-md">
       <div className="relative">
         <div className="absolute -inset-1 bg-yellow-500/5 rounded-2xl blur-xl"></div>
-        <form onSubmit={handleSubmit} className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden"
+        >
           <div className="border-b border-yellow-500/20 px-6 pt-6 pb-4">
             <h1 className="text-2xl font-light tracking-tight text-white">
-              INICIAR <span className="text-yellow-500 font-medium">SESIÓN</span>
+              {t.login.title1}{" "}
+              <span className="text-yellow-500 font-medium">{t.login.title2}</span>
             </h1>
             <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
           </div>
 
           <div className="p-6 space-y-6">
-            
-            {/* Selector de tipo de usuario */}
             <div className="grid grid-cols-3 gap-3">
               <button
                 type="button"
@@ -98,8 +103,9 @@ export default function LoginForm() {
                 }`}
               >
                 <User className="w-4 h-4" />
-                <span className="text-sm">JUGADOR</span>
+                <span className="text-sm">{t.login.roles.player}</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setTipoUsuario("bar")}
@@ -110,8 +116,9 @@ export default function LoginForm() {
                 }`}
               >
                 <Building2 className="w-4 h-4" />
-                <span className="text-sm">BAR</span>
+                <span className="text-sm">{t.login.roles.bar}</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setTipoUsuario("admin")}
@@ -122,13 +129,14 @@ export default function LoginForm() {
                 }`}
               >
                 <Shield className="w-4 h-4" />
-                <span className="text-sm">ADMIN</span>
+                <span className="text-sm">{t.login.roles.admin}</span>
               </button>
             </div>
 
-            {/* Campo Email */}
             <div className="space-y-2">
-              <label className="block text-xs text-yellow-500 tracking-wider">EMAIL</label>
+              <label className="block text-xs text-yellow-500 tracking-wider">
+                {t.login.email}
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                 <input
@@ -136,15 +144,16 @@ export default function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="tu@email.com"
+                  placeholder={t.login.emailPlaceholder}
                   className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                 />
               </div>
             </div>
 
-            {/* Campo Password */}
             <div className="space-y-2">
-              <label className="block text-xs text-yellow-500 tracking-wider">CONTRASEÑA</label>
+              <label className="block text-xs text-yellow-500 tracking-wider">
+                {t.login.password}
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                 <input
@@ -177,7 +186,7 @@ export default function LoginForm() {
               className="group relative w-full overflow-hidden bg-yellow-500 text-black py-3 rounded-lg text-sm font-medium tracking-wide hover:bg-yellow-400 transition-all disabled:opacity-50"
             >
               <span className="relative z-10">
-                {loading ? "INGRESANDO..." : "INICIAR SESIÓN"}
+                {loading ? t.login.submitting : t.login.submit}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
             </button>
@@ -187,19 +196,26 @@ export default function LoginForm() {
                 <div className="w-full border-t border-yellow-500/20"></div>
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-black px-4 text-gray-600">¿NO TIENES CUENTA?</span>
+                <span className="bg-black px-4 text-gray-600">{t.login.noAccount}</span>
               </div>
             </div>
 
             <div className="space-y-2">
               <Link href="/bar/registro">
-                <button type="button" className="w-full border border-yellow-500/30 text-yellow-500 py-3 rounded-lg text-sm font-medium hover:border-yellow-500/50 hover:bg-yellow-500/10 transition-all">
-                  REGISTRAR MI BAR
+                <button
+                  type="button"
+                  className="w-full border border-yellow-500/30 text-yellow-500 py-3 rounded-lg text-sm font-medium hover:border-yellow-500/50 hover:bg-yellow-500/10 transition-all"
+                >
+                  {t.login.registerBar}
                 </button>
               </Link>
+
               <Link href="/jugador/registro">
-                <button type="button" className="w-full border border-gray-700 text-gray-400 py-3 rounded-lg text-sm hover:border-yellow-500/30 hover:text-yellow-500 transition-all">
-                  REGISTRARME COMO JUGADOR
+                <button
+                  type="button"
+                  className="w-full border border-gray-700 text-gray-400 py-3 rounded-lg text-sm hover:border-yellow-500/30 hover:text-yellow-500 transition-all"
+                >
+                  {t.login.registerPlayer}
                 </button>
               </Link>
             </div>
