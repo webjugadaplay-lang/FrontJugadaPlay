@@ -11,7 +11,12 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "JugadaPlay - La emoción del deporte en tu bar",
-  description: "Predice marcadores, gana dinero real.",
+  description: "Predice marcadores, gana dinero real. La mejor experiencia deportiva para bares y jugadores.",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export const viewport: Viewport = {
