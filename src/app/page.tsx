@@ -103,8 +103,8 @@ export default function Home() {
     <main className="min-h-screen bg-black">
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-            ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
-            : "bg-transparent"
+          ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
+          : "bg-transparent"
           }`}
       >
         <div className="container mx-auto px-6">
@@ -241,8 +241,10 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce z-10 hidden md:block">
-          <div className="w-[2px] h-12 bg-gradient-to-b from-yellow-500/50 to-transparent"></div>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:flex flex-col items-center">
+          <div className="w-[2px] h-12 bg-yellow-500/30 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-4 bg-yellow-500 animate-[scrollDown_1.5s_infinite]"></div>
+          </div>
         </div>
       </section>
 
