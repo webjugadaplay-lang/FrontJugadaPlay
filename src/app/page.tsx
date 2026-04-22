@@ -241,9 +241,8 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:block">
-          <div className="w-[2px] h-12 bg-gradient-to-b from-yellow-500/50 to-transparent opacity-70"></div>
-        </div>
+        
+
       </section>
 
       <footer className="border-t border-yellow-500/10 py-12 px-6">
