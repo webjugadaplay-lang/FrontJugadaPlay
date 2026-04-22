@@ -1,3 +1,4 @@
+// src/app/login/page.tsx (MODIFICADO)
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -7,9 +8,18 @@ import LoginForm from "./LoginForm";
 import { translations, type Locale } from "@/messages";
 import { detectInitialLocale } from "@/lib/i18n";
 
+// Importamos los nuevos componentes (los crearemos en breve)
+import ForgotPasswordForm from "@/components/ForgotPasswordForm";
+import VerifyCodeForm from "@/components/VerifyCodeForm";
+import ResetPasswordForm from "@/components/ResetPasswordForm";
+
+type FlowStep = "login" | "forgot" | "verify" | "reset";
+
 export default function LoginPage() {
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [isLocaleReady, setIsLocaleReady] = useState(false);
+  const [flowStep, setFlowStep] = useState<FlowStep>("login");
+  const [resetEmail, setResetEmail] = useState("");
 
   useEffect(() => {
     const detectedLocale = detectInitialLocale();
@@ -24,6 +34,20 @@ export default function LoginPage() {
 
   const t = translations[locale];
 
+  const handleForgotPassword = () => setFlowStep("forgot");
+  const handleCodeSent = (email: string) => {
+    setResetEmail(email);
+    setFlowStep("verify");
+  };
+  const handleVerified = (email: string) => {
+    setResetEmail(email);
+    setFlowStep("reset");
+  };
+  const handleBackToLogin = () => {
+    setFlowStep("login");
+    setResetEmail("");
+  };
+
   return (
     <main className="min-h-screen bg-black">
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
@@ -31,7 +55,6 @@ export default function LoginPage() {
           <div className="flex items-center justify-between h-20 gap-4">
             <Link href="/" className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-
               <img
                 src="/logo-jugadaplay.svg"
                 alt="Jugada Play"
@@ -66,7 +89,34 @@ export default function LoginPage() {
             <div className="text-yellow-500 text-center">{t.login.loading}</div>
           }
         >
-          <LoginForm locale={locale} />
+          {flowStep === "login" && (
+            <LoginForm locale={locale} onForgotPassword={handleForgotPassword} />
+          )}
+
+          {flowStep === "forgot" && (
+            <ForgotPasswordForm
+              locale={locale}
+              onBack={handleBackToLogin}
+              onCodeSent={handleCodeSent}
+            />
+          )}
+
+          {flowStep === "verify" && (
+            <VerifyCodeForm
+              locale={locale}
+              email={resetEmail}
+              onBack={handleBackToLogin}
+              onVerified={handleVerified}
+            />
+          )}
+
+          {flowStep === "reset" && (
+            <ResetPasswordForm
+              locale={locale}
+              email={resetEmail}
+              onComplete={handleBackToLogin}
+            />
+          )}
         </Suspense>
       </div>
     </main>
