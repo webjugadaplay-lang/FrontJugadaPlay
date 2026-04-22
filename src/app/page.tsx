@@ -241,10 +241,8 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:flex flex-col items-center">
-          <div className="w-[2px] h-12 bg-yellow-500/30 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-4 bg-yellow-500 animate-[scrollDown_1.5s_infinite]"></div>
-          </div>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:block">
+          <div className="w-[2px] h-12 bg-gradient-to-b from-yellow-500/50 to-transparent opacity-70"></div>
         </div>
       </section>
 
