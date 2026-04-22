@@ -102,10 +102,11 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black">
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-          ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
-          : "bg-transparent"
-          }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
+            : "bg-transparent"
+        }`}
       >
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
@@ -187,62 +188,43 @@ export default function Home() {
           </div>
 
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <div className="w-[2px] h-12 bg-gradient-to-b from-yellow-500/50 to-transparent"></div>
+            <div className="w-[2px] h-12 "></div>
           </div>
         </div>
       </section>
 
-      <section className="relative min-h-[80vh] md:min-h-screen flex items-start md:items-center justify-center px-6 pt-28 md:pt-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black/95"></div>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-yellow-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      <section className="py-10 md:py-20 px-6 border-t border-yellow-500/10">
+        <div className="container mx-auto max-w-5xl">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-center">
+            <div>
+              <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
+                {loading ? "..." : stats.baresActivos}
+              </div>
+              <div className="text-gray-600 text-xs tracking-wider uppercase">
+                {t.stats.activeBars}
+              </div>
+            </div>
 
-        <div className="relative z-10 text-center max-w-4xl mx-auto">
-          <div className="mb-8 flex justify-center">
-            <span className="text-yellow-500 text-xs md:text-sm tracking-[0.25em] uppercase font-light">
-              {t.hero.badge}
-            </span>
-          </div>
+            <div>
+              <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
+                {loading ? "..." : stats.jugadores}
+              </div>
+              <div className="text-gray-600 text-xs tracking-wider uppercase">
+                {t.stats.players}
+              </div>
+            </div>
 
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-light mb-6 tracking-tight">
-            <span className="text-white">{t.hero.title1}</span>
-            <br />
-            <span className="relative inline-block">
-              <span className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 via-yellow-500/40 to-yellow-500/20 blur-xl"></span>
-              <span className="relative bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent font-medium">
-                {t.hero.title2}
-              </span>
-            </span>
-            <br />
-            <span className="text-white">{t.hero.title3}</span>
-          </h1>
-
-          <p className="text-gray-400 text-lg md:text-xl mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-            {t.hero.subtitle}
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/bar/registro">
-              <button className="group relative overflow-hidden bg-yellow-500 text-black px-8 py-3 rounded-sm text-base font-medium tracking-wide transition-all hover:bg-yellow-400 shadow-lg shadow-yellow-500/25">
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  {t.hero.ctaBar}
-                  <Star className="w-4 h-4" />
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
-              </button>
-            </Link>
-
-            <Link href="/login">
-              <button className="group relative overflow-hidden border border-yellow-500/50 text-yellow-500 px-8 py-3 rounded-sm text-base font-medium tracking-wide hover:border-yellow-500 hover:text-yellow-400 transition-all">
-                <span className="relative z-10">{t.hero.ctaLogin}</span>
-                <div className="absolute inset-0 bg-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              </button>
-            </Link>
+            <div className="col-span-2 md:col-span-1 text-center">
+              <div className="text-3xl md:text-4xl font-light text-yellow-500 mb-1">
+                {t.currencyPrefix}
+                {formattedPrizes}
+              </div>
+              <div className="text-gray-600 text-xs tracking-wider uppercase">
+                {t.stats.prizes}
+              </div>
+            </div>
           </div>
         </div>
-
-        
-
       </section>
 
       <footer className="border-t border-yellow-500/10 py-12 px-6">
