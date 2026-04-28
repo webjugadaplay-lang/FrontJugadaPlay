@@ -19,6 +19,7 @@ export default function LoginForm({ locale }: Props) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const t = translations[locale];
 
@@ -28,6 +29,17 @@ export default function LoginForm({ locale }: Props) {
       sessionStorage.setItem("pendingRoomCode", code);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,10 +112,10 @@ export default function LoginForm({ locale }: Props) {
                   tipoUsuario === "player"
                     ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
                     : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
-                }`}
+                } ${isMobile ? "justify-center" : ""}`}
               >
-                <User className="w-4 h-4" />
-                <span className="text-sm">{t.login.roles.player}</span>
+                {!isMobile && <User className="w-4 h-4" />}
+                <span className="text-sm text-center">{t.login.roles.player}</span>
               </button>
 
               <button
@@ -113,10 +125,10 @@ export default function LoginForm({ locale }: Props) {
                   tipoUsuario === "bar"
                     ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
                     : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
-                }`}
+                } ${isMobile ? "justify-center" : ""}`}
               >
-                <Building2 className="w-4 h-4" />
-                <span className="text-sm">{t.login.roles.bar}</span>
+                {!isMobile && <Building2 className="w-4 h-4" />}
+                <span className="text-sm text-center">{t.login.roles.bar}</span>
               </button>
 
               <button
@@ -126,10 +138,10 @@ export default function LoginForm({ locale }: Props) {
                   tipoUsuario === "admin"
                     ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
                     : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
-                }`}
+                } ${isMobile ? "justify-center" : ""}`}
               >
-                <Shield className="w-4 h-4" />
-                <span className="text-sm">{t.login.roles.admin}</span>
+                {!isMobile && <Shield className="w-4 h-4" />}
+                <span className="text-sm text-center">{t.login.roles.admin}</span>
               </button>
             </div>
 
