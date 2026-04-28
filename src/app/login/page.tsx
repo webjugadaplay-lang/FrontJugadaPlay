@@ -61,13 +61,25 @@ export default function LoginPage() {
       </header>
 
       <div className="pt-28 pb-20 px-6 min-h-screen flex items-center justify-center">
-        <Suspense
-          fallback={
-            <div className="text-yellow-500 text-center">{t.login.loading}</div>
-          }
-        >
-          <LoginForm locale={locale} />
-        </Suspense>
+        <div className="w-full max-w-md">
+          <Suspense
+            fallback={
+              <div className="text-yellow-500 text-center">{t.login.loading}</div>
+            }
+          >
+            <LoginForm locale={locale} />
+          </Suspense>
+
+          {/* Link para recuperar contraseña */}
+          <div className="mt-6 text-center">
+            <Link
+              href="/forgot-password"
+              className="text-gray-400 hover:text-yellow-500 text-sm transition-colors duration-200"
+            >
+              {t.login.forgotPassword || "¿Olvidaste tu contraseña?"}
+            </Link>
+          </div>
+        </div>
       </div>
     </main>
   );

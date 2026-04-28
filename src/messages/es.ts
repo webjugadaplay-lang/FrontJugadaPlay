@@ -38,6 +38,7 @@ const es = {
     noAccount: "¿NO TIENES CUENTA?",
     registerBar: "REGISTRAR MI BAR",
     registerPlayer: "REGISTRARME COMO JUGADOR",
+    forgotPassword: "¿Olvidaste tu contraseña?", // ← Agregado aquí
     errors: {
       login: "Error al iniciar sesión",
       api: "Error en API",
@@ -77,6 +78,18 @@ const es = {
     registerButton: "REGISTRAR MI BAR",
     alreadyHaveAccount: "¿Ya tienes una cuenta?",
     login: "Iniciar sesión",
+  },
+  forgotPassword: {
+    title: "¿Olvidaste tu contraseña?",
+    description: "Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña",
+    emailLabel: "Email",
+    invalidEmail: "Ingresa un email válido",
+    sendButton: "Enviar enlace",
+    sending: "Enviando...",
+    emailSent: "Revisa tu email",
+    emailSentMessage: "Si el email está registrado, recibirás un enlace para recuperar tu contraseña.",
+    backToLogin: "Volver al inicio de sesión",
+    error: "Ocurrió un error. Intenta de nuevo."
   },
   currencyPrefix: "R$",
 };
