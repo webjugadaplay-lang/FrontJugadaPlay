@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
 
     try {
       // Aquí irá la llamada a tu API
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/forgot-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
                 {t.forgotPassword.emailSent || "Revisa tu email"}
               </h1>
               <p className="text-gray-400 mb-6">
-                {t.forgotPassword.emailSentMessage || 
+                {t.forgotPassword.emailSentMessage ||
                   "Si el email está registrado, recibirás un enlace para recuperar tu contraseña."}
               </p>
               <Link
@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
                 {t.forgotPassword.title || "¿Olvidaste tu contraseña?"}
               </h1>
               <p className="text-gray-400 text-sm">
-                {t.forgotPassword.description || 
+                {t.forgotPassword.description ||
                   "Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña"}
               </p>
             </div>
