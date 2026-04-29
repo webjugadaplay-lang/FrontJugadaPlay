@@ -86,7 +86,8 @@ const es = {
     invalidEmail: "Ingresa un email válido",
     sendButton: "Enviar enlace",
     sending: "Enviando...",
-    emailSent: "Revisa tu email",
+    emailNotRegistered: "Correo electrónico no registrado",
+    emailSent: "¡Enlace enviado!",
     emailSentMessage: "Si el email está registrado, recibirás un enlace para recuperar tu contraseña.",
     backToLogin: "Volver al inicio de sesión",
     error: "Ocurrió un error. Intenta de nuevo."

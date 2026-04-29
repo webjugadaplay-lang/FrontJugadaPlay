@@ -15,6 +15,7 @@ export default function ForgotPasswordPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [isLocaleReady, setIsLocaleReady] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     const detectedLocale = detectInitialLocale();
@@ -36,25 +37,45 @@ export default function ForgotPasswordPage() {
 
     // Validación básica
     if (!email || !email.includes("@")) {
-      setError(t.forgotPassword.invalidEmail || "Ingresa un email válido");
+      setError(t.forgotPassword.invalidEmail);
       setIsLoading(false);
       return;
     }
 
     try {
-      // Aquí irá la llamada a tu API
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/forgot-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.toLowerCase() }),
       });
 
-      // Por seguridad, siempre mostramos el mismo mensaje sin importar si el email existe o no
-      setIsSubmitted(true);
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Si el error es 404 (email no encontrado)
+        if (response.status === 404) {
+          setError(data.message || "Correo electrónico no registrado");
+          setIsLoading(false);
+          return;
+        }
+        // Otros errores
+        setError(data.message || t.forgotPassword.error);
+        setIsLoading(false);
+        return;
+      }
+
+      // Si fue exitoso (email existe), mostrar el mensaje con el email
+      // En lugar de isSubmitted, mostramos un mensaje de éxito personalizado
+      if (data.message) {
+        setSuccessMessage(data.message);
+        setIsSubmitted(true);
+      }
+
     } catch (err) {
-      setError(t.forgotPassword.error || "Ocurrió un error. Intenta de nuevo.");
+      setError(t.forgotPassword.error);
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
@@ -84,11 +105,10 @@ export default function ForgotPasswordPage() {
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-8">
               <CheckCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-white mb-2">
-                {t.forgotPassword.emailSent || "Revisa tu email"}
+                {t.forgotPassword.emailSent || "¡Enlace enviado!"}
               </h1>
               <p className="text-gray-400 mb-6">
-                {t.forgotPassword.emailSentMessage ||
-                  "Si el email está registrado, recibirás un enlace para recuperar tu contraseña."}
+                {successMessage || t.forgotPassword.emailSentMessage}
               </p>
               <Link
                 href="/login"
