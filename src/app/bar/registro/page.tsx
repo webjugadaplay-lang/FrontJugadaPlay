@@ -185,7 +185,7 @@ export default function RegistroBar() {
                 </div>
                 <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
                 <p className="text-gray-500 text-sm mt-3">
-                  {t.register.subtitle}
+                  {t.register.barSubtitle}
                 </p>
               </div>
 
