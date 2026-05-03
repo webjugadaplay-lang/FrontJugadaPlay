@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { IMaskInput } from "react-imask";
 import { translations, type Locale } from "@/messages";
 import { detectInitialLocale } from "@/lib/i18n";
 
@@ -19,63 +18,118 @@ import {
   User,
   CheckCircle,
   ChevronDown,
+  IdCard,
 } from "lucide-react";
 
-type DocumentoTipo = "cpf" | "cnpj";
-
-// Configuración de países
+// Configuración de países UNIFICADA
 const countries = [
   { 
     code: "BR", 
     name: "Brasil", 
     dialCode: "+55", 
-    mask: "(##) #####-####",
-    placeholder: "(11) 91234-5678",
-    regex: /^\((\d{2})\) (\d{5})-(\d{4})$/
+    phoneMask: "(##) #####-####",
+    phonePlaceholder: "(11) 91234-5678",
+    // Configuración de documento para BAR (CNPJ o CPF)
+    barDocumentName: "CNPJ",
+    barDocumentMask: "00.000.000/0000-00",
+    barDocumentPlaceholder: "00.000.000/0000-00",
+    barDocumentLength: 14,
+    // También pueden usar CPF como persona física
+    hasAlternativeDocument: true,
+    alternativeDocumentName: "CPF",
+    alternativeDocumentMask: "000.000.000-00",
+    alternativeDocumentPlaceholder: "000.000.000-00",
+    alternativeDocumentLength: 11,
   },
   { 
     code: "CO", 
     name: "Colombia", 
     dialCode: "+57", 
-    mask: "(###) ###-####",
-    placeholder: "(300) 123-4567",
-    regex: /^\((\d{3})\) (\d{3})-(\d{4})$/
+    phoneMask: "(###) ###-####",
+    phonePlaceholder: "(300) 123-4567",
+    // Configuración de documento para BAR (NIT - Número de Identificación Tributaria)
+    barDocumentName: "NIT",
+    barDocumentMask: "#######-#",
+    barDocumentPlaceholder: "1234567-8",
+    barDocumentLength: 10,
+    hasAlternativeDocument: true,
+    alternativeDocumentName: "Cédula",
+    alternativeDocumentMask: "##########",
+    alternativeDocumentPlaceholder: "1234567890",
+    alternativeDocumentLength: 10,
   },
   { 
     code: "MX", 
     name: "México", 
     dialCode: "+52", 
-    mask: "(##) ####-####",
-    placeholder: "(55) 1234-5678",
-    regex: /^\((\d{2})\) (\d{4})-(\d{4})$/
+    phoneMask: "(##) ####-####",
+    phonePlaceholder: "(55) 1234-5678",
+    // Configuración de documento para BAR (RFC - Registro Federal de Contribuyentes)
+    barDocumentName: "RFC",
+    barDocumentMask: "##########",
+    barDocumentPlaceholder: "ABCD123456XYZ",
+    barDocumentLength: 13,
+    hasAlternativeDocument: true,
+    alternativeDocumentName: "CURP",
+    alternativeDocumentMask: "##########",
+    alternativeDocumentPlaceholder: "ABCD123456EFGHIJ18",
+    alternativeDocumentLength: 18,
   }
 ];
 
 // Función para aplicar formato al número de teléfono
 const formatPhoneNumber = (value: string, country: typeof countries[0]): string => {
-  // Eliminar todos los caracteres no numéricos
   const numbers = value.replace(/\D/g, '');
-  
   if (!numbers) return '';
   
-  // Aplicar máscara según el país
   let formatted = '';
   let numberIndex = 0;
   
-  for (let i = 0; i < country.mask.length && numberIndex < numbers.length; i++) {
-    if (country.mask[i] === '#') {
+  for (let i = 0; i < country.phoneMask.length && numberIndex < numbers.length; i++) {
+    if (country.phoneMask[i] === '#') {
       formatted += numbers[numberIndex];
       numberIndex++;
     } else {
-      formatted += country.mask[i];
+      formatted += country.phoneMask[i];
     }
   }
   
   return formatted;
 };
 
-// Función para limpiar el número (solo dígitos)
-const cleanPhoneNumber = (value: string): string => {
+// Función para aplicar formato al documento según país y tipo
+const formatDocument = (value: string, country: typeof countries[0], tipoDocumento: string): string => {
+  const isAlternative = tipoDocumento === country.alternativeDocumentName;
+  const mask = isAlternative ? country.alternativeDocumentMask : country.barDocumentMask;
+  
+  if (country.code === "BR" || country.code === "CO") {
+    // Para Brasil y Colombia, aplicar máscara de caracteres
+    let cleanValue = value.replace(/[^a-zA-Z0-9]/g, '');
+    let formatted = '';
+    let charIndex = 0;
+    
+    for (let i = 0; i < mask.length && charIndex < cleanValue.length; i++) {
+      if (mask[i] === '0' || mask[i] === '#') {
+        formatted += cleanValue[charIndex];
+        charIndex++;
+      } else {
+        formatted += mask[i];
+      }
+    }
+    return formatted;
+  } else {
+    // Para México, solo letras/números en mayúscula sin formato
+    let cleanValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const maxLength = isAlternative ? country.alternativeDocumentLength : country.barDocumentLength;
+    if (cleanValue.length > maxLength) {
+      cleanValue = cleanValue.slice(0, maxLength);
+    }
+    return cleanValue;
+  }
+};
+
+// Función para limpiar (solo dígitos)
+const cleanNumber = (value: string): string => {
   return value.replace(/\D/g, '');
 };
 
@@ -87,10 +141,12 @@ export default function RegistroBar() {
   const [aceptarTerminos, setAceptarTerminos] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [tipoDocumento, setTipoDocumento] = useState<DocumentoTipo>("cnpj");
-  const [selectedCountry, setSelectedCountry] = useState(countries[0]); // Brasil por defecto
+  const [selectedCountry, setSelectedCountry] = useState(countries[0]);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Tipo de documento (principal o alternativo)
+  const [tipoDocumento, setTipoDocumento] = useState<"principal" | "alternativo">("principal");
 
   const [formData, setFormData] = useState({
     nombreBar: "",
@@ -128,14 +184,46 @@ export default function RegistroBar() {
 
   const t = translations[locale];
 
-  const soloNumeros = (value: string) => value.replace(/\D/g, "");
+  // Obtener nombre del documento actual
+  const getCurrentDocumentName = () => {
+    if (tipoDocumento === "alternativo" && selectedCountry.hasAlternativeDocument) {
+      return selectedCountry.alternativeDocumentName;
+    }
+    return selectedCountry.barDocumentName;
+  };
+
+  // Obtener máscara del documento actual
+  const getCurrentDocumentMask = () => {
+    if (tipoDocumento === "alternativo" && selectedCountry.hasAlternativeDocument) {
+      return selectedCountry.alternativeDocumentMask;
+    }
+    return selectedCountry.barDocumentMask;
+  };
+
+  // Obtener placeholder del documento actual
+  const getCurrentDocumentPlaceholder = () => {
+    if (tipoDocumento === "alternativo" && selectedCountry.hasAlternativeDocument) {
+      return selectedCountry.alternativeDocumentPlaceholder;
+    }
+    return selectedCountry.barDocumentPlaceholder;
+  };
+
+  // Obtener longitud del documento actual
+  const getCurrentDocumentLength = () => {
+    if (tipoDocumento === "alternativo" && selectedCountry.hasAlternativeDocument) {
+      return selectedCountry.alternativeDocumentLength;
+    }
+    return selectedCountry.barDocumentLength;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
     if (name === 'telefone') {
-      // Aplicar formato al número de teléfono
       const formatted = formatPhoneNumber(value, selectedCountry);
+      setFormData({ ...formData, [name]: formatted });
+    } else if (name === 'documento') {
+      const formatted = formatDocument(value, selectedCountry, getCurrentDocumentName());
       setFormData({ ...formData, [name]: formatted });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -145,21 +233,64 @@ export default function RegistroBar() {
   const handleCountryChange = (country: typeof countries[0]) => {
     setSelectedCountry(country);
     setShowCountryDropdown(false);
+    setTipoDocumento("principal"); // Resetear a documento principal
+    setFormData(prev => ({ ...prev, documento: "" }));
     
-    // Limpiar y reformatear el número actual si existe
+    // Reformatear teléfono
     if (formData.telefone) {
-      const cleanNumber = cleanPhoneNumber(formData.telefone);
-      const reformatted = formatPhoneNumber(cleanNumber, country);
+      const cleanPhone = cleanNumber(formData.telefone);
+      const reformatted = formatPhoneNumber(cleanPhone, country);
       setFormData(prev => ({ ...prev, telefone: reformatted }));
     }
   };
 
-  const handleTipoDocumentoChange = (tipo: DocumentoTipo) => {
-    setTipoDocumento(tipo);
-    setFormData((prev) => ({
-      ...prev,
-      documento: "",
-    }));
+  const validateDocument = (): boolean => {
+    if (!formData.documento) {
+      setError(`Por favor, ingrese ${getCurrentDocumentName()}`);
+      return false;
+    }
+
+    const cleanDoc = cleanNumber(formData.documento);
+    const currentDocName = getCurrentDocumentName();
+
+    if (selectedCountry.code === "BR") {
+      if (currentDocName === "CNPJ" && cleanDoc.length !== 14) {
+        setError(`CNPJ inválido. Debe tener 14 números. Ejemplo: 00.000.000/0000-00`);
+        return false;
+      }
+      if (currentDocName === "CPF" && cleanDoc.length !== 11) {
+        setError(`CPF inválido. Debe tener 11 números. Ejemplo: 000.000.000-00`);
+        return false;
+      }
+    } else if (selectedCountry.code === "CO") {
+      if (currentDocName === "NIT") {
+        if (cleanDoc.length !== 10) {
+          setError(`NIT inválido. Debe tener 10 dígitos (ej: 1234567-8)`);
+          return false;
+        }
+      }
+      if (currentDocName === "Cédula") {
+        if (cleanDoc.length < 7 || cleanDoc.length > 10) {
+          setError(`Cédula inválida. Debe tener entre 7 y 10 dígitos`);
+          return false;
+        }
+      }
+    } else if (selectedCountry.code === "MX") {
+      if (currentDocName === "RFC") {
+        if (formData.documento.length < 12 || formData.documento.length > 13) {
+          setError(`RFC inválido. Debe tener 12-13 caracteres`);
+          return false;
+        }
+      }
+      if (currentDocName === "CURP") {
+        if (formData.documento.length !== 18) {
+          setError(`CURP inválida. Debe tener 18 caracteres`);
+          return false;
+        }
+      }
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -171,21 +302,12 @@ export default function RegistroBar() {
       return;
     }
 
-    const documentoLimpio = soloNumeros(formData.documento);
-
-    if (tipoDocumento === "cpf" && documentoLimpio.length !== 11) {
-      setError(t.register.cpfError);
+    if (!validateDocument()) {
       return;
     }
 
-    if (tipoDocumento === "cnpj" && documentoLimpio.length !== 14) {
-      setError(t.register.cnpjError);
-      return;
-    }
-
-    // Validar que el teléfono tenga el formato correcto
-    const cleanNumber = cleanPhoneNumber(formData.telefone);
-    if (cleanNumber.length === 0) {
+    const cleanPhone = cleanNumber(formData.telefone);
+    if (cleanPhone.length === 0) {
       setError("Por favor, ingrese un número de teléfono válido");
       return;
     }
@@ -193,8 +315,13 @@ export default function RegistroBar() {
     setLoading(true);
 
     try {
-      // Formatear número completo con código de país
       const fullPhoneNumber = `${selectedCountry.dialCode} ${formData.telefone}`;
+      const cleanDocument = cleanNumber(formData.documento);
+      const currentDocName = getCurrentDocumentName();
+      
+      // Preparar datos según el tipo de documento
+      const isCPF = currentDocName === "CPF";
+      const isCNPJ = currentDocName === "CNPJ";
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: "POST",
@@ -208,9 +335,11 @@ export default function RegistroBar() {
           phoneCountry: selectedCountry.code,
           barName: formData.nombreBar,
           address: formData.endereco,
-          documentType: tipoDocumento,
-          cpf: tipoDocumento === "cpf" ? documentoLimpio : null,
-          cnpj: tipoDocumento === "cnpj" ? documentoLimpio : null,
+          documentType: currentDocName,
+          documentNumber: cleanDocument,
+          countryCode: selectedCountry.code,
+          cpf: isCPF ? cleanDocument : null,
+          cnpj: isCNPJ ? cleanDocument : null,
         }),
       });
 
@@ -231,7 +360,6 @@ export default function RegistroBar() {
     }
   };
 
-  // Si el idioma aún no está listo, mostrar loading
   if (!isLocaleReady) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -242,7 +370,6 @@ export default function RegistroBar() {
 
   return (
     <main className="min-h-screen bg-black">
-      {/* Header con selector de idioma */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-20 gap-4">
@@ -276,7 +403,6 @@ export default function RegistroBar() {
         </div>
       </header>
 
-      {/* Contenido principal */}
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-2xl">
           <div className="relative">
@@ -327,55 +453,104 @@ export default function RegistroBar() {
                       </div>
                     </div>
 
+                    {/* Selector de País UNIFICADO */}
                     <div className="space-y-2">
                       <label className="block text-xs text-yellow-500 tracking-wider">
-                        {t.register.documentType} *
+                        País *
                       </label>
-
-                      <div className="flex gap-6 bg-black border border-yellow-500/30 rounded-lg px-4 py-3">
-                        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
-                          <input
-                            type="radio"
-                            name="tipoDocumento"
-                            checked={tipoDocumento === "cpf"}
-                            onChange={() => handleTipoDocumentoChange("cpf")}
-                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30"
-                          />
-                          CPF
-                        </label>
-
-                        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
-                          <input
-                            type="radio"
-                            name="tipoDocumento"
-                            checked={tipoDocumento === "cnpj"}
-                            onChange={() => handleTipoDocumentoChange("cnpj")}
-                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30"
-                          />
-                          CNPJ
-                        </label>
+                      <div className="relative" ref={dropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                          className="w-full flex items-center justify-between px-4 py-3 bg-black border border-yellow-500/30 rounded-lg hover:border-yellow-500/60 transition-all"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-white text-sm font-medium">{selectedCountry.name}</span>
+                            <span className="text-yellow-500 text-xs">{selectedCountry.dialCode}</span>
+                          </div>
+                          <ChevronDown className={`w-4 h-4 text-yellow-500 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+                        
+                        {showCountryDropdown && (
+                          <div className="absolute top-full left-0 mt-1 w-full bg-black border border-yellow-500/30 rounded-lg shadow-xl z-50 overflow-hidden">
+                            {countries.map((country) => (
+                              <button
+                                key={country.code}
+                                type="button"
+                                onClick={() => handleCountryChange(country)}
+                                className={`w-full px-4 py-2 text-left hover:bg-yellow-500/10 transition-colors flex items-center justify-between ${
+                                  selectedCountry.code === country.code ? 'bg-yellow-500/20 text-yellow-500' : 'text-white'
+                                }`}
+                              >
+                                <span>{country.name}</span>
+                                <span className="text-xs text-gray-500">{country.dialCode}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
+                  {/* Tipo de Documento (Principal o Alternativo) */}
+                  {selectedCountry.hasAlternativeDocument && (
+                    <div className="mt-4 space-y-2">
+                      <label className="block text-xs text-yellow-500 tracking-wider">
+                        Tipo de Documento *
+                      </label>
+                      <div className="flex gap-6 bg-black border border-yellow-500/30 rounded-lg px-4 py-3">
+                        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={tipoDocumento === "principal"}
+                            onChange={() => {
+                              setTipoDocumento("principal");
+                              setFormData(prev => ({ ...prev, documento: "" }));
+                            }}
+                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30"
+                          />
+                          {selectedCountry.barDocumentName}
+                        </label>
+
+                        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={tipoDocumento === "alternativo"}
+                            onChange={() => {
+                              setTipoDocumento("alternativo");
+                              setFormData(prev => ({ ...prev, documento: "" }));
+                            }}
+                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30"
+                          />
+                          {selectedCountry.alternativeDocumentName}
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Campo de Documento */}
                   <div className="mt-4 space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">
-                      {tipoDocumento === "cpf" ? "CPF *" : "CNPJ *"}
+                      {getCurrentDocumentName()} *
                     </label>
-
-                    <IMaskInput
-                      mask={tipoDocumento === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"}
-                      value={formData.documento}
-                      unmask={false}
-                      onAccept={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          documento: String(value),
-                        }))
-                      }
-                      placeholder={tipoDocumento === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"}
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60"
-                    />
+                    <div className="relative">
+                      <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
+                      <input
+                        type="text"
+                        name="documento"
+                        value={formData.documento}
+                        onChange={handleChange}
+                        required
+                        placeholder={getCurrentDocumentPlaceholder()}
+                        className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all font-mono text-sm"
+                        maxLength={getCurrentDocumentLength() + 5}
+                      />
+                    </div>
+                    <p className="text-gray-600 text-xs">
+                      {selectedCountry.code === "BR" && (getCurrentDocumentName() === "CNPJ" ? "CNPJ: 14 números (ej: 00.000.000/0000-00)" : "CPF: 11 números (ej: 000.000.000-00)")}
+                      {selectedCountry.code === "CO" && (getCurrentDocumentName() === "NIT" ? "NIT: 10 dígitos (ej: 1234567-8)" : "Cédula: 7-10 dígitos")}
+                      {selectedCountry.code === "MX" && (getCurrentDocumentName() === "RFC" ? "RFC: 12-13 caracteres" : "CURP: 18 caracteres")}
+                    </p>
                   </div>
                 </div>
 
@@ -399,60 +574,25 @@ export default function RegistroBar() {
                       />
                     </div>
 
-                    {/* Teléfono con selector de país */}
+                    {/* Teléfono con formato según país */}
                     <div className="space-y-2">
                       <label className="block text-xs text-yellow-500 tracking-wider">
                         {t.register.phone} *
                       </label>
-                      <div className="flex gap-2">
-                        {/* Selector de país */}
-                        <div className="relative" ref={dropdownRef}>
-                          <button
-                            type="button"
-                            onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                            className="flex items-center gap-2 px-3 py-3 bg-black border border-yellow-500/30 rounded-lg hover:border-yellow-500/60 transition-all"
-                          >
-                            <span className="text-white text-sm">{selectedCountry.code}</span>
-                            <span className="text-gray-400 text-xs">{selectedCountry.dialCode}</span>
-                            <ChevronDown className={`w-4 h-4 text-yellow-500 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
-                          </button>
-                          
-                          {/* Dropdown de países */}
-                          {showCountryDropdown && (
-                            <div className="absolute top-full left-0 mt-1 w-48 bg-black border border-yellow-500/30 rounded-lg shadow-xl z-50 overflow-hidden">
-                              {countries.map((country) => (
-                                <button
-                                  key={country.code}
-                                  type="button"
-                                  onClick={() => handleCountryChange(country)}
-                                  className={`w-full px-4 py-2 text-left hover:bg-yellow-500/10 transition-colors flex items-center justify-between ${
-                                    selectedCountry.code === country.code ? 'bg-yellow-500/20 text-yellow-500' : 'text-white'
-                                  }`}
-                                >
-                                  <span>{country.name}</span>
-                                  <span className="text-xs text-gray-500">{country.dialCode}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Campo de teléfono */}
-                        <div className="relative flex-1">
-                          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
-                          <input
-                            type="tel"
-                            name="telefone"
-                            value={formData.telefone}
-                            onChange={handleChange}
-                            required
-                            placeholder={selectedCountry.placeholder}
-                            className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all font-mono text-sm"
-                          />
-                        </div>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
+                        <input
+                          type="tel"
+                          name="telefone"
+                          value={formData.telefone}
+                          onChange={handleChange}
+                          required
+                          placeholder={selectedCountry.phonePlaceholder}
+                          className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all font-mono text-sm"
+                        />
                       </div>
                       <p className="text-gray-600 text-xs">
-                        Formato: {selectedCountry.mask} ({selectedCountry.name})
+                        Formato: {selectedCountry.phoneMask} ({selectedCountry.name})
                       </p>
                     </div>
                   </div>
