@@ -1,15 +1,71 @@
 // app/jugador/registro/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { translations, type Locale } from "@/messages";
 import { detectInitialLocale } from "@/lib/i18n";
 import { 
   ArrowLeft, Crown, Mail, Lock, Eye, EyeOff, 
-  User, Phone, CheckCircle, Award 
+  User, Phone, CheckCircle, Award, ChevronDown 
 } from "lucide-react";
+
+// Configuración de países
+const countries = [
+  { 
+    code: "BR", 
+    name: "Brasil", 
+    dialCode: "+55", 
+    mask: "(##) #####-####",
+    placeholder: "(11) 91234-5678",
+    regex: /^\((\d{2})\) (\d{5})-(\d{4})$/
+  },
+  { 
+    code: "CO", 
+    name: "Colombia", 
+    dialCode: "+57", 
+    mask: "(###) ###-####",
+    placeholder: "(300) 123-4567",
+    regex: /^\((\d{3})\) (\d{3})-(\d{4})$/
+  },
+  { 
+    code: "MX", 
+    name: "México", 
+    dialCode: "+52", 
+    mask: "(##) ####-####",
+    placeholder: "(55) 1234-5678",
+    regex: /^\((\d{2})\) (\d{4})-(\d{4})$/
+  }
+];
+
+// Función para aplicar formato al número de teléfono
+const formatPhoneNumber = (value: string, country: typeof countries[0]): string => {
+  // Eliminar todos los caracteres no numéricos
+  const numbers = value.replace(/\D/g, '');
+  
+  if (!numbers) return '';
+  
+  // Aplicar máscara según el país
+  let formatted = '';
+  let numberIndex = 0;
+  
+  for (let i = 0; i < country.mask.length && numberIndex < numbers.length; i++) {
+    if (country.mask[i] === '#') {
+      formatted += numbers[numberIndex];
+      numberIndex++;
+    } else {
+      formatted += country.mask[i];
+    }
+  }
+  
+  return formatted;
+};
+
+// Función para limpiar el número (solo dígitos)
+const cleanPhoneNumber = (value: string): string => {
+  return value.replace(/\D/g, '');
+};
 
 export default function RegistroJugador() {
   const router = useRouter();
@@ -19,6 +75,9 @@ export default function RegistroJugador() {
   const [aceptarTerminos, setAceptarTerminos] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState(countries[0]); // Brasil por defecto
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState({
     nombre: "",
@@ -40,10 +99,41 @@ export default function RegistroJugador() {
     localStorage.setItem("jugadaplay_locale", locale);
   }, [locale, isLocaleReady]);
 
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowCountryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const t = translations[locale];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    if (name === 'telefone') {
+      // Aplicar formato al número de teléfono
+      const formatted = formatPhoneNumber(value, selectedCountry);
+      setFormData({ ...formData, [name]: formatted });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  const handleCountryChange = (country: typeof countries[0]) => {
+    setSelectedCountry(country);
+    setShowCountryDropdown(false);
+    
+    // Limpiar y reformatear el número actual si existe
+    if (formData.telefone) {
+      const cleanNumber = cleanPhoneNumber(formData.telefone);
+      const reformatted = formatPhoneNumber(cleanNumber, country);
+      setFormData(prev => ({ ...prev, telefone: reformatted }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,9 +145,19 @@ export default function RegistroJugador() {
       return;
     }
     
+    // Validar que el teléfono tenga el formato correcto
+    const cleanNumber = cleanPhoneNumber(formData.telefone);
+    if (cleanNumber.length === 0) {
+      setError("Por favor, ingrese un número de teléfono válido");
+      return;
+    }
+    
     setLoading(true);
 
     try {
+      // Formatear número completo con código de país
+      const fullPhoneNumber = `${selectedCountry.dialCode} ${formData.telefone}`;
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -66,7 +166,8 @@ export default function RegistroJugador() {
           password: formData.password,
           role: "player",
           name: formData.nombre,
-          phone: formData.telefone,
+          phone: fullPhoneNumber,
+          phoneCountry: selectedCountry.code,
           playerNickname: formData.nombre,
         }),
       });
@@ -194,20 +295,58 @@ export default function RegistroJugador() {
                   </div>
                 </div>
 
-                {/* Teléfono */}
+                {/* Teléfono con selector de país */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">{t.register.phone}</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
-                    <input
-                      type="tel"
-                      name="telefone"
-                      value={formData.telefone}
-                      onChange={handleChange}
-                      placeholder={t.register.phonePlaceholder}
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
-                    />
+                  <div className="flex gap-2">
+                    {/* Selector de país */}
+                    <div className="relative" ref={dropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                        className="flex items-center gap-2 px-3 py-3 bg-black border border-yellow-500/30 rounded-lg hover:border-yellow-500/60 transition-all"
+                      >
+                        <span className="text-white text-sm">{selectedCountry.code}</span>
+                        <span className="text-gray-400 text-xs">{selectedCountry.dialCode}</span>
+                        <ChevronDown className={`w-4 h-4 text-yellow-500 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {/* Dropdown de países */}
+                      {showCountryDropdown && (
+                        <div className="absolute top-full left-0 mt-1 w-48 bg-black border border-yellow-500/30 rounded-lg shadow-xl z-50 overflow-hidden">
+                          {countries.map((country) => (
+                            <button
+                              key={country.code}
+                              type="button"
+                              onClick={() => handleCountryChange(country)}
+                              className={`w-full px-4 py-2 text-left hover:bg-yellow-500/10 transition-colors flex items-center justify-between ${
+                                selectedCountry.code === country.code ? 'bg-yellow-500/20 text-yellow-500' : 'text-white'
+                              }`}
+                            >
+                              <span>{country.name}</span>
+                              <span className="text-xs text-gray-500">{country.dialCode}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Campo de teléfono */}
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
+                      <input
+                        type="tel"
+                        name="telefone"
+                        value={formData.telefone}
+                        onChange={handleChange}
+                        placeholder={selectedCountry.placeholder}
+                        className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all font-mono text-sm"
+                      />
+                    </div>
                   </div>
+                  <p className="text-gray-600 text-xs">
+                    Formato: {selectedCountry.mask} ({selectedCountry.name})
+                  </p>
                 </div>
 
                 {/* Contraseña */}

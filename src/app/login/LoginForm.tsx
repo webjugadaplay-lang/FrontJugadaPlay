@@ -216,7 +216,7 @@ export default function LoginForm({ locale }: Props) {
               <Link href="/bar/registro">
                 <button
                   type="button"
-                  className="w-full border border-yellow-500/30 text-yellow-500 py-3 rounded-lg text-sm font-medium hover:border-yellow-500/50 hover:bg-yellow-500/10 transition-all"
+                  className="w-full border border-yellow-500/30 text-yellow-500 py-3 rounded-lg text-sm font-medium hover:border-yellow-500/50 hover:bg-yellow-500/10 transition-all mb-4"
                 >
                   {t.login.registerBar}
                 </button>
