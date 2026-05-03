@@ -368,78 +368,93 @@ export default function RegistroBar() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    if (!aceptarTerminos) {
-      setError(t.register.termsError);
-      return;
+  if (!aceptarTerminos) {
+    setError(t.register.termsError);
+    return;
+  }
+
+  if (!validateDocument()) {
+    return;
+  }
+
+  // ============ LIMPIAR DATOS ANTES DE ENVIAR ============
+  
+  // 1. Limpiar teléfono: solo números
+  const cleanPhone = formData.telefone.replace(/\D/g, '');
+  
+  // 2. Limpiar documento según el tipo
+  let cleanDocument = formData.documento;
+  const currentDocName = getCurrentDocumentName();
+  
+  if (currentDocName === "NIT") {
+    // NIT: eliminar guiones y dejar solo números
+    cleanDocument = formData.documento.replace(/-/g, '').replace(/\D/g, '');
+  } else if (currentDocName === "Cédula") {
+    // Cédula: solo números
+    cleanDocument = formData.documento.replace(/\D/g, '');
+  } else if (currentDocName === "RFC Persona Moral" || currentDocName === "RFC Persona Física") {
+    // RFC: mantener letras y números, convertir a mayúsculas
+    cleanDocument = formData.documento.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  } else if (currentDocName === "CURP") {
+    // CURP: mantener letras y números, convertir a mayúsculas
+    cleanDocument = formData.documento.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  } else {
+    // CNPJ, CPF: solo números
+    cleanDocument = formData.documento.replace(/\D/g, '');
+  }
+  
+  // Validar que el teléfono tenga dígitos
+  if (cleanPhone.length === 0) {
+    setError("Por favor, ingrese un número de teléfono válido");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const fullPhoneNumber = `${selectedCountry.dialCode} ${cleanPhone}`;
+    const isCPF = currentDocName === "CPF";
+    const isCNPJ = currentDocName === "CNPJ";
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password,
+        role: "bar",
+        name: formData.responsavel,
+        phone: cleanPhone, // ← ENVIAR SOLO NÚMEROS
+        phoneCountry: selectedCountry.code,
+        barName: formData.nombreBar,
+        address: formData.endereco,
+        documentType: currentDocName,
+        documentNumber: cleanDocument, // ← ENVIAR LIMPIO
+        countryCode: selectedCountry.code,
+        cpf: isCPF ? cleanDocument : null,
+        cnpj: isCNPJ ? cleanDocument : null,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || t.register.registerError);
     }
 
-    if (!validateDocument()) {
-      return;
-    }
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
 
-    const cleanPhone = cleanNumber(formData.telefone);
-    if (cleanPhone.length === 0) {
-      setError("Por favor, ingrese un número de teléfono válido");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const fullPhoneNumber = `${selectedCountry.dialCode} ${formData.telefone}`;
-      const currentDocName = getCurrentDocumentName();
-      
-      let cleanDocument = formData.documento;
-      if (currentDocName === "NIT") {
-        cleanDocument = formData.documento.replace(/-/g, '');
-      } else if (currentDocName === "RFC Persona Moral" || currentDocName === "RFC Persona Física" || currentDocName === "CURP") {
-        cleanDocument = formData.documento.toUpperCase();
-      } else {
-        cleanDocument = cleanNumber(formData.documento);
-      }
-      
-      const isCPF = currentDocName === "CPF";
-      const isCNPJ = currentDocName === "CNPJ";
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          role: "bar",
-          name: formData.responsavel,
-          phone: fullPhoneNumber,
-          phoneCountry: selectedCountry.code,
-          barName: formData.nombreBar,
-          address: formData.endereco,
-          documentType: currentDocName,
-          documentNumber: cleanDocument,
-          countryCode: selectedCountry.code,
-          cpf: isCPF ? cleanNumber(formData.documento) : null,
-          cnpj: isCNPJ ? cleanNumber(formData.documento) : null,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || t.register.registerError);
-      }
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      router.push("/bar/dashboard");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    router.push("/bar/dashboard");
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (!isLocaleReady) {
     return (
