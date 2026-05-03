@@ -134,24 +134,25 @@ const formatCURP = (value: string): string => {
 
 // Función para aplicar formato al documento según país y tipo
 const formatDocument = (value: string, country: typeof countries[0], tipoDocumento: string): string => {
+  const isAlternative = tipoDocumento === country.alternativeDocumentName;
+  
   // Para NIT de Colombia
-  if (country.code === "CO" && tipoDocumento === "NIT") {
+  if (country.code === "CO" && !isAlternative) {
     return formatNIT(value);
-  }
-  
-  // Para RFC de México
-  if (country.code === "MX" && (tipoDocumento === "RFC Persona Moral" || tipoDocumento === "RFC Persona Física")) {
-    return formatRFC(value);
-  }
-  
-  // Para CURP de México
-  if (country.code === "MX" && tipoDocumento === "CURP") {
-    return formatCURP(value);
   }
   
   // Para CPF/CNPJ de Brasil
   if (country.code === "BR") {
-    const mask = country.barDocumentMask;
+    // Determinar qué máscara usar según el tipo de documento
+    let mask;
+    if (isAlternative) {
+      // CPF
+      mask = country.alternativeDocumentMask; // "000.000.000-00"
+    } else {
+      // CNPJ
+      mask = country.barDocumentMask; // "00.000.000/0000-00"
+    }
+    
     let cleanValue = value.replace(/[^0-9]/g, '');
     let formatted = '';
     let charIndex = 0;
@@ -168,8 +169,18 @@ const formatDocument = (value: string, country: typeof countries[0], tipoDocumen
   }
   
   // Para Cédula de Colombia
-  if (country.code === "CO" && tipoDocumento === "Cédula") {
+  if (country.code === "CO" && isAlternative) {
     return value.replace(/[^0-9]/g, '').slice(0, 10);
+  }
+  
+  // Para RFC de México
+  if (country.code === "MX" && !isAlternative) {
+    return formatRFC(value);
+  }
+  
+  // Para CURP de México
+  if (country.code === "MX" && isAlternative) {
+    return formatCURP(value);
   }
   
   return value;
