@@ -29,12 +29,10 @@ const countries = [
     dialCode: "+55", 
     phoneMask: "(##) #####-####",
     phonePlaceholder: "(11) 91234-5678",
-    // Configuración de documento para BAR (CNPJ o CPF)
     barDocumentName: "CNPJ",
     barDocumentMask: "00.000.000/0000-00",
     barDocumentPlaceholder: "00.000.000/0000-00",
     barDocumentLength: 14,
-    // También pueden usar CPF como persona física
     hasAlternativeDocument: true,
     alternativeDocumentName: "CPF",
     alternativeDocumentMask: "000.000.000-00",
@@ -47,7 +45,6 @@ const countries = [
     dialCode: "+57", 
     phoneMask: "(###) ###-####",
     phonePlaceholder: "(300) 123-4567",
-    // Configuración de documento para BAR (NIT - Número de Identificación Tributaria)
     barDocumentName: "NIT",
     barDocumentMask: "#######-#",
     barDocumentPlaceholder: "1234567-8",
@@ -64,16 +61,22 @@ const countries = [
     dialCode: "+52", 
     phoneMask: "(##) ####-####",
     phonePlaceholder: "(55) 1234-5678",
-    // Configuración de documento para BAR (RFC - Registro Federal de Contribuyentes)
-    barDocumentName: "RFC",
+    barDocumentName: "RFC Persona Moral",
     barDocumentMask: "##########",
-    barDocumentPlaceholder: "ABCD123456XYZ",
-    barDocumentLength: 13,
+    barDocumentPlaceholder: "ABC123456XYZ",
+    barDocumentLength: 12,
+    barDocumentMinLength: 12,
     hasAlternativeDocument: true,
-    alternativeDocumentName: "CURP",
+    alternativeDocumentName: "RFC Persona Física",
     alternativeDocumentMask: "##########",
-    alternativeDocumentPlaceholder: "ABCD123456EFGHIJ18",
-    alternativeDocumentLength: 18,
+    alternativeDocumentPlaceholder: "ABCD123456XYZ",
+    alternativeDocumentLength: 13,
+    alternativeDocumentMinLength: 13,
+    hasThirdDocument: true,
+    thirdDocumentName: "CURP",
+    thirdDocumentMask: "##########",
+    thirdDocumentPlaceholder: "ABCD123456EFGHIJ18",
+    thirdDocumentLength: 18,
   }
 ];
 
@@ -97,19 +100,64 @@ const formatPhoneNumber = (value: string, country: typeof countries[0]): string 
   return formatted;
 };
 
+// Función para formatear NIT colombiano automáticamente
+const formatNIT = (value: string): string => {
+  const numbers = value.replace(/\D/g, '');
+  if (numbers.length === 0) return '';
+  
+  if (numbers.length <= 9) {
+    return numbers;
+  } else {
+    const firstPart = numbers.slice(0, 9);
+    const secondPart = numbers.slice(9, 10);
+    return `${firstPart}-${secondPart}`;
+  }
+};
+
+// Función para formatear RFC mexicano (mayúsculas automáticas)
+const formatRFC = (value: string): string => {
+  let cleanValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  if (cleanValue.length > 13) {
+    cleanValue = cleanValue.slice(0, 13);
+  }
+  return cleanValue;
+};
+
+// Función para formatear CURP mexicana
+const formatCURP = (value: string): string => {
+  let cleanValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  if (cleanValue.length > 18) {
+    cleanValue = cleanValue.slice(0, 18);
+  }
+  return cleanValue;
+};
+
 // Función para aplicar formato al documento según país y tipo
 const formatDocument = (value: string, country: typeof countries[0], tipoDocumento: string): string => {
-  const isAlternative = tipoDocumento === country.alternativeDocumentName;
-  const mask = isAlternative ? country.alternativeDocumentMask : country.barDocumentMask;
+  // Para NIT de Colombia
+  if (country.code === "CO" && tipoDocumento === "NIT") {
+    return formatNIT(value);
+  }
   
-  if (country.code === "BR" || country.code === "CO") {
-    // Para Brasil y Colombia, aplicar máscara de caracteres
-    let cleanValue = value.replace(/[^a-zA-Z0-9]/g, '');
+  // Para RFC de México
+  if (country.code === "MX" && (tipoDocumento === "RFC Persona Moral" || tipoDocumento === "RFC Persona Física")) {
+    return formatRFC(value);
+  }
+  
+  // Para CURP de México
+  if (country.code === "MX" && tipoDocumento === "CURP") {
+    return formatCURP(value);
+  }
+  
+  // Para CPF/CNPJ de Brasil
+  if (country.code === "BR") {
+    const mask = country.barDocumentMask;
+    let cleanValue = value.replace(/[^0-9]/g, '');
     let formatted = '';
     let charIndex = 0;
     
     for (let i = 0; i < mask.length && charIndex < cleanValue.length; i++) {
-      if (mask[i] === '0' || mask[i] === '#') {
+      if (mask[i] === '0') {
         formatted += cleanValue[charIndex];
         charIndex++;
       } else {
@@ -117,15 +165,14 @@ const formatDocument = (value: string, country: typeof countries[0], tipoDocumen
       }
     }
     return formatted;
-  } else {
-    // Para México, solo letras/números en mayúscula sin formato
-    let cleanValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    const maxLength = isAlternative ? country.alternativeDocumentLength : country.barDocumentLength;
-    if (cleanValue.length > maxLength) {
-      cleanValue = cleanValue.slice(0, maxLength);
-    }
-    return cleanValue;
   }
+  
+  // Para Cédula de Colombia
+  if (country.code === "CO" && tipoDocumento === "Cédula") {
+    return value.replace(/[^0-9]/g, '').slice(0, 10);
+  }
+  
+  return value;
 };
 
 // Función para limpiar (solo dígitos)
@@ -145,8 +192,8 @@ export default function RegistroBar() {
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  // Tipo de documento (principal o alternativo)
-  const [tipoDocumento, setTipoDocumento] = useState<"principal" | "alternativo">("principal");
+  // Tipo de documento: principal, alternativo o tercero
+  const [tipoDocumento, setTipoDocumento] = useState<"principal" | "alternativo" | "tercero">("principal");
 
   const [formData, setFormData] = useState({
     nombreBar: "",
@@ -158,20 +205,17 @@ export default function RegistroBar() {
     password: "",
   });
 
-  // Detectar idioma inicial
   useEffect(() => {
     const detectedLocale = detectInitialLocale();
     setLocale(detectedLocale);
     setIsLocaleReady(true);
   }, []);
 
-  // Guardar idioma en localStorage
   useEffect(() => {
     if (!isLocaleReady) return;
     localStorage.setItem("jugadaplay_locale", locale);
   }, [locale, isLocaleReady]);
 
-  // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -184,36 +228,44 @@ export default function RegistroBar() {
 
   const t = translations[locale];
 
-  // Obtener nombre del documento actual
   const getCurrentDocumentName = () => {
     if (tipoDocumento === "alternativo" && selectedCountry.hasAlternativeDocument) {
       return selectedCountry.alternativeDocumentName;
     }
+    if (tipoDocumento === "tercero" && (selectedCountry as any).hasThirdDocument) {
+      return (selectedCountry as any).thirdDocumentName;
+    }
     return selectedCountry.barDocumentName;
   };
 
-  // Obtener máscara del documento actual
-  const getCurrentDocumentMask = () => {
-    if (tipoDocumento === "alternativo" && selectedCountry.hasAlternativeDocument) {
-      return selectedCountry.alternativeDocumentMask;
-    }
-    return selectedCountry.barDocumentMask;
-  };
-
-  // Obtener placeholder del documento actual
   const getCurrentDocumentPlaceholder = () => {
     if (tipoDocumento === "alternativo" && selectedCountry.hasAlternativeDocument) {
       return selectedCountry.alternativeDocumentPlaceholder;
     }
+    if (tipoDocumento === "tercero" && (selectedCountry as any).hasThirdDocument) {
+      return (selectedCountry as any).thirdDocumentPlaceholder;
+    }
     return selectedCountry.barDocumentPlaceholder;
   };
 
-  // Obtener longitud del documento actual
   const getCurrentDocumentLength = () => {
     if (tipoDocumento === "alternativo" && selectedCountry.hasAlternativeDocument) {
       return selectedCountry.alternativeDocumentLength;
     }
+    if (tipoDocumento === "tercero" && (selectedCountry as any).hasThirdDocument) {
+      return (selectedCountry as any).thirdDocumentLength;
+    }
     return selectedCountry.barDocumentLength;
+  };
+
+  const getCurrentDocumentMinLength = () => {
+    if (tipoDocumento === "alternativo" && selectedCountry.hasAlternativeDocument) {
+      return selectedCountry.alternativeDocumentMinLength || selectedCountry.alternativeDocumentLength;
+    }
+    if (tipoDocumento === "tercero" && (selectedCountry as any).hasThirdDocument) {
+      return (selectedCountry as any).thirdDocumentLength;
+    }
+    return selectedCountry.barDocumentMinLength || selectedCountry.barDocumentLength;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -233,10 +285,9 @@ export default function RegistroBar() {
   const handleCountryChange = (country: typeof countries[0]) => {
     setSelectedCountry(country);
     setShowCountryDropdown(false);
-    setTipoDocumento("principal"); // Resetear a documento principal
+    setTipoDocumento("principal");
     setFormData(prev => ({ ...prev, documento: "" }));
     
-    // Reformatear teléfono
     if (formData.telefone) {
       const cleanPhone = cleanNumber(formData.telefone);
       const reformatted = formatPhoneNumber(cleanPhone, country);
@@ -250,10 +301,10 @@ export default function RegistroBar() {
       return false;
     }
 
-    const cleanDoc = cleanNumber(formData.documento);
     const currentDocName = getCurrentDocumentName();
 
     if (selectedCountry.code === "BR") {
+      const cleanDoc = cleanNumber(formData.documento);
       if (currentDocName === "CNPJ" && cleanDoc.length !== 14) {
         setError(`CNPJ inválido. Debe tener 14 números. Ejemplo: 00.000.000/0000-00`);
         return false;
@@ -264,27 +315,50 @@ export default function RegistroBar() {
       }
     } else if (selectedCountry.code === "CO") {
       if (currentDocName === "NIT") {
+        const cleanDoc = formData.documento.replace(/-/g, '').replace(/\D/g, '');
         if (cleanDoc.length !== 10) {
           setError(`NIT inválido. Debe tener 10 dígitos (ej: 1234567-8)`);
           return false;
         }
       }
       if (currentDocName === "Cédula") {
+        const cleanDoc = cleanNumber(formData.documento);
         if (cleanDoc.length < 7 || cleanDoc.length > 10) {
           setError(`Cédula inválida. Debe tener entre 7 y 10 dígitos`);
           return false;
         }
       }
     } else if (selectedCountry.code === "MX") {
-      if (currentDocName === "RFC") {
-        if (formData.documento.length < 12 || formData.documento.length > 13) {
-          setError(`RFC inválido. Debe tener 12-13 caracteres`);
+      if (currentDocName === "RFC Persona Moral") {
+        if (formData.documento.length !== 12) {
+          setError(`RFC Persona Moral inválido. Debe tener exactamente 12 caracteres. Ejemplo: ABC123456XYZ`);
+          return false;
+        }
+        const rfcRegex = /^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$/;
+        if (!rfcRegex.test(formData.documento.toUpperCase())) {
+          setError(`Formato de RFC Persona Moral inválido`);
+          return false;
+        }
+      }
+      if (currentDocName === "RFC Persona Física") {
+        if (formData.documento.length !== 13) {
+          setError(`RFC Persona Física inválido. Debe tener exactamente 13 caracteres. Ejemplo: ABCD123456XYZ`);
+          return false;
+        }
+        const rfcRegex = /^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$/;
+        if (!rfcRegex.test(formData.documento.toUpperCase())) {
+          setError(`Formato de RFC Persona Física inválido`);
           return false;
         }
       }
       if (currentDocName === "CURP") {
         if (formData.documento.length !== 18) {
           setError(`CURP inválida. Debe tener 18 caracteres`);
+          return false;
+        }
+        const curpRegex = /^[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}$/;
+        if (!curpRegex.test(formData.documento.toUpperCase())) {
+          setError(`Formato de CURP inválido`);
           return false;
         }
       }
@@ -316,10 +390,17 @@ export default function RegistroBar() {
 
     try {
       const fullPhoneNumber = `${selectedCountry.dialCode} ${formData.telefone}`;
-      const cleanDocument = cleanNumber(formData.documento);
       const currentDocName = getCurrentDocumentName();
       
-      // Preparar datos según el tipo de documento
+      let cleanDocument = formData.documento;
+      if (currentDocName === "NIT") {
+        cleanDocument = formData.documento.replace(/-/g, '');
+      } else if (currentDocName === "RFC Persona Moral" || currentDocName === "RFC Persona Física" || currentDocName === "CURP") {
+        cleanDocument = formData.documento.toUpperCase();
+      } else {
+        cleanDocument = cleanNumber(formData.documento);
+      }
+      
       const isCPF = currentDocName === "CPF";
       const isCNPJ = currentDocName === "CNPJ";
       
@@ -338,8 +419,8 @@ export default function RegistroBar() {
           documentType: currentDocName,
           documentNumber: cleanDocument,
           countryCode: selectedCountry.code,
-          cpf: isCPF ? cleanDocument : null,
-          cnpj: isCNPJ ? cleanDocument : null,
+          cpf: isCPF ? cleanNumber(formData.documento) : null,
+          cnpj: isCNPJ ? cleanNumber(formData.documento) : null,
         }),
       });
 
@@ -492,26 +573,26 @@ export default function RegistroBar() {
                     </div>
                   </div>
 
-                  {/* Tipo de Documento (Principal o Alternativo) */}
-                  {selectedCountry.hasAlternativeDocument && (
-                    <div className="mt-4 space-y-2">
-                      <label className="block text-xs text-yellow-500 tracking-wider">
-                        Tipo de Documento *
+                  {/* Tipo de Documento - Con 3 opciones para México */}
+                  <div className="mt-4 space-y-2">
+                    <label className="block text-xs text-yellow-500 tracking-wider">
+                      Tipo de Documento *
+                    </label>
+                    <div className="flex flex-wrap gap-4 bg-black border border-yellow-500/30 rounded-lg px-4 py-3">
+                      <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={tipoDocumento === "principal"}
+                          onChange={() => {
+                            setTipoDocumento("principal");
+                            setFormData(prev => ({ ...prev, documento: "" }));
+                          }}
+                          className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30"
+                        />
+                        {selectedCountry.barDocumentName}
                       </label>
-                      <div className="flex gap-6 bg-black border border-yellow-500/30 rounded-lg px-4 py-3">
-                        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
-                          <input
-                            type="radio"
-                            checked={tipoDocumento === "principal"}
-                            onChange={() => {
-                              setTipoDocumento("principal");
-                              setFormData(prev => ({ ...prev, documento: "" }));
-                            }}
-                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30"
-                          />
-                          {selectedCountry.barDocumentName}
-                        </label>
 
+                      {selectedCountry.hasAlternativeDocument && (
                         <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
                           <input
                             type="radio"
@@ -524,9 +605,24 @@ export default function RegistroBar() {
                           />
                           {selectedCountry.alternativeDocumentName}
                         </label>
-                      </div>
+                      )}
+
+                      {(selectedCountry as any).hasThirdDocument && (
+                        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={tipoDocumento === "tercero"}
+                            onChange={() => {
+                              setTipoDocumento("tercero");
+                              setFormData(prev => ({ ...prev, documento: "" }));
+                            }}
+                            className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30"
+                          />
+                          {(selectedCountry as any).thirdDocumentName}
+                        </label>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   {/* Campo de Documento */}
                   <div className="mt-4 space-y-2">
@@ -543,13 +639,15 @@ export default function RegistroBar() {
                         required
                         placeholder={getCurrentDocumentPlaceholder()}
                         className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all font-mono text-sm"
-                        maxLength={getCurrentDocumentLength() + 5}
+                        maxLength={50}
                       />
                     </div>
                     <p className="text-gray-600 text-xs">
                       {selectedCountry.code === "BR" && (getCurrentDocumentName() === "CNPJ" ? "CNPJ: 14 números (ej: 00.000.000/0000-00)" : "CPF: 11 números (ej: 000.000.000-00)")}
-                      {selectedCountry.code === "CO" && (getCurrentDocumentName() === "NIT" ? "NIT: 10 dígitos (ej: 1234567-8)" : "Cédula: 7-10 dígitos")}
-                      {selectedCountry.code === "MX" && (getCurrentDocumentName() === "RFC" ? "RFC: 12-13 caracteres" : "CURP: 18 caracteres")}
+                      {selectedCountry.code === "CO" && (getCurrentDocumentName() === "NIT" ? "NIT: 10 dígitos (se formatea automáticamente: 1234567-8)" : "Cédula: 7-10 dígitos")}
+                      {selectedCountry.code === "MX" && getCurrentDocumentName() === "RFC Persona Moral" && "RFC Persona Moral: 12 caracteres (3 letras + 6 números + 3 caracteres)"}
+                      {selectedCountry.code === "MX" && getCurrentDocumentName() === "RFC Persona Física" && "RFC Persona Física: 13 caracteres (4 letras + 6 números + 3 caracteres)"}
+                      {selectedCountry.code === "MX" && getCurrentDocumentName() === "CURP" && "CURP: 18 caracteres (4 letras + 6 números + 6 letras + 2 números)"}
                     </p>
                   </div>
                 </div>
@@ -574,7 +672,7 @@ export default function RegistroBar() {
                       />
                     </div>
 
-                    {/* Teléfono con formato según país */}
+                    {/* Teléfono */}
                     <div className="space-y-2">
                       <label className="block text-xs text-yellow-500 tracking-wider">
                         {t.register.phone} *
