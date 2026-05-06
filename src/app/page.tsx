@@ -102,11 +102,10 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black">
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
             ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
             : "bg-transparent"
-        }`}
+          }`}
       >
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
@@ -230,9 +229,12 @@ export default function Home() {
       <footer className="border-t border-yellow-500/10 py-12 px-6">
         <div className="container mx-auto text-center">
           <div className="flex justify-center space-x-8 mb-6">
-            <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
+            <Link
+              href="/terminos"
+              className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors"
+            >
               {t.footer.terms}
-            </span>
+            </Link>
             <span className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors">
               {t.footer.contact}
             </span>
