@@ -22,7 +22,8 @@ const countries = [
     documentName: "CPF",
     documentMask: "000.000.000-00",
     documentPlaceholder: "000.000.000-00",
-    documentLength: 11
+    documentLength: 11,
+    documentPattern: "cpf"
   },
   { 
     code: "CO", 
@@ -33,7 +34,8 @@ const countries = [
     documentName: "Cédula",
     documentMask: "##########",
     documentPlaceholder: "1234567890",
-    documentLength: 10
+    documentLength: 10,
+    documentPattern: "numeric"
   },
   { 
     code: "MX", 
@@ -44,7 +46,8 @@ const countries = [
     documentName: "CURP / INE",
     documentMask: "##########",
     documentPlaceholder: "1234567890",
-    documentLength: 18
+    documentLength: 18,
+    documentPattern: "alphanumeric"
   }
 ];
 
@@ -88,14 +91,23 @@ const formatDocument = (value: string, country: typeof countries[0]): string => 
       }
     }
     return formatted;
-  } else {
-    // Para Colombia y México, solo números sin formato
+  } else if (country.code === "CO") {
+    // Para Colombia, solo números sin formato
     let numbers = value.replace(/\D/g, '');
     if (numbers.length > country.documentLength) {
       numbers = numbers.slice(0, country.documentLength);
     }
     return numbers;
+  } else if (country.code === "MX") {
+    // Para México, acepta letras y números (CURP)
+    // Solo limitamos la longitud, no eliminamos letras
+    let cleanValue = value.toUpperCase();
+    if (cleanValue.length > country.documentLength) {
+      cleanValue = cleanValue.slice(0, country.documentLength);
+    }
+    return cleanValue;
   }
+  return value;
 };
 
 // Función para limpiar (solo dígitos)
@@ -105,7 +117,6 @@ const cleanNumber = (value: string): string => {
 
 // Función para capitalizar la primera letra de cada palabra en el nombre
 const capitalizeName = (value: string): string => {
-  // Divide por espacios y mantiene los espacios
   return value.replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
@@ -165,7 +176,6 @@ export default function RegistroJugador() {
       const formatted = formatDocument(value, selectedCountry);
       setFormData({ ...formData, [name]: formatted });
     } else if (name === 'nombre') {
-      // Capitalizar cada palabra del nombre
       const capitalized = capitalizeName(value);
       setFormData({ ...formData, [name]: capitalized });
     } else {
@@ -186,8 +196,7 @@ export default function RegistroJugador() {
     
     // Reformatear documento con nuevo país
     if (formData.documento) {
-      const cleanDoc = cleanNumber(formData.documento);
-      const reformatted = formatDocument(cleanDoc, country);
+      const reformatted = formatDocument(formData.documento, country);
       setFormData(prev => ({ ...prev, documento: reformatted }));
     }
   };
@@ -198,23 +207,32 @@ export default function RegistroJugador() {
       return false;
     }
     
-    const cleanDoc = formData.documento.replace(/\D/g, '');
-    
     if (selectedCountry.code === "BR") {
+      const cleanDoc = formData.documento.replace(/\D/g, '');
       if (cleanDoc.length !== 11) {
         setError(`CPF inválido. Debe tener 11 números. Ejemplo: 123.456.789-00`);
         return false;
       }
       return true;
     } else if (selectedCountry.code === "CO") {
+      const cleanDoc = formData.documento.replace(/\D/g, '');
       if (cleanDoc.length < 7 || cleanDoc.length > 10) {
         setError(`Cédula inválida. Debe tener entre 7 y 10 números. Ejemplo: 1234567890`);
         return false;
       }
       return true;
     } else if (selectedCountry.code === "MX") {
+      // Para México, validar CURP o INE
+      const cleanDoc = formData.documento.toUpperCase();
       if (cleanDoc.length < 10 || cleanDoc.length > 18) {
         setError(`Identificación inválida. Debe tener entre 10 y 18 caracteres.`);
+        return false;
+      }
+      // Validación básica de CURP (opcional)
+      const curpPattern = /^[A-Z]{4}\d{6}[A-Z]{6}\d{2}$/;
+      const inePattern = /^\d{10,12}$/;
+      if (!curpPattern.test(cleanDoc) && !inePattern.test(cleanDoc)) {
+        setError(`Formato inválido. Use CURP (18 caracteres) o INE (10-12 números)`);
         return false;
       }
       return true;
@@ -245,7 +263,14 @@ export default function RegistroJugador() {
 
     try {
       const fullPhoneNumber = `${selectedCountry.dialCode} ${formData.telefone}`;
-      const cleanDocument = formData.documento.replace(/\D/g, '');
+      let cleanDocument = formData.documento;
+      
+      // Limpiar documento según el país
+      if (selectedCountry.code === "BR" || selectedCountry.code === "CO") {
+        cleanDocument = formData.documento.replace(/\D/g, '');
+      } else if (selectedCountry.code === "MX") {
+        cleanDocument = formData.documento.toUpperCase();
+      }
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: "POST",
@@ -381,7 +406,7 @@ export default function RegistroJugador() {
                   </div>
                 </div>
 
-                {/* Selector de País - UNIFICADO */}
+                {/* Selector de País */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">País *</label>
                   <div className="relative" ref={dropdownRef}>
@@ -438,7 +463,7 @@ export default function RegistroJugador() {
                   <p className="text-gray-600 text-xs">
                     {selectedCountry.code === "BR" && "CPF: 11 números (ej: 123.456.789-00)"}
                     {selectedCountry.code === "CO" && "Cédula: 7-10 números (ej: 1234567890)"}
-                    {selectedCountry.code === "MX" && "CURP: 18 caracteres o INE: 10-12 números"}
+                    {selectedCountry.code === "MX" && "CURP: 18 caracteres (ej: ABC123456XYZ...) o INE: 10-12 números"}
                   </p>
                 </div>
 
