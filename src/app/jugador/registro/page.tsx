@@ -109,7 +109,7 @@ const formatDocument = (value: string, country: typeof countries[0]): string => 
   return value;
 };
 
-// Función para limpiar (solo dígitos)
+// Función para limpiar solo dígitos (para teléfono y documentos numéricos)
 const cleanNumber = (value: string): string => {
   return value.replace(/\D/g, '');
 };
@@ -209,14 +209,14 @@ export default function RegistroJugador() {
     }
     
     if (selectedCountry.code === "BR") {
-      const cleanDoc = formData.documento.replace(/\D/g, '');
+      const cleanDoc = cleanNumber(formData.documento);
       if (cleanDoc.length !== 11) {
         setError(`CPF inválido. Debe tener 11 números. Ejemplo: 12345678900`);
         return false;
       }
       return true;
     } else if (selectedCountry.code === "CO") {
-      const cleanDoc = formData.documento.replace(/\D/g, '');
+      const cleanDoc = cleanNumber(formData.documento);
       if (cleanDoc.length < 7 || cleanDoc.length > 10) {
         setError(`Cédula inválida. Debe tener entre 7 y 10 números. Ejemplo: 1234567890`);
         return false;
@@ -254,7 +254,7 @@ export default function RegistroJugador() {
       return;
     }
     
-    // Limpiar teléfono: eliminar todos los caracteres no numéricos
+    // IMPORTANTE: Limpiar el teléfono eliminando TODOS los caracteres no numéricos
     const cleanPhone = cleanNumber(formData.telefone);
     if (cleanPhone.length === 0) {
       setError("Por favor, ingrese un número de teléfono válido");
@@ -271,10 +271,10 @@ export default function RegistroJugador() {
       let cleanDocument = "";
       if (selectedCountry.code === "BR") {
         // Brasil: solo números del CPF
-        cleanDocument = formData.documento.replace(/\D/g, '');
+        cleanDocument = cleanNumber(formData.documento);
       } else if (selectedCountry.code === "CO") {
         // Colombia: solo números de la cédula
-        cleanDocument = formData.documento.replace(/\D/g, '');
+        cleanDocument = cleanNumber(formData.documento);
       } else if (selectedCountry.code === "MX") {
         // México: mayúsculas para CURP o números para INE
         cleanDocument = formData.documento.toUpperCase();
@@ -285,7 +285,7 @@ export default function RegistroJugador() {
         password: formData.password,
         role: "player",
         name: formData.nombre,
-        phone: fullPhoneNumber, // Ejemplo: "+573004625385" o "+5511912345678"
+        phone: fullPhoneNumber, // Ejemplo: "+573004625385" (SIN caracteres especiales)
         phoneCountry: selectedCountry.code,
         playerNickname: formData.nombre,
         documentType: selectedCountry.documentName,
@@ -481,7 +481,7 @@ export default function RegistroJugador() {
 
                 {/* Teléfono */}
                 <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">{t.register.phone}</label>
+                  <label className="block text-xs text-yellow-500 tracking-wider">{t.register.phone} *</label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                     <input
@@ -495,7 +495,7 @@ export default function RegistroJugador() {
                     />
                   </div>
                   <p className="text-gray-600 text-xs">
-                    Ejemplo sin formato: solo números (3001234567)
+                    Ejemplo: solo números (3001234567)
                   </p>
                 </div>
 
