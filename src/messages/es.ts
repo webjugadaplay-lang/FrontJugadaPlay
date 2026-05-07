@@ -35,7 +35,7 @@ const es = {
     password: "CONTRASEÑA",
     submit: "INICIAR SESIÓN",
     submitting: "INGRESANDO...",
-    noAccount: "¿NO TIENES CUENTA?",
+    noAccount: "¿NO TIENES CUENTA AÚN?",
     registerBar: "REGISTRAR MI BAR",
     registerPlayer: "REGISTRARME COMO JUGADOR",
     forgotPassword: "¿Olvidaste tu contraseña?",

@@ -35,7 +35,7 @@ const ptBR = {
     password: "SENHA",
     submit: "INICIAR SESSÃO",
     submitting: "ENTRANDO...",
-    noAccount: "NÃO TEM CONTA?",
+    noAccount: "NÃO TEM CONTA AINDA?",
     registerBar: "REGISTRAR MEU BAR",
     registerPlayer: "REGISTRAR COMO JOGADOR",
     forgotPassword: "Esqueceu sua senha?",
