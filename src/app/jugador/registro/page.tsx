@@ -103,6 +103,12 @@ const cleanNumber = (value: string): string => {
   return value.replace(/\D/g, '');
 };
 
+// Función para capitalizar la primera letra de cada palabra en el nombre
+const capitalizeName = (value: string): string => {
+  // Divide por espacios y mantiene los espacios
+  return value.replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 export default function RegistroJugador() {
   const router = useRouter();
   const [locale, setLocale] = useState<Locale>("pt-BR");
@@ -158,6 +164,10 @@ export default function RegistroJugador() {
     } else if (name === 'documento') {
       const formatted = formatDocument(value, selectedCountry);
       setFormData({ ...formData, [name]: formatted });
+    } else if (name === 'nombre') {
+      // Capitalizar cada palabra del nombre
+      const capitalized = capitalizeName(value);
+      setFormData({ ...formData, [name]: capitalized });
     } else {
       setFormData({ ...formData, [name]: value });
     }
