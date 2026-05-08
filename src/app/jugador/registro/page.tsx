@@ -30,7 +30,7 @@ const countries = [
     phoneMask: "(###) ###-####",
     phonePlaceholder: "(300) 123-4567",
     documentName: "Cédula",
-    documentPlaceholder: "1234567890",
+    documentPlaceholder: "1.234.567",
     documentLength: 10
   },
   { 
@@ -65,6 +65,16 @@ const formatPhoneForDisplay = (value: string, country: typeof countries[0]): str
   return formatted;
 };
 
+// Función para formatear cédula colombiana con puntos (SOLO para mostrar en pantalla)
+const formatColombianIdForDisplay = (value: string): string => {
+  // Solo números
+  const numbers = value.replace(/\D/g, '');
+  if (!numbers) return '';
+  
+  // Formato con puntos: 1.234.567 o 12.345.678 o 123.456.789
+  return numbers.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
 // Función para formatear documento (SOLO para mostrar en pantalla)
 const formatDocumentForDisplay = (value: string, country: typeof countries[0]): string => {
   if (country.code === "BR") {
@@ -86,8 +96,8 @@ const formatDocumentForDisplay = (value: string, country: typeof countries[0]): 
     }
     return formatted;
   } else if (country.code === "CO") {
-    // Colombia: solo números
-    return value.replace(/\D/g, '');
+    // Colombia: números con puntos de miles para pantalla
+    return formatColombianIdForDisplay(value);
   } else if (country.code === "MX") {
     // México: mayúsculas, sin espacios
     return value.toUpperCase().replace(/\s/g, '');
@@ -152,11 +162,9 @@ export default function RegistroJugador() {
     const { name, value } = e.target;
     
     if (name === 'telefone') {
-      // SOLO para mostrar en pantalla
       const formatted = formatPhoneForDisplay(value, selectedCountry);
       setFormData({ ...formData, [name]: formatted });
     } else if (name === 'documento') {
-      // SOLO para mostrar en pantalla
       const formatted = formatDocumentForDisplay(value, selectedCountry);
       setFormData({ ...formData, [name]: formatted });
     } else if (name === 'nombre') {
@@ -171,14 +179,12 @@ export default function RegistroJugador() {
     setSelectedCountry(country);
     setShowCountryDropdown(false);
     
-    // Reformatear teléfono en pantalla con nuevo país
     if (formData.telefone) {
       const cleanPhone = cleanToNumbers(formData.telefone);
       const reformatted = formatPhoneForDisplay(cleanPhone, country);
       setFormData(prev => ({ ...prev, telefone: reformatted }));
     }
     
-    // Reformatear documento en pantalla con nuevo país
     if (formData.documento) {
       const reformatted = formatDocumentForDisplay(formData.documento, country);
       setFormData(prev => ({ ...prev, documento: reformatted }));
@@ -229,56 +235,42 @@ export default function RegistroJugador() {
       return;
     }
     
-    // ==============================================
     // LIMPIEZA DE DATOS PARA ENVIAR AL BACKEND
-    // ==============================================
-    
-    // 1. LIMPIAR TELÉFONO: eliminar paréntesis, espacios, guiones
     const cleanPhone = cleanToNumbers(formData.telefone);
-    // Ejemplo: "(300) 425-4878" → "3004254878"
     
     if (cleanPhone.length === 0) {
       setError("Por favor, ingrese un número de teléfono válido");
       return;
     }
     
-    // 2. LIMPIAR DOCUMENTO según el país
     let cleanDocument = "";
     if (selectedCountry.code === "BR") {
-      // Brasil: solo números (eliminar puntos y guiones)
       cleanDocument = cleanToNumbers(formData.documento);
-      // Ejemplo: "123.456.789-00" → "12345678900"
     } else if (selectedCountry.code === "CO") {
-      // Colombia: solo números
       cleanDocument = cleanToNumbers(formData.documento);
-      // Ejemplo: "1234567890" → "1234567890"
     } else if (selectedCountry.code === "MX") {
-      // México: mayúsculas, sin espacios
       cleanDocument = formData.documento.toUpperCase().replace(/\s/g, '');
-      // Ejemplo: "abc123456xyz" → "ABC123456XYZ"
     }
     
     setLoading(true);
 
     try {
-      // Construir el objeto que se envía al backend
       const requestBody = {
         email: formData.email,
         password: formData.password,
         role: "player",
         name: formData.nombre,
-        phone: cleanPhone,              // 👈 SOLO NÚMEROS: "3004254878"
+        phone: cleanPhone,
         phoneCountry: selectedCountry.code,
         playerNickname: formData.nombre,
         documentType: selectedCountry.documentName,
-        documentNumber: cleanDocument,  // 👈 SOLO NÚMEROS o MAYÚSCULAS
+        documentNumber: cleanDocument,
         countryCode: selectedCountry.code,
       };
 
       console.log("=== DATOS ENVIADOS AL BACKEND ===");
       console.log("Teléfono limpio:", cleanPhone);
       console.log("Documento limpio:", cleanDocument);
-      console.log("Body completo:", requestBody);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: "POST",
@@ -458,7 +450,7 @@ export default function RegistroJugador() {
                   </div>
                   <p className="text-gray-600 text-xs">
                     {selectedCountry.code === "BR" && "Ejemplo: 123.456.789-00"}
-                    {selectedCountry.code === "CO" && "Ejemplo: 1234567890"}
+                    {selectedCountry.code === "CO" && "Ejemplo: 1.234.567"}
                     {selectedCountry.code === "MX" && "Ejemplo: ABC123456XYZABC12"}
                   </p>
                 </div>
