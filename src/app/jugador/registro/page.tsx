@@ -295,7 +295,7 @@ export default function RegistroJugador() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      router.push("/entrar");
+      router.push("/jugador/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -457,9 +457,9 @@ export default function RegistroJugador() {
                     />
                   </div>
                   <p className="text-gray-600 text-xs">
-                    {selectedCountry.code === "BR" && "Ejemplo en pantalla: 123.456.789-00 | Backend recibe: 12345678900"}
-                    {selectedCountry.code === "CO" && "Ejemplo en pantalla: 1234567890 | Backend recibe: 1234567890"}
-                    {selectedCountry.code === "MX" && "Ejemplo en pantalla: ABC123456XYZABC12 | Backend recibe: ABC123456XYZABC12"}
+                    {selectedCountry.code === "BR" && "Ejemplo: 123.456.789-00"}
+                    {selectedCountry.code === "CO" && "Ejemplo: 1234567890"}
+                    {selectedCountry.code === "MX" && "Ejemplo: ABC123456XYZABC12"}
                   </p>
                 </div>
 
@@ -479,9 +479,9 @@ export default function RegistroJugador() {
                     />
                   </div>
                   <p className="text-gray-600 text-xs">
-                    {selectedCountry.code === "CO" && "Ejemplo en pantalla: (300) 425-4878 | Backend recibe: 3004254878"}
-                    {selectedCountry.code === "BR" && "Ejemplo en pantalla: (11) 91234-5678 | Backend recibe: 11912345678"}
-                    {selectedCountry.code === "MX" && "Ejemplo en pantalla: (55) 1234-5678 | Backend recibe: 5512345678"}
+                    {selectedCountry.code === "CO" && "Ejemplo: (300) 425-4878"}
+                    {selectedCountry.code === "BR" && "Ejemplo: (11) 91234-5678"}
+                    {selectedCountry.code === "MX" && "Ejemplo: (55) 1234-5678"}
                   </p>
                 </div>
 
