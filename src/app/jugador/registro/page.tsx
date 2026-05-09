@@ -6,37 +6,37 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { translations, type Locale } from "@/messages";
 import { detectInitialLocale } from "@/lib/i18n";
-import { 
-  ArrowLeft, Mail, Lock, Eye, EyeOff, 
+import {
+  ArrowLeft, Mail, Lock, Eye, EyeOff,
   User, Phone, CheckCircle, Award, ChevronDown, IdCard
 } from "lucide-react";
 
 // Configuración de países
 const countries = [
-  { 
-    code: "BR", 
-    name: "Brasil", 
-    dialCode: "+55", 
+  {
+    code: "BR",
+    name: "Brasil",
+    dialCode: "+55",
     phoneMask: "(##) #####-####",
     phonePlaceholder: "(11) 91234-5678",
     documentName: "CPF",
     documentPlaceholder: "000.000.000-00",
     documentLength: 11
   },
-  { 
-    code: "CO", 
-    name: "Colombia", 
-    dialCode: "+57", 
+  {
+    code: "CO",
+    name: "Colombia",
+    dialCode: "+57",
     phoneMask: "(###) ###-####",
     phonePlaceholder: "(300) 123-4567",
     documentName: "Cédula",
     documentPlaceholder: "1.234.567",
     documentLength: 10
   },
-  { 
-    code: "MX", 
-    name: "México", 
-    dialCode: "+52", 
+  {
+    code: "MX",
+    name: "México",
+    dialCode: "+52",
     phoneMask: "(##) ####-####",
     phonePlaceholder: "(55) 1234-5678",
     documentName: "CURP / INE",
@@ -49,10 +49,10 @@ const countries = [
 const formatPhoneForDisplay = (value: string, country: typeof countries[0]): string => {
   const numbers = value.replace(/\D/g, '');
   if (!numbers) return '';
-  
+
   let formatted = '';
   let numberIndex = 0;
-  
+
   for (let i = 0; i < country.phoneMask.length && numberIndex < numbers.length; i++) {
     if (country.phoneMask[i] === '#') {
       formatted += numbers[numberIndex];
@@ -61,7 +61,7 @@ const formatPhoneForDisplay = (value: string, country: typeof countries[0]): str
       formatted += country.phoneMask[i];
     }
   }
-  
+
   return formatted;
 };
 
@@ -70,7 +70,7 @@ const formatColombianIdForDisplay = (value: string): string => {
   // Solo números
   const numbers = value.replace(/\D/g, '');
   if (!numbers) return '';
-  
+
   // Formato con puntos: 1.234.567 o 12.345.678 o 123.456.789
   return numbers.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 };
@@ -81,11 +81,11 @@ const formatDocumentForDisplay = (value: string, country: typeof countries[0]): 
     // Formato CPF para pantalla: 000.000.000-00
     const numbers = value.replace(/\D/g, '');
     if (!numbers) return '';
-    
+
     let formatted = '';
     let numberIndex = 0;
     const mask = "000.000.000-00";
-    
+
     for (let i = 0; i < mask.length && numberIndex < numbers.length; i++) {
       if (mask[i] === '0') {
         formatted += numbers[numberIndex];
@@ -126,7 +126,7 @@ export default function RegistroJugador() {
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
@@ -160,7 +160,7 @@ export default function RegistroJugador() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'telefone') {
       const formatted = formatPhoneForDisplay(value, selectedCountry);
       setFormData({ ...formData, [name]: formatted });
@@ -178,13 +178,13 @@ export default function RegistroJugador() {
   const handleCountryChange = (country: typeof countries[0]) => {
     setSelectedCountry(country);
     setShowCountryDropdown(false);
-    
+
     if (formData.telefone) {
       const cleanPhone = cleanToNumbers(formData.telefone);
       const reformatted = formatPhoneForDisplay(cleanPhone, country);
       setFormData(prev => ({ ...prev, telefone: reformatted }));
     }
-    
+
     if (formData.documento) {
       const reformatted = formatDocumentForDisplay(formData.documento, country);
       setFormData(prev => ({ ...prev, documento: reformatted }));
@@ -196,7 +196,7 @@ export default function RegistroJugador() {
       setError(`Por favor, ingrese su ${selectedCountry.documentName}`);
       return false;
     }
-    
+
     if (selectedCountry.code === "BR") {
       const cleanDoc = cleanToNumbers(formData.documento);
       if (cleanDoc.length !== 11) {
@@ -225,24 +225,24 @@ export default function RegistroJugador() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     if (!aceptarTerminos) {
       setError(t.register.termsError);
       return;
     }
-    
+
     if (!validateDocument()) {
       return;
     }
-    
+
     // LIMPIEZA DE DATOS PARA ENVIAR AL BACKEND
     const cleanPhone = cleanToNumbers(formData.telefone);
-    
+
     if (cleanPhone.length === 0) {
       setError("Por favor, ingrese un número de teléfono válido");
       return;
     }
-    
+
     let cleanDocument = "";
     if (selectedCountry.code === "BR") {
       cleanDocument = cleanToNumbers(formData.documento);
@@ -251,7 +251,7 @@ export default function RegistroJugador() {
     } else if (selectedCountry.code === "MX") {
       cleanDocument = formData.documento.toUpperCase().replace(/\s/g, '');
     }
-    
+
     setLoading(true);
 
     try {
@@ -260,17 +260,16 @@ export default function RegistroJugador() {
         password: formData.password,
         role: "player",
         name: formData.nombre,
+        nickname: formData.nombre,
         phone: cleanPhone,
-        phoneCountry: selectedCountry.code,
-        playerNickname: formData.nombre,
+        phoneCountry: selectedCountry.dialCode,
         documentType: selectedCountry.documentName,
         documentNumber: cleanDocument,
-        countryCode: selectedCountry.code,
+        country: selectedCountry.code,
       };
 
       console.log("=== DATOS ENVIADOS AL BACKEND ===");
-      console.log("Teléfono limpio:", cleanPhone);
-      console.log("Documento limpio:", cleanDocument);
+      console.log("Request Body:", requestBody);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: "POST",
@@ -342,9 +341,9 @@ export default function RegistroJugador() {
         <div className="container mx-auto max-w-md">
           <div className="relative">
             <div className="absolute -inset-1 bg-yellow-500/5 rounded-2xl blur-xl"></div>
-            
+
             <form onSubmit={handleSubmit} className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
-              
+
               <div className="border-b border-yellow-500/20 px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <User className="w-6 h-6 text-yellow-500" />
@@ -360,7 +359,7 @@ export default function RegistroJugador() {
               </div>
 
               <div className="p-6 space-y-6">
-                
+
                 {/* Nombre */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">{t.register.fullName} *</label>
@@ -410,7 +409,7 @@ export default function RegistroJugador() {
                       </div>
                       <ChevronDown className={`w-4 h-4 text-yellow-500 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
                     </button>
-                    
+
                     {showCountryDropdown && (
                       <div className="absolute top-full left-0 mt-1 w-full bg-black border border-yellow-500/30 rounded-lg shadow-xl z-50 overflow-hidden">
                         {countries.map((country) => (
@@ -418,9 +417,8 @@ export default function RegistroJugador() {
                             key={country.code}
                             type="button"
                             onClick={() => handleCountryChange(country)}
-                            className={`w-full px-4 py-2 text-left hover:bg-yellow-500/10 transition-colors flex items-center justify-between ${
-                              selectedCountry.code === country.code ? 'bg-yellow-500/20 text-yellow-500' : 'text-white'
-                            }`}
+                            className={`w-full px-4 py-2 text-left hover:bg-yellow-500/10 transition-colors flex items-center justify-between ${selectedCountry.code === country.code ? 'bg-yellow-500/20 text-yellow-500' : 'text-white'
+                              }`}
                           >
                             <span>{country.name}</span>
                             <span className="text-xs text-gray-500">{country.dialCode}</span>
@@ -543,11 +541,10 @@ export default function RegistroJugador() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`group relative w-full py-3 rounded-lg text-sm font-medium tracking-wide transition-all overflow-hidden ${
-                    !loading && aceptarTerminos
+                  className={`group relative w-full py-3 rounded-lg text-sm font-medium tracking-wide transition-all overflow-hidden ${!loading && aceptarTerminos
                       ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
                       : "bg-gray-900 text-gray-600 cursor-not-allowed"
-                  }`}
+                    }`}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4" />
