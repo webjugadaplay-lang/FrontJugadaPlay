@@ -127,8 +127,10 @@ export default function RegistroJugador() {
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+
   const [formData, setFormData] = useState({
     nombre: "",
+    nickname: "",
     email: "",
     documento: "",
     telefone: "",
@@ -259,8 +261,8 @@ export default function RegistroJugador() {
         email: formData.email,
         password: formData.password,
         role: "player",
-        name: formData.nombre,
-        nickname: formData.nombre,
+        name: formData.nombre,        // ← nombre real
+        nickname: formData.nickname,  // ← nickname para el ranking
         phone: cleanPhone,
         phoneCountry: selectedCountry.dialCode,
         documentType: selectedCountry.documentName,
@@ -375,6 +377,24 @@ export default function RegistroJugador() {
                       className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
                   </div>
+                </div>
+
+                {/* Nickname - NUEVO CAMPO */}
+                <div className="space-y-2">
+                  <label className="block text-xs text-yellow-500 tracking-wider">Nickname *</label>
+                  <div className="relative">
+                    <Award className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
+                    <input
+                      type="text"
+                      name="nickname"
+                      value={formData.nickname}
+                      onChange={handleChange}
+                      required
+                      placeholder="Ej: ElReYDelApostador"
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
+                    />
+                  </div>
+                  <p className="text-gray-600 text-xs">Este nombre aparecerá en el ranking y en las salas de juego</p>
                 </div>
 
                 {/* Email */}
@@ -542,8 +562,8 @@ export default function RegistroJugador() {
                   type="submit"
                   disabled={loading}
                   className={`group relative w-full py-3 rounded-lg text-sm font-medium tracking-wide transition-all overflow-hidden ${!loading && aceptarTerminos
-                      ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
-                      : "bg-gray-900 text-gray-600 cursor-not-allowed"
+                    ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
+                    : "bg-gray-900 text-gray-600 cursor-not-allowed"
                     }`}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
