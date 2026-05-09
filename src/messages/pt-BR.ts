@@ -78,7 +78,6 @@ const ptBR = {
     benefit1: "20% de comissão por cada previsão",
     benefit2: "Painel de controle em tempo real",
     benefit3: "Suporte prioritário 24/7",
-    benefit4: "Material promocional gratuito",
     registering: "REGISTRANDO...",
     registerButton: "REGISTRAR MEU BAR",
     

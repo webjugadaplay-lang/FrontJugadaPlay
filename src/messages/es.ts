@@ -78,7 +78,6 @@ const es = {
     benefit1: "20% de comisión por cada predicción",
     benefit2: "Panel de control en tiempo real",
     benefit3: "Soporte prioritario 24/7",
-    benefit4: "Material promocional gratuito",
     registering: "REGISTRANDO...",
     registerButton: "REGISTRAR MI BAR",
     

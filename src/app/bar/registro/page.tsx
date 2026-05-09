@@ -822,7 +822,6 @@ export default function RegistroBar() {
                     <p>✓ {t.register.benefit1}</p>
                     <p>✓ {t.register.benefit2}</p>
                     <p>✓ {t.register.benefit3}</p>
-                    <p>✓ {t.register.benefit4}</p>
                   </div>
                 </div>
 
