@@ -23,10 +23,10 @@ import {
 
 // Configuración de países UNIFICADA
 const countries = [
-  { 
-    code: "BR", 
-    name: "Brasil", 
-    dialCode: "+55", 
+  {
+    code: "BR",
+    name: "Brasil",
+    dialCode: "+55",
     phoneMask: "(##) #####-####",
     phonePlaceholder: "(11) 91234-5678",
     barDocumentName: "CNPJ",
@@ -39,10 +39,10 @@ const countries = [
     alternativeDocumentPlaceholder: "000.000.000-00",
     alternativeDocumentLength: 11,
   },
-  { 
-    code: "CO", 
-    name: "Colombia", 
-    dialCode: "+57", 
+  {
+    code: "CO",
+    name: "Colombia",
+    dialCode: "+57",
     phoneMask: "(###) ###-####",
     phonePlaceholder: "(300) 123-4567",
     barDocumentName: "NIT",
@@ -55,10 +55,10 @@ const countries = [
     alternativeDocumentPlaceholder: "1234567890",
     alternativeDocumentLength: 10,
   },
-  { 
-    code: "MX", 
-    name: "México", 
-    dialCode: "+52", 
+  {
+    code: "MX",
+    name: "México",
+    dialCode: "+52",
     phoneMask: "(##) ####-####",
     phonePlaceholder: "(55) 1234-5678",
     barDocumentName: "RFC Persona Moral",
@@ -84,10 +84,10 @@ const countries = [
 const formatPhoneNumber = (value: string, country: typeof countries[0]): string => {
   const numbers = value.replace(/\D/g, '');
   if (!numbers) return '';
-  
+
   let formatted = '';
   let numberIndex = 0;
-  
+
   for (let i = 0; i < country.phoneMask.length && numberIndex < numbers.length; i++) {
     if (country.phoneMask[i] === '#') {
       formatted += numbers[numberIndex];
@@ -96,7 +96,7 @@ const formatPhoneNumber = (value: string, country: typeof countries[0]): string 
       formatted += country.phoneMask[i];
     }
   }
-  
+
   return formatted;
 };
 
@@ -104,7 +104,7 @@ const formatPhoneNumber = (value: string, country: typeof countries[0]): string 
 const formatNIT = (value: string): string => {
   const numbers = value.replace(/\D/g, '');
   if (numbers.length === 0) return '';
-  
+
   if (numbers.length <= 9) {
     return numbers;
   } else {
@@ -135,12 +135,12 @@ const formatCURP = (value: string): string => {
 // Función para aplicar formato al documento según país y tipo
 const formatDocument = (value: string, country: typeof countries[0], tipoDocumento: string): string => {
   const isAlternative = tipoDocumento === country.alternativeDocumentName;
-  
+
   // Para NIT de Colombia
   if (country.code === "CO" && !isAlternative) {
     return formatNIT(value);
   }
-  
+
   // Para CPF/CNPJ de Brasil
   if (country.code === "BR") {
     // Determinar qué máscara usar según el tipo de documento
@@ -152,11 +152,11 @@ const formatDocument = (value: string, country: typeof countries[0], tipoDocumen
       // CNPJ
       mask = country.barDocumentMask; // "00.000.000/0000-00"
     }
-    
+
     let cleanValue = value.replace(/[^0-9]/g, '');
     let formatted = '';
     let charIndex = 0;
-    
+
     for (let i = 0; i < mask.length && charIndex < cleanValue.length; i++) {
       if (mask[i] === '0') {
         formatted += cleanValue[charIndex];
@@ -167,22 +167,22 @@ const formatDocument = (value: string, country: typeof countries[0], tipoDocumen
     }
     return formatted;
   }
-  
+
   // Para Cédula de Colombia
   if (country.code === "CO" && isAlternative) {
     return value.replace(/[^0-9]/g, '').slice(0, 10);
   }
-  
+
   // Para RFC de México
   if (country.code === "MX" && !isAlternative) {
     return formatRFC(value);
   }
-  
+
   // Para CURP de México
   if (country.code === "MX" && isAlternative) {
     return formatCURP(value);
   }
-  
+
   return value;
 };
 
@@ -202,7 +202,7 @@ export default function RegistroBar() {
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   // Tipo de documento: principal, alternativo o tercero
   const [tipoDocumento, setTipoDocumento] = useState<"principal" | "alternativo" | "tercero">("principal");
 
@@ -281,7 +281,7 @@ export default function RegistroBar() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'telefone') {
       const formatted = formatPhoneNumber(value, selectedCountry);
       setFormData({ ...formData, [name]: formatted });
@@ -298,7 +298,7 @@ export default function RegistroBar() {
     setShowCountryDropdown(false);
     setTipoDocumento("principal");
     setFormData(prev => ({ ...prev, documento: "" }));
-    
+
     if (formData.telefone) {
       const cleanPhone = cleanNumber(formData.telefone);
       const reformatted = formatPhoneNumber(cleanPhone, country);
@@ -379,93 +379,83 @@ export default function RegistroBar() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
-  if (!aceptarTerminos) {
-    setError(t.register.termsError);
-    return;
-  }
-
-  if (!validateDocument()) {
-    return;
-  }
-
-  // ============ LIMPIAR DATOS ANTES DE ENVIAR ============
-  
-  // 1. Limpiar teléfono: solo números
-  const cleanPhone = formData.telefone.replace(/\D/g, '');
-  
-  // 2. Limpiar documento según el tipo
-  let cleanDocument = formData.documento;
-  const currentDocName = getCurrentDocumentName();
-  
-  if (currentDocName === "NIT") {
-    // NIT: eliminar guiones y dejar solo números
-    cleanDocument = formData.documento.replace(/-/g, '').replace(/\D/g, '');
-  } else if (currentDocName === "Cédula") {
-    // Cédula: solo números
-    cleanDocument = formData.documento.replace(/\D/g, '');
-  } else if (currentDocName === "RFC Persona Moral" || currentDocName === "RFC Persona Física") {
-    // RFC: mantener letras y números, convertir a mayúsculas
-    cleanDocument = formData.documento.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-  } else if (currentDocName === "CURP") {
-    // CURP: mantener letras y números, convertir a mayúsculas
-    cleanDocument = formData.documento.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-  } else {
-    // CNPJ, CPF: solo números
-    cleanDocument = formData.documento.replace(/\D/g, '');
-  }
-  
-  // Validar que el teléfono tenga dígitos
-  if (cleanPhone.length === 0) {
-    setError("Por favor, ingrese un número de teléfono válido");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const fullPhoneNumber = `${selectedCountry.dialCode} ${cleanPhone}`;
-    const isCPF = currentDocName === "CPF";
-    const isCNPJ = currentDocName === "CNPJ";
-    
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: formData.email,
-        password: formData.password,
-        role: "bar",
-        name: formData.responsavel,
-        phone: cleanPhone, // ← ENVIAR SOLO NÚMEROS
-        phoneCountry: selectedCountry.code,
-        barName: formData.nombreBar,
-        address: formData.endereco,
-        documentType: currentDocName,
-        documentNumber: cleanDocument, // ← ENVIAR LIMPIO
-        countryCode: selectedCountry.code,
-        cpf: isCPF ? cleanDocument : null,
-        cnpj: isCNPJ ? cleanDocument : null,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || t.register.registerError);
+    if (!aceptarTerminos) {
+      setError(t.register.termsError);
+      return;
     }
 
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
+    if (!validateDocument()) {
+      return;
+    }
 
-    router.push("/bar/dashboard");
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+    // ============ LIMPIAR DATOS ANTES DE ENVIAR ============
+
+    // 1. Limpiar teléfono: solo números
+    const cleanPhone = formData.telefone.replace(/\D/g, '');
+
+    // 2. Limpiar documento según el tipo
+    let cleanDocument = formData.documento;
+    const currentDocName = getCurrentDocumentName();
+
+    if (currentDocName === "NIT") {
+      cleanDocument = formData.documento.replace(/-/g, '').replace(/\D/g, '');
+    } else if (currentDocName === "Cédula") {
+      cleanDocument = formData.documento.replace(/\D/g, '');
+    } else if (currentDocName === "RFC Persona Moral" || currentDocName === "RFC Persona Física") {
+      cleanDocument = formData.documento.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    } else if (currentDocName === "CURP") {
+      cleanDocument = formData.documento.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    } else {
+      cleanDocument = formData.documento.replace(/\D/g, '');
+    }
+
+    // Validar que el teléfono tenga dígitos
+    if (cleanPhone.length === 0) {
+      setError("Por favor, ingrese un número de teléfono válido");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          role: "owner",                    // ← CAMBIO: 'bar' → 'owner'
+          name: formData.responsavel,       // ← nombre del dueño
+          nickname: formData.responsavel,   // ← nickname del dueño
+          phone: cleanPhone,
+          phoneCountry: selectedCountry.dialCode,  // ← CAMBIO: enviar +55, +57, +52
+          barName: formData.nombreBar,
+          address: formData.endereco,
+          documentType: currentDocName,
+          documentNumber: cleanDocument,
+          country: selectedCountry.code,    // ← CAMBIO: 'countryCode' → 'country'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || t.register.registerError);
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      router.push("/bar/dashboard");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isLocaleReady) {
     return (
@@ -577,7 +567,7 @@ export default function RegistroBar() {
                           </div>
                           <ChevronDown className={`w-4 h-4 text-yellow-500 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
                         </button>
-                        
+
                         {showCountryDropdown && (
                           <div className="absolute top-full left-0 mt-1 w-full bg-black border border-yellow-500/30 rounded-lg shadow-xl z-50 overflow-hidden">
                             {countries.map((country) => (
@@ -585,9 +575,8 @@ export default function RegistroBar() {
                                 key={country.code}
                                 type="button"
                                 onClick={() => handleCountryChange(country)}
-                                className={`w-full px-4 py-2 text-left hover:bg-yellow-500/10 transition-colors flex items-center justify-between ${
-                                  selectedCountry.code === country.code ? 'bg-yellow-500/20 text-yellow-500' : 'text-white'
-                                }`}
+                                className={`w-full px-4 py-2 text-left hover:bg-yellow-500/10 transition-colors flex items-center justify-between ${selectedCountry.code === country.code ? 'bg-yellow-500/20 text-yellow-500' : 'text-white'
+                                  }`}
                               >
                                 <span>{country.name}</span>
                                 <span className="text-xs text-gray-500">{country.dialCode}</span>
