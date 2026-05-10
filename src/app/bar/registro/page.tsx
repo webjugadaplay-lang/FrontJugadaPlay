@@ -427,7 +427,7 @@ export default function RegistroBar() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          role: "owner",                    // ← CAMBIO: 'bar' → 'owner'
+          role: "bar",                    // ← CAMBIO: 'bar' → 'owner'
           name: formData.responsavel,       // ← nombre del dueño
           nickname: formData.responsavel,   // ← nickname del dueño
           phone: cleanPhone,
