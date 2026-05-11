@@ -20,6 +20,7 @@ import {
   ChevronDown,
   IdCard,
 } from "lucide-react";
+import { log } from "console";
 
 // Configuración de países UNIFICADA
 const countries = [
@@ -450,6 +451,8 @@ export default function RegistroBar() {
       localStorage.setItem("user", JSON.stringify(data.user));
 
       router.push("/bar/dashboard");
+      console.log("=== DATOS ENVIADOS ===");
+      console.log(data);
     } catch (err: any) {
       setError(err.message);
     } finally {
