@@ -14,7 +14,8 @@ export default function LoginForm({ locale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
-  const [tipoUsuario, setTipoUsuario] = useState<"bar" | "player" | "admin">("player");
+  // Cambiamos el tipo para incluir "owner" pero la UI muestra "bar"
+  const [tipoUsuario, setTipoUsuario] = useState<"player" | "owner" | "admin">("player");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -53,7 +54,7 @@ export default function LoginForm({ locale }: Props) {
         body: JSON.stringify({
           email,
           password,
-          role: tipoUsuario,
+          role: tipoUsuario, // Ahora envía "player", "owner" o "admin"
         }),
       });
 
@@ -73,10 +74,11 @@ export default function LoginForm({ locale }: Props) {
         return;
       }
 
+      // Redirigir según el rol del usuario
       if (data.user.role === "admin") {
         router.push("/admin/dashboard");
-      } else if (data.user.role === "bar") {
-        router.push("/bar/dashboard");
+      } else if (data.user.role === "owner") {
+        router.push("/bar/dashboard"); // Los owners ven el dashboard de bares
       } else {
         router.push("/jugador/dashboard");
       }
@@ -120,15 +122,15 @@ export default function LoginForm({ locale }: Props) {
 
               <button
                 type="button"
-                onClick={() => setTipoUsuario("bar")}
+                onClick={() => setTipoUsuario("owner")}
                 className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
-                  tipoUsuario === "bar"
+                  tipoUsuario === "owner"
                     ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
                     : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
                 } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <Building2 className="w-4 h-4" />}
-                <span className="text-sm text-center">{t.login.roles.bar}</span>
+                <span className="text-sm text-center">Dueño de Bar</span>
               </button>
 
               <button
@@ -218,7 +220,7 @@ export default function LoginForm({ locale }: Props) {
                   type="button"
                   className="w-full border border-yellow-500/30 text-yellow-500 py-3 rounded-lg text-sm font-medium hover:border-yellow-500/50 hover:bg-yellow-500/10 transition-all mb-4"
                 >
-                  {t.login.registerBar}
+                  Registrar mi Bar
                 </button>
               </Link>
 
