@@ -17,15 +17,37 @@ import {
   Clock,
   Star,
   LogOut,
+  ChevronDown,
 } from "lucide-react";
+
+interface Bar {
+  id: string;
+  name: string;
+  bar_name: string;
+  balance: number;
+}
+
+interface StatsData {
+  bar: { name: string; bar_name: string; balance: number };
+  stats: {
+    activeRooms: number;
+    totalPlayers: number;
+    todayRevenue: number;
+    totalRevenue: number;
+    rating: number;
+  };
+  ranking: any[];
+}
 
 export default function BarDashboard() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("activas");
   const [loading, setLoading] = useState(true);
-  const [barName, setBarName] = useState("");
-  const [stats, setStats] = useState({
+  const [userBars, setUserBars] = useState<Bar[]>([]);
+  const [selectedBarId, setSelectedBarId] = useState<string>("");
+  const [selectedBarName, setSelectedBarName] = useState("");
+  const [stats, setStats] = useState<StatsData>({
     bar: { name: "", bar_name: "", balance: 0 },
     stats: {
       activeRooms: 0,
@@ -40,9 +62,11 @@ export default function BarDashboard() {
     activas: [],
     proximos: [],
   });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // Cargar bares del owner
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchUserBars = async () => {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
 
@@ -54,20 +78,56 @@ export default function BarDashboard() {
       const user = JSON.parse(userData);
       console.log("Datos del usuario:", user);
 
-      setBarName(user.bar_name || user.name || "MI BAR");
-
-      if (user.role !== "bar") {
-        router.push(user.role === "admin" ? "/admin/dashboard" : "/jugador/dashboard");
+      // Validar rol (owner o admin pueden ver este dashboard)
+      if (user.role !== "owner" && user.role !== "admin") {
+        router.push(user.role === "player" ? "/jugador/dashboard" : "/login");
         return;
       }
 
-      const barNombre = user.barName || user.name || "";
-      setBarName(barNombre);
+      try {
+        // Obtener todos los bares del owner (si es admin, todos los bares)
+        const barsRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/owner/bars`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const barsData = await barsRes.json();
+
+        if (barsData.success && barsData.bars.length > 0) {
+          setUserBars(barsData.bars);
+          // Seleccionar el primer bar por defecto
+          const firstBar = barsData.bars[0];
+          setSelectedBarId(firstBar.id);
+          setSelectedBarName(firstBar.name || firstBar.bar_name);
+        } else {
+          console.error("No se encontraron bares para este owner");
+          // Redirigir o mostrar mensaje
+        }
+      } catch (error) {
+        console.error("Error al cargar bares:", error);
+      }
+    };
+
+    fetchUserBars();
+  }, [router]);
+
+  // Cargar datos del bar seleccionado
+  useEffect(() => {
+    if (!selectedBarId) return;
+
+    const fetchBarData = async () => {
+      setLoading(true);
+      const token = localStorage.getItem("token");
 
       try {
-        const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/stats`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Cargar estadísticas del bar específico
+        const statsRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/bar/stats?barId=${selectedBarId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         const statsData = await statsRes.json();
 
         if (statsData.success) {
@@ -75,37 +135,45 @@ export default function BarDashboard() {
             ...statsData.data,
             bar: {
               ...statsData.data.bar,
-              bar_name: barNombre,
+              bar_name: selectedBarName,
             },
           });
         }
 
-        const roomsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms?status=active`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Cargar salas activas del bar específico
+        const roomsRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms?status=active&barId=${selectedBarId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         const roomsData = await roomsRes.json();
 
         if (roomsData.success) {
           setRooms((prev) => ({ ...prev, activas: roomsData.data }));
         }
 
-        const upcomingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms?status=upcoming`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Cargar próximos partidos del bar específico
+        const upcomingRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms?status=upcoming&barId=${selectedBarId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         const upcomingData = await upcomingRes.json();
 
         if (upcomingData.success) {
           setRooms((prev) => ({ ...prev, proximos: upcomingData.data }));
         }
       } catch (error) {
-        console.error("Error al cargar datos:", error);
+        console.error("Error al cargar datos del bar:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [router]);
+    fetchBarData();
+  }, [selectedBarId, selectedBarName, router]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -113,7 +181,15 @@ export default function BarDashboard() {
     router.push("/login");
   };
 
-  if (loading) {
+  const handleBarChange = (barId: string, barName: string) => {
+    setSelectedBarId(barId);
+    setSelectedBarName(barName);
+    setIsDropdownOpen(false);
+    // Resetear tab activo al cambiar de bar
+    setActiveTab("activas");
+  };
+
+  if (loading && userBars.length === 0) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-yellow-500">Cargando...</div>
@@ -136,9 +212,43 @@ export default function BarDashboard() {
             </Link>
 
             <div className="hidden md:flex items-center space-x-8">
-              <span className="text-yellow-500 text-sm tracking-wide uppercase">
-                {barName}
-              </span>
+              {/* Selector de bares para owner */}
+              {userBars.length > 1 && (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center gap-2 text-yellow-500 text-sm tracking-wide uppercase hover:text-yellow-400 transition-colors"
+                  >
+                    {selectedBarName}
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute top-full mt-2 right-0 bg-black/95 border border-yellow-500/20 rounded-md shadow-lg z-50 min-w-[200px]">
+                      {userBars.map((bar) => (
+                        <button
+                          key={bar.id}
+                          onClick={() => handleBarChange(bar.id, bar.name || bar.bar_name)}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-yellow-500/10 transition-colors ${
+                            selectedBarId === bar.id
+                              ? "text-yellow-500"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {bar.name || bar.bar_name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {userBars.length === 1 && (
+                <span className="text-yellow-500 text-sm tracking-wide uppercase">
+                  {selectedBarName}
+                </span>
+              )}
+
               <div className="w-px h-6 bg-yellow-500/20"></div>
               <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm">
                 SALDO: R$ {stats.bar.balance.toFixed(2)}
@@ -166,9 +276,32 @@ export default function BarDashboard() {
           {isMenuOpen && (
             <div className="md:hidden py-4 border-t border-yellow-500/20">
               <div className="flex flex-col space-y-3">
-                <span className="text-yellow-500 text-sm uppercase">
-                  {barName}
-                </span>
+                {userBars.length > 1 && (
+                  <div className="space-y-2">
+                    <span className="text-gray-400 text-xs">SELECCIONAR BAR</span>
+                    {userBars.map((bar) => (
+                      <button
+                        key={bar.id}
+                        onClick={() => {
+                          handleBarChange(bar.id, bar.name || bar.bar_name);
+                          setIsMenuOpen(false);
+                        }}
+                        className={`block w-full text-left py-1 ${
+                          selectedBarId === bar.id
+                            ? "text-yellow-500"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {bar.name || bar.bar_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {userBars.length === 1 && (
+                  <span className="text-yellow-500 text-sm uppercase">
+                    {selectedBarName}
+                  </span>
+                )}
                 <span className="text-gray-400 text-sm">
                   SALDO: R$ {stats.bar.balance.toFixed(2)}
                 </span>
@@ -196,9 +329,16 @@ export default function BarDashboard() {
                 DASHBOARD
               </h1>
               <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
+              {userBars.length > 1 && (
+                <p className="text-gray-500 text-sm mt-2">
+                  Administrando: <span className="text-yellow-500">{selectedBarName}</span>
+                </p>
+              )}
             </div>
 
-            <Link href="/bar/crear-sala">
+            <Link
+              href={`/bar/crear-sala?barId=${selectedBarId}`}
+            >
               <button className="group relative overflow-hidden bg-yellow-500 text-black px-6 py-2.5 rounded-sm text-sm font-medium tracking-wide flex items-center gap-2 hover:bg-yellow-400 transition-all">
                 <Plus className="w-4 h-4" />
                 <span>CREAR NUEVA SALA</span>
@@ -345,7 +485,7 @@ export default function BarDashboard() {
                       </span>
                     </div>
 
-                    <Link href="/bar/crear-sala" className="w-full md:w-auto">
+                    <Link href={`/bar/crear-sala?barId=${selectedBarId}`}>
                       <button className="w-full border border-yellow-500/30 text-yellow-500/70 px-4 py-2 text-sm rounded-sm hover:border-yellow-500/50 transition-all">
                         ACTIVAR SALA
                       </button>

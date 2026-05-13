@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Crown, Trophy, Coins, Calendar, Clock, Zap,
@@ -35,6 +35,10 @@ interface Team {
 
 export default function CrearSala() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const barIdParam = searchParams.get("barId");
+  
+  const [barId, setBarId] = useState<string>("");
   const [tipoSala, setTipoSala] = useState<"practice" | "paid">("paid");
   const [valorPrediccion, setValorPrediccion] = useState("5");
   const [cierrePredictions, setCierrePredictions] = useState("15min");
@@ -60,6 +64,31 @@ export default function CrearSala() {
   const [matchTime, setMatchTime] = useState("");
 
   const isMundial = selectedContinent === "7";
+
+  // Obtener barId desde URL o localStorage al cargar
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
+    if (!token || !userData) {
+      router.push("/login");
+      return;
+    }
+
+    const user = JSON.parse(userData);
+    
+    // Si viene barId por URL (desde el selector), usarlo
+    if (barIdParam) {
+      setBarId(barIdParam);
+    } else if (user.role === "bar") {
+      // Compatibilidad con usuarios rol "bar" (si existen)
+      setBarId(user.barId || "");
+    } else if (user.role === "owner") {
+      // Owner debería tener barId del selector, si no, redirigir
+      console.error("No se especificó barId para crear sala");
+      router.push("/bar/dashboard");
+    }
+  }, [router, barIdParam]);
 
   // Cargar continentes al inicio
   useEffect(() => {
@@ -224,6 +253,12 @@ export default function CrearSala() {
   const selectedTeamAway = teams.find(t => t.id.toString() === selectedTeamAwayId)?.name || "";
 
   const handleCreateRoom = async () => {
+    // Validar barId
+    if (!barId) {
+      setError("No se pudo identificar el bar. Por favor, intenta de nuevo.");
+      return;
+    }
+
     if (!selectedTeamHomeId || !selectedTeamAwayId) {
       setError("Debes seleccionar los dos equipos");
       return;
@@ -262,6 +297,7 @@ export default function CrearSala() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          barId: barId, // <- AGREGADO: ID del bar seleccionado
           name: `${selectedTeamHome} vs ${selectedTeamAway}`,
           sport: "Fútbol",
           tournament: tournamentName,
