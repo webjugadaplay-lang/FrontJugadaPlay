@@ -64,9 +64,9 @@ export default function BarDashboard() {
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Cargar bares del owner
+  // En lugar de llamar a /api/owner/bars, usa los bares del localStorage
   useEffect(() => {
-    const fetchUserBars = async () => {
+    const fetchUserData = async () => {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
 
@@ -78,14 +78,23 @@ export default function BarDashboard() {
       const user = JSON.parse(userData);
       console.log("Datos del usuario:", user);
 
-      // Validar rol (owner o admin pueden ver este dashboard)
       if (user.role !== "owner" && user.role !== "admin") {
         router.push(user.role === "player" ? "/jugador/dashboard" : "/login");
         return;
       }
 
+      // 🔥 USAR LOS BARES DEL LOGIN
+      if (user.bars && user.bars.length > 0) {
+        setUserBars(user.bars);
+        const firstBar = user.bars[0];
+        setSelectedBarId(firstBar.id);
+        setSelectedBarName(firstBar.barName || firstBar.name);
+        setLoading(false);
+        return;
+      }
+
+      // Fallback: intentar cargar desde el endpoint
       try {
-        // Obtener todos los bares del owner (si es admin, todos los bares)
         const barsRes = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/owner/bars`,
           {
@@ -96,20 +105,20 @@ export default function BarDashboard() {
 
         if (barsData.success && barsData.bars.length > 0) {
           setUserBars(barsData.bars);
-          // Seleccionar el primer bar por defecto
           const firstBar = barsData.bars[0];
           setSelectedBarId(firstBar.id);
           setSelectedBarName(firstBar.name || firstBar.bar_name);
         } else {
           console.error("No se encontraron bares para este owner");
-          // Redirigir o mostrar mensaje
         }
       } catch (error) {
         console.error("Error al cargar bares:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchUserBars();
+    fetchUserData();
   }, [router]);
 
   // Cargar datos del bar seleccionado
@@ -229,11 +238,10 @@ export default function BarDashboard() {
                         <button
                           key={bar.id}
                           onClick={() => handleBarChange(bar.id, bar.name || bar.bar_name)}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-yellow-500/10 transition-colors ${
-                            selectedBarId === bar.id
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-yellow-500/10 transition-colors ${selectedBarId === bar.id
                               ? "text-yellow-500"
                               : "text-gray-400"
-                          }`}
+                            }`}
                         >
                           {bar.name || bar.bar_name}
                         </button>
@@ -286,11 +294,10 @@ export default function BarDashboard() {
                           handleBarChange(bar.id, bar.name || bar.bar_name);
                           setIsMenuOpen(false);
                         }}
-                        className={`block w-full text-left py-1 ${
-                          selectedBarId === bar.id
+                        className={`block w-full text-left py-1 ${selectedBarId === bar.id
                             ? "text-yellow-500"
                             : "text-gray-400"
-                        }`}
+                          }`}
                       >
                         {bar.name || bar.bar_name}
                       </button>
@@ -403,22 +410,20 @@ export default function BarDashboard() {
           <div className="flex space-x-6 mb-6 border-b border-yellow-500/20">
             <button
               onClick={() => setActiveTab("activas")}
-              className={`pb-3 text-sm tracking-wide transition-all ${
-                activeTab === "activas"
+              className={`pb-3 text-sm tracking-wide transition-all ${activeTab === "activas"
                   ? "text-yellow-500 border-b-2 border-yellow-500"
                   : "text-gray-500 hover:text-gray-400"
-              }`}
+                }`}
             >
               SALAS ACTIVAS ({rooms.activas.length})
             </button>
 
             <button
               onClick={() => setActiveTab("proximos")}
-              className={`pb-3 text-sm tracking-wide transition-all ${
-                activeTab === "proximos"
+              className={`pb-3 text-sm tracking-wide transition-all ${activeTab === "proximos"
                   ? "text-yellow-500 border-b-2 border-yellow-500"
                   : "text-gray-500 hover:text-gray-400"
-              }`}
+                }`}
             >
               PRÓXIMOS PARTIDOS ({rooms.proximos.length})
             </button>
