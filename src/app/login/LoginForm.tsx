@@ -130,7 +130,7 @@ export default function LoginForm({ locale }: Props) {
                 } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <Building2 className="w-4 h-4" />}
-                <span className="text-sm text-center">Dueño de Bar</span>
+                <span className="text-sm text-center">{t.login.roles.bar}</span>
               </button>
 
               <button
