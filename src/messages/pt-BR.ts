@@ -1,4 +1,9 @@
+// messages/pt-BR.ts
 const ptBR = {
+  common: {
+    language: "Idioma",
+    loading: "Carregando...",
+  },
   header: {
     language: "Idioma",
   },
@@ -45,7 +50,6 @@ const ptBR = {
     },
   },
   register: {
-    // Títulos comunes
     title: "REGISTRAR",
     acceptTerms: "Aceito os",
     termsAndConditions: "termos e condições",
@@ -55,8 +59,7 @@ const ptBR = {
     registerError: "Erro ao registrar",
     alreadyHaveAccount: "Já tem uma conta?",
     login: "Iniciar sessão",
-    
-    // Registro de Bar
+
     bar: "BAR",
     barSubtitle: "Junte-se ao JugadaPlay e ofereça uma experiência esportiva única no seu bar",
     barInfo: "INFORMAÇÕES DO BAR",
@@ -80,8 +83,7 @@ const ptBR = {
     benefit3: "Suporte prioritário 24/7",
     registering: "REGISTRANDO...",
     registerButton: "REGISTRAR MEU BAR",
-    
-    // Registro de Jugador
+
     player: "JOGADOR",
     playerSubtitle: "Preveja, ganhe e divirta-se no seu bar favorito",
     fullName: "NOME COMPLETO *",
@@ -111,6 +113,56 @@ const ptBR = {
     emailSentMessage: "Se o email estiver registrado, você receberá um link para recuperar sua senha.",
     backToLogin: "Voltar ao login",
     error: "Ocorreu um erro. Tente novamente."
+  },
+  admin: {
+    badge: "ADMIN",
+    title: "ADMIN DASHBOARD",
+    logout: "SAIR",
+    configuration: "CONFIGURAÇÕES",
+    manageUsers: "GERENCIAR USUÁRIOS",
+    search: "Pesquisar...",
+    defaultEmail: "ADMIN@JUGADAPLAY.COM",
+    stats: {
+      totalRevenue: "RECEITA TOTAL",
+      activeBars: "BARES ATIVOS",
+      uniquePlayers: "JOGADORES ÚNICOS",
+      paidPredictions: "PREDIÇÕES PAGAS",
+    },
+    pending: {
+      pendingPayments: "Pagamentos pendentes",
+      pendingBars: "Bares para aprovação",
+      claims: "Reclamações",
+      viewDetails: "VER DETALHES",
+    },
+    tabs: {
+      topBars: "TOP BARES",
+      upcomingMatches: "PRÓXIMAS PARTIDAS",
+      activeMatches: "PARTIDAS ATIVAS",
+    },
+    topBars: {
+      bar: "BAR",
+      revenue: "ARRECADADO",
+      matches: "PARTIDAS",
+    },
+    upcomingMatches: {
+      activeRooms: "salas ativas",
+      viewDetails: "VER DETALHES",
+    },
+    activeMatches: {
+      loading: "Carregando partidas ativas...",
+      noMatches: "Não há partidas ativas neste momento.",
+      inProgress: "AO VIVO",
+      barNotAvailable: "Bar não disponível",
+      startedAt: "Início",
+      save: "SALVAR",
+      saving: "SALVANDO...",
+      finish: "FINALIZAR",
+      viewDetails: "VER DETALHES",
+    },
+    alerts: {
+      updateScoreError: "Não foi possível atualizar o placar",
+      finishMatchError: "Não foi possível finalizar a partida",
+    },
   },
   currencyPrefix: "R$",
 };

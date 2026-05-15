@@ -1,4 +1,9 @@
+// messages/es.ts
 const es = {
+  common: {
+    language: "Idioma",
+    loading: "Cargando...",
+  },
   header: {
     language: "Idioma",
   },
@@ -45,7 +50,6 @@ const es = {
     },
   },
   register: {
-    // Títulos comunes
     title: "REGISTRAR",
     acceptTerms: "Acepto los",
     termsAndConditions: "términos y condiciones",
@@ -56,7 +60,6 @@ const es = {
     alreadyHaveAccount: "¿Ya tienes una cuenta?",
     login: "Iniciar sesión",
     
-    // Registro de Bar
     bar: "BAR",
     barSubtitle: "Únete a JugadaPlay y ofrece una experiencia deportiva única en tu bar",
     barInfo: "INFORMACIÓN DEL BAR",
@@ -81,7 +84,6 @@ const es = {
     registering: "REGISTRANDO...",
     registerButton: "REGISTRAR MI BAR",
     
-    // Registro de Jugador
     player: "JUGADOR",
     playerSubtitle: "Predice, gana y diviértete en tu bar favorito",
     fullName: "NOMBRE COMPLETO *",
@@ -112,6 +114,56 @@ const es = {
     emailSentMessage: "Si el email está registrado, recibirás un enlace para recuperar tu contraseña.",
     backToLogin: "Volver al inicio de sesión",
     error: "Ocurrió un error. Intenta de nuevo."
+  },
+  admin: {
+    badge: "ADMIN",
+    title: "ADMIN DASHBOARD",
+    logout: "SALIR",
+    configuration: "CONFIGURACIÓN",
+    manageUsers: "GESTIONAR USUARIOS",
+    search: "Buscar...",
+    defaultEmail: "ADMIN@JUGADAPLAY.COM",
+    stats: {
+      totalRevenue: "INGRESOS TOTALES",
+      activeBars: "BARES ACTIVOS",
+      uniquePlayers: "JUGADORES ÚNICOS",
+      paidPredictions: "PREDICCIONES PAGADAS",
+    },
+    pending: {
+      pendingPayments: "Pagos por liberar",
+      pendingBars: "Bares por aprobar",
+      claims: "Reclamos",
+      viewDetails: "VER DETALLES",
+    },
+    tabs: {
+      topBars: "TOP BARES",
+      upcomingMatches: "PRÓXIMOS PARTIDOS",
+      activeMatches: "PARTIDOS ACTIVOS",
+    },
+    topBars: {
+      bar: "BAR",
+      revenue: "RECAUDADO",
+      matches: "PARTIDOS",
+    },
+    upcomingMatches: {
+      activeRooms: "salas activas",
+      viewDetails: "VER DETALLES",
+    },
+    activeMatches: {
+      loading: "Cargando partidos activos...",
+      noMatches: "No hay partidos activos en este momento.",
+      inProgress: "EN CURSO",
+      barNotAvailable: "Bar no disponible",
+      startedAt: "Inicio",
+      save: "GUARDAR",
+      saving: "GUARDANDO...",
+      finish: "FINALIZAR",
+      viewDetails: "VER DETALLES",
+    },
+    alerts: {
+      updateScoreError: "No se pudo actualizar el marcador",
+      finishMatchError: "No se pudo finalizar el partido",
+    },
   },
   currencyPrefix: "R$",
 };
