@@ -7,7 +7,7 @@ import {
   Users, Building2, Calendar, DollarSign,
   TrendingUp, AlertCircle, Menu, X, Search,
   Download, LogOut, Settings, PlayCircle, Save,
-  Plus, Minus, CheckCircle, Filter
+  Plus, Minus, CheckCircle, Filter, Trash2
 } from "lucide-react";
 import { translations, type Locale } from "@/messages";
 
@@ -95,14 +95,6 @@ const MOCK_LEAGUES = [
   { id: 4, name: "Premier League", country: "Inglaterra", season: 2025 },
 ];
 
-// Bares mockeados para el modal
-const MOCK_BARS = [
-  { id: "bar1", name: "El Goloso FC" },
-  { id: "bar2", name: "Bar do Zé" },
-  { id: "bar3", name: "Arena Pub" },
-  { id: "bar4", name: "Sports Bar" },
-];
-
 function detectInitialLocale(): Locale {
   if (typeof window === "undefined") return "pt-BR";
   const savedLocale = localStorage.getItem("jugadaplay_locale");
@@ -166,9 +158,8 @@ export default function AdminDashboard() {
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
   const [editableScores, setEditableScores] = useState<Record<string, { home: number; away: number }>>({});
 
-  const [matchesList, setMatchesList] = useState<DisplayMatch[]>([]);
-  const [filteredMatches, setFilteredMatches] = useState<DisplayMatch[]>([]);
-  const [loadingMatches, setLoadingMatches] = useState(false);
+  const [matchesList] = useState<DisplayMatch[]>(MOCK_MATCHES);
+  const [filteredMatches, setFilteredMatches] = useState<DisplayMatch[]>(MOCK_MATCHES);
   const [filters, setFilters] = useState<MatchFilters>({
     leagueId: "",
     season: "2025",
@@ -176,10 +167,6 @@ export default function AdminDashboard() {
     dateTo: "",
     teamName: "",
   });
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedMatchForRoom, setSelectedMatchForRoom] = useState<DisplayMatch | null>(null);
-  const [selectedBarId, setSelectedBarId] = useState("");
-  const [creatingRoom, setCreatingRoom] = useState(false);
 
   useEffect(() => {
     const detectedLocale = detectInitialLocale();
@@ -226,47 +213,50 @@ export default function AdminDashboard() {
       }
     ]);
     setEditableScores({ "1": { home: 1, away: 0 } });
-
-    setMatchesList(MOCK_MATCHES);
-    setFilteredMatches(MOCK_MATCHES);
   }, [router]);
 
-  const handleSearch = () => {
-    setLoadingMatches(true);
+  // Aplicar filtros automáticamente cuando cambie cualquier filtro
+  useEffect(() => {
+    let filtered = [...matchesList];
     
-    setTimeout(() => {
-      let filtered = [...matchesList];
-      
-      if (filters.leagueId) {
-        const league = MOCK_LEAGUES.find(l => l.id.toString() === filters.leagueId);
-        if (league) {
-          filtered = filtered.filter(m => m.leagueName === league.name);
-        }
+    if (filters.leagueId) {
+      const league = MOCK_LEAGUES.find(l => l.id.toString() === filters.leagueId);
+      if (league) {
+        filtered = filtered.filter(m => m.leagueName === league.name);
       }
-      
-      if (filters.season) {
-        filtered = filtered.filter(m => m.season.toString() === filters.season);
-      }
-      
-      if (filters.dateFrom) {
-        filtered = filtered.filter(m => m.date >= filters.dateFrom);
-      }
-      
-      if (filters.dateTo) {
-        filtered = filtered.filter(m => m.date <= filters.dateTo);
-      }
-      
-      if (filters.teamName) {
-        const searchTerm = filters.teamName.toLowerCase();
-        filtered = filtered.filter(m => 
-          m.homeTeam.toLowerCase().includes(searchTerm) || 
-          m.awayTeam.toLowerCase().includes(searchTerm)
-        );
-      }
-      
-      setFilteredMatches(filtered);
-      setLoadingMatches(false);
-    }, 500);
+    }
+    
+    if (filters.season) {
+      filtered = filtered.filter(m => m.season.toString() === filters.season);
+    }
+    
+    if (filters.dateFrom) {
+      filtered = filtered.filter(m => m.date >= filters.dateFrom);
+    }
+    
+    if (filters.dateTo) {
+      filtered = filtered.filter(m => m.date <= filters.dateTo);
+    }
+    
+    if (filters.teamName) {
+      const searchTerm = filters.teamName.toLowerCase();
+      filtered = filtered.filter(m => 
+        m.homeTeam.toLowerCase().includes(searchTerm) || 
+        m.awayTeam.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    setFilteredMatches(filtered);
+  }, [filters, matchesList]);
+
+  const clearFilters = () => {
+    setFilters({
+      leagueId: "",
+      season: "2025",
+      dateFrom: "",
+      dateTo: "",
+      teamName: "",
+    });
   };
 
   const handleLogout = () => {
@@ -295,25 +285,6 @@ export default function AdminDashboard() {
     if (confirm("¿Finalizar este partido?")) {
       alert("Partido finalizado (simulado)");
     }
-  };
-
-  const openCreateRoomModal = (match: DisplayMatch) => {
-    setSelectedMatchForRoom(match);
-    setSelectedBarId("");
-    setShowCreateModal(true);
-  };
-
-  const createRoom = () => {
-    if (!selectedBarId) {
-      alert("Selecciona un bar");
-      return;
-    }
-    setCreatingRoom(true);
-    setTimeout(() => {
-      alert(`Sala creada para ${selectedMatchForRoom?.homeTeam} vs ${selectedMatchForRoom?.awayTeam} en el bar seleccionado`);
-      setShowCreateModal(false);
-      setCreatingRoom(false);
-    }, 500);
   };
 
   if (loading || !isLocaleReady) {
@@ -526,14 +497,23 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* TAB CONTENT - PARTIDOS */}
+          {/* TAB CONTENT - PARTIDOS (con filtros automáticos y botón limpiar) */}
           {activeTab === "partidos" && (
             <div className="space-y-6">
-              {/* FILTROS */}
+              {/* PANEL DE FILTROS */}
               <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <Filter className="w-4 h-4 text-yellow-500" />
-                  <h3 className="text-white font-medium">Filtrar partidos</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-yellow-500" />
+                    <h3 className="text-white font-medium">Filtrar partidos</h3>
+                  </div>
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Limpiar filtros
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -593,21 +573,10 @@ export default function AdminDashboard() {
                     />
                   </div>
                 </div>
-
-                <div className="flex justify-end mt-4">
-                  <button
-                    onClick={handleSearch}
-                    className="bg-yellow-500 text-black px-5 py-2 rounded-lg text-sm font-medium hover:bg-yellow-400 transition"
-                  >
-                    Buscar partidos
-                  </button>
-                </div>
               </div>
 
-              {/* LISTADO */}
-              {loadingMatches ? (
-                <div className="text-gray-400 text-sm">Cargando partidos...</div>
-              ) : filteredMatches.length === 0 ? (
+              {/* LISTADO DE PARTIDOS (SOLO VISUALIZACIÓN) */}
+              {filteredMatches.length === 0 ? (
                 <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-6 text-gray-400 text-sm">
                   No se encontraron partidos
                 </div>
@@ -627,15 +596,9 @@ export default function AdminDashboard() {
                           {match.leagueName} • {match.country} • {new Date(match.date).toLocaleString()}
                         </p>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openCreateRoomModal(match)}
-                          className="border border-yellow-500/30 text-yellow-500 px-4 py-1.5 text-xs rounded-sm hover:border-yellow-500/50"
-                        >
-                          Crear sala
-                        </button>
-                        <button className="border border-yellow-500/30 text-gray-400 px-4 py-1.5 text-xs rounded-sm hover:border-yellow-500/50">
-                          Detalles
+                      <div>
+                        <button className="border border-yellow-500/30 text-gray-400 px-4 py-1.5 text-xs rounded-sm hover:border-yellow-500/50 transition-all cursor-not-allowed opacity-60" disabled>
+                          Solo visualización
                         </button>
                       </div>
                     </div>
@@ -711,39 +674,6 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
-
-      {/* MODAL CREAR SALA */}
-      {showCreateModal && selectedMatchForRoom && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-black border border-yellow-500/30 rounded-xl max-w-md w-full p-6">
-            <h3 className="text-white text-lg mb-2">Crear sala para:</h3>
-            <p className="text-yellow-500 text-sm mb-4">
-              {selectedMatchForRoom.homeTeam} vs {selectedMatchForRoom.awayTeam}
-            </p>
-            <div className="mb-4">
-              <label className="block text-gray-400 text-xs mb-1">Seleccionar bar</label>
-              <select
-                value={selectedBarId}
-                onChange={(e) => setSelectedBarId(e.target.value)}
-                className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white"
-              >
-                <option value="">Elige un bar</option>
-                {MOCK_BARS.map(bar => (
-                  <option key={bar.id} value={bar.id}>{bar.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 border border-gray-600 text-gray-400 rounded-lg text-sm">
-                Cancelar
-              </button>
-              <button onClick={createRoom} disabled={creatingRoom} className="px-4 py-2 bg-yellow-500 text-black rounded-lg text-sm font-medium disabled:opacity-50">
-                {creatingRoom ? "Creando..." : "Confirmar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
