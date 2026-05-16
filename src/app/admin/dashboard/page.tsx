@@ -408,12 +408,7 @@ export default function AdminDashboard() {
         <div className="container mx-auto max-w-7xl">
 
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              <h1 className="text-3xl font-light tracking-tight text-white">
-                ADMIN <span className="text-yellow-500 font-medium">DASHBOARD</span>
-              </h1>
-              <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
-            </div>
+            
             <div className="flex gap-2">
               <Link href="/admin/usuarios">
                 <button className="flex items-center gap-2 border border-yellow-500/30 text-yellow-500 px-4 py-2 text-sm rounded-lg hover:border-yellow-500/50 transition-all">
