@@ -298,10 +298,6 @@ export default function AdminDashboard() {
                   className="h-10 md:h-12 lg:h-14 w-auto object-contain"
                 />
               </Link>
-
-              <span className="hidden md:block text-xs bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-sm tracking-wide">
-                ADMIN
-              </span>
             </div>
 
             {/* DESKTOP */}
