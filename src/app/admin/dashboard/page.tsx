@@ -7,7 +7,7 @@ import {
   Users, Building2, Calendar, DollarSign,
   TrendingUp, AlertCircle, Menu, X, Search,
   Download, LogOut, Settings, PlayCircle, Save,
-  Plus, Minus, CheckCircle, Filter, Trash2
+  Plus, Minus, CheckCircle, Filter, Trash2, RefreshCw
 } from "lucide-react";
 import { translations, type Locale } from "@/messages";
 
@@ -168,6 +168,9 @@ export default function AdminDashboard() {
     teamName: "",
   });
 
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; stats?: any } | null>(null);
+
   useEffect(() => {
     const detectedLocale = detectInitialLocale();
     setLocale(detectedLocale);
@@ -218,34 +221,34 @@ export default function AdminDashboard() {
   // Aplicar filtros automáticamente cuando cambie cualquier filtro
   useEffect(() => {
     let filtered = [...matchesList];
-    
+
     if (filters.leagueId) {
       const league = MOCK_LEAGUES.find(l => l.id.toString() === filters.leagueId);
       if (league) {
         filtered = filtered.filter(m => m.leagueName === league.name);
       }
     }
-    
+
     if (filters.season) {
       filtered = filtered.filter(m => m.season.toString() === filters.season);
     }
-    
+
     if (filters.dateFrom) {
       filtered = filtered.filter(m => m.date >= filters.dateFrom);
     }
-    
+
     if (filters.dateTo) {
       filtered = filtered.filter(m => m.date <= filters.dateTo);
     }
-    
+
     if (filters.teamName) {
       const searchTerm = filters.teamName.toLowerCase();
-      filtered = filtered.filter(m => 
-        m.homeTeam.toLowerCase().includes(searchTerm) || 
+      filtered = filtered.filter(m =>
+        m.homeTeam.toLowerCase().includes(searchTerm) ||
         m.awayTeam.toLowerCase().includes(searchTerm)
       );
     }
-    
+
     setFilteredMatches(filtered);
   }, [filters, matchesList]);
 
@@ -257,6 +260,47 @@ export default function AdminDashboard() {
       dateTo: "",
       teamName: "",
     });
+  };
+
+  const syncMatches = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/sync-matches`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSyncResult({
+          success: true,
+          message: data.message,
+          stats: data.stats
+        });
+      } else {
+        setSyncResult({
+          success: false,
+          message: data.message || "Error al sincronizar"
+        });
+      }
+    } catch (error) {
+      console.error("Error sincronizando:", error);
+      setSyncResult({
+        success: false,
+        message: "Error de conexión con el servidor"
+      });
+    } finally {
+      setSyncing(false);
+      // Opcional: recargar la lista de partidos después de sincronizar
+      // fetchMatchesFromDatabase();
+    }
   };
 
   const handleLogout = () => {
@@ -507,14 +551,43 @@ export default function AdminDashboard() {
                     <Filter className="w-4 h-4 text-yellow-500" />
                     <h3 className="text-white font-medium">Filtrar partidos</h3>
                   </div>
+
+                  {/* BOTÓN DE SINCRONIZACIÓN */}
                   <button
-                    onClick={clearFilters}
-                    className="flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm"
+                    onClick={syncMatches}
+                    disabled={syncing}
+                    className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 px-4 py-2 rounded-lg text-sm hover:bg-yellow-500/20 transition-all disabled:opacity-50"
                   >
-                    <Trash2 className="w-4 h-4" />
-                    Limpiar filtros
+                    {syncing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                        Sincronizando...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        Actualizar catálogo
+                      </>
+                    )}
                   </button>
                 </div>
+
+                {/* Mostrar resultado de la sincronización */}
+                {syncResult && (
+                  <div className={`mb-4 p-3 rounded-lg text-sm ${syncResult.success
+                      ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                      : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                    }`}>
+                    {syncResult.message}
+                    {syncResult.stats && (
+                      <div className="text-xs mt-1">
+                        ✅ Nuevos: {syncResult.stats.newMatches} |
+                        🔄 Actualizados: {syncResult.stats.updatedMatches} |
+                        📊 Total: {syncResult.stats.totalProcessed}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                   <div>
@@ -573,9 +646,19 @@ export default function AdminDashboard() {
                     />
                   </div>
                 </div>
+
+                <div className="flex justify-end mt-4">
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Limpiar filtros
+                  </button>
+                </div>
               </div>
 
-              {/* LISTADO DE PARTIDOS (SOLO VISUALIZACIÓN) */}
+              {/* LISTADO DE PARTIDOS */}
               {filteredMatches.length === 0 ? (
                 <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-6 text-gray-400 text-sm">
                   No se encontraron partidos
@@ -597,7 +680,7 @@ export default function AdminDashboard() {
                         </p>
                       </div>
                       <div>
-                        <button className="border border-yellow-500/30 text-gray-400 px-4 py-1.5 text-xs rounded-sm hover:border-yellow-500/50 transition-all cursor-not-allowed opacity-60" disabled>
+                        <button className="border border-yellow-500/30 text-gray-400 px-4 py-1.5 text-xs rounded-sm cursor-not-allowed opacity-60" disabled>
                           Solo visualización
                         </button>
                       </div>
