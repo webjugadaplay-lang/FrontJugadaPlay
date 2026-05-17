@@ -566,7 +566,7 @@ export default function AdminDashboard() {
                     ) : (
                       <>
                         <RefreshCw className="w-4 h-4" />
-                        Actualizar catálogo
+                        Sincronizar
                       </>
                     )}
                   </button>
@@ -575,8 +575,8 @@ export default function AdminDashboard() {
                 {/* Mostrar resultado de la sincronización */}
                 {syncResult && (
                   <div className={`mb-4 p-3 rounded-lg text-sm ${syncResult.success
-                      ? 'bg-green-500/10 border border-green-500/30 text-green-400'
-                      : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                    ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                    : 'bg-red-500/10 border border-red-500/30 text-red-400'
                     }`}>
                     {syncResult.message}
                     {syncResult.stats && (
