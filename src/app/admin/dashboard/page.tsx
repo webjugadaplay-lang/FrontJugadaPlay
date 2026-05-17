@@ -262,13 +262,13 @@ export default function AdminDashboard() {
     });
   };
 
-  const syncMatches = async () => {
+  const syncApi = async () => {
     setSyncing(true);
     setSyncResult(null);
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/sync-matches`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/sync`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -298,8 +298,6 @@ export default function AdminDashboard() {
       });
     } finally {
       setSyncing(false);
-      // Opcional: recargar la lista de partidos después de sincronizar
-      // fetchMatchesFromDatabase();
     }
   };
 
@@ -554,7 +552,7 @@ export default function AdminDashboard() {
 
                   {/* BOTÓN DE SINCRONIZACIÓN */}
                   <button
-                    onClick={syncMatches}
+                    onClick={syncApi}
                     disabled={syncing}
                     className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 px-4 py-2 rounded-lg text-sm hover:bg-yellow-500/20 transition-all disabled:opacity-50"
                   >
