@@ -1,3 +1,4 @@
+//src/app/admin/dashboard/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,90 +11,6 @@ import {
   Plus, Minus, CheckCircle, Filter, Trash2, RefreshCw
 } from "lucide-react";
 import { translations, type Locale } from "@/messages";
-
-// DATOS MOCKEADOS (simulan partidos desde API-Football)
-const MOCK_MATCHES = [
-  {
-    id: 1,
-    homeTeam: "Flamengo",
-    awayTeam: "Fluminense",
-    homeLogo: "https://cdn.api-football.com/images/teams/151.png",
-    awayLogo: "https://cdn.api-football.com/images/teams/152.png",
-    leagueName: "Brasileirão Série A",
-    country: "Brasil",
-    season: 2025,
-    date: "2025-05-20T19:00:00",
-    status: "NS"
-  },
-  {
-    id: 2,
-    homeTeam: "Palmeiras",
-    awayTeam: "Corinthians",
-    homeLogo: "https://cdn.api-football.com/images/teams/131.png",
-    awayLogo: "https://cdn.api-football.com/images/teams/132.png",
-    leagueName: "Brasileirão Série A",
-    country: "Brasil",
-    season: 2025,
-    date: "2025-05-21T21:30:00",
-    status: "NS"
-  },
-  {
-    id: 3,
-    homeTeam: "River Plate",
-    awayTeam: "Boca Juniors",
-    homeLogo: "https://cdn.api-football.com/images/teams/202.png",
-    awayLogo: "https://cdn.api-football.com/images/teams/203.png",
-    leagueName: "Liga Profesional Argentina",
-    country: "Argentina",
-    season: 2025,
-    date: "2025-05-22T20:00:00",
-    status: "NS"
-  },
-  {
-    id: 4,
-    homeTeam: "Real Madrid",
-    awayTeam: "Barcelona",
-    homeLogo: "https://cdn.api-football.com/images/teams/541.png",
-    awayLogo: "https://cdn.api-football.com/images/teams/529.png",
-    leagueName: "La Liga",
-    country: "España",
-    season: 2025,
-    date: "2025-05-25T16:15:00",
-    status: "NS"
-  },
-  {
-    id: 5,
-    homeTeam: "Manchester City",
-    awayTeam: "Liverpool",
-    homeLogo: "https://cdn.api-football.com/images/teams/50.png",
-    awayLogo: "https://cdn.api-football.com/images/teams/40.png",
-    leagueName: "Premier League",
-    country: "Inglaterra",
-    season: 2025,
-    date: "2025-05-26T17:30:00",
-    status: "NS"
-  },
-  {
-    id: 6,
-    homeTeam: "São Paulo",
-    awayTeam: "Santos",
-    homeLogo: "https://cdn.api-football.com/images/teams/148.png",
-    awayLogo: "https://cdn.api-football.com/images/teams/149.png",
-    leagueName: "Brasileirão Série A",
-    country: "Brasil",
-    season: 2025,
-    date: "2025-05-19T20:00:00",
-    status: "NS"
-  }
-];
-
-// Ligas mockeadas para los filtros
-const MOCK_LEAGUES = [
-  { id: 1, name: "Brasileirão Série A", country: "Brasil", season: 2025 },
-  { id: 2, name: "Liga Profesional Argentina", country: "Argentina", season: 2025 },
-  { id: 3, name: "La Liga", country: "España", season: 2025 },
-  { id: 4, name: "Premier League", country: "Inglaterra", season: 2025 },
-];
 
 function detectInitialLocale(): Locale {
   if (typeof window === "undefined") return "pt-BR";
@@ -137,6 +54,12 @@ interface MatchFilters {
   teamName: string;
 }
 
+interface League {
+  league_id: number;
+  league_name: string;
+  league_country: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -154,15 +77,15 @@ export default function AdminDashboard() {
   });
 
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
-  const [loadingLiveMatches, setLoadingLiveMatches] = useState(false);
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
   const [editableScores, setEditableScores] = useState<Record<string, { home: number; away: number }>>({});
 
-  const [matchesList] = useState<DisplayMatch[]>(MOCK_MATCHES);
-  const [filteredMatches, setFilteredMatches] = useState<DisplayMatch[]>(MOCK_MATCHES);
+  // Estados para partidos reales desde la BD
+  const [filteredMatches, setFilteredMatches] = useState<DisplayMatch[]>([]);
+  const [leagues, setLeagues] = useState<League[]>([]);
   const [filters, setFilters] = useState<MatchFilters>({
     leagueId: "",
-    season: "2025",
+    season: "",
     dateFrom: "",
     dateTo: "",
     teamName: "",
@@ -171,6 +94,7 @@ export default function AdminDashboard() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; stats?: any } | null>(null);
 
+  // Idioma
   useEffect(() => {
     const detectedLocale = detectInitialLocale();
     setLocale(detectedLocale);
@@ -182,6 +106,7 @@ export default function AdminDashboard() {
     localStorage.setItem("jugadaplay_locale", locale);
   }, [locale, isLocaleReady]);
 
+  // Autenticación y carga inicial
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
@@ -202,6 +127,10 @@ export default function AdminDashboard() {
     setUser(parsedUser);
     setLoading(false);
 
+    // Cargar datos iniciales
+    loadFixtures();
+    loadLeagues();
+
     setLiveMatches([
       {
         id: "1",
@@ -218,44 +147,70 @@ export default function AdminDashboard() {
     setEditableScores({ "1": { home: 1, away: 0 } });
   }, [router]);
 
-  // Aplicar filtros automáticamente cuando cambie cualquier filtro
-  useEffect(() => {
-    let filtered = [...matchesList];
-
-    if (filters.leagueId) {
-      const league = MOCK_LEAGUES.find(l => l.id.toString() === filters.leagueId);
-      if (league) {
-        filtered = filtered.filter(m => m.leagueName === league.name);
+  // Cargar partidos con filtros
+  const loadFixtures = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const params = new URLSearchParams();
+      
+      if (filters.leagueId) params.append("leagueId", filters.leagueId);
+      if (filters.season) params.append("season", filters.season);
+      if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
+      if (filters.dateTo) params.append("dateTo", filters.dateTo);
+      if (filters.teamName) params.append("teamName", filters.teamName);
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/fixtures?${params.toString()}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        const formattedMatches: DisplayMatch[] = data.data.map((fixture: any) => ({
+          id: fixture.id,
+          homeTeam: fixture.home_team_name,
+          awayTeam: fixture.away_team_name,
+          homeLogo: fixture.home_team_logo,
+          awayLogo: fixture.away_team_logo,
+          leagueName: fixture.league_name,
+          country: fixture.league_country,
+          season: fixture.season,
+          date: fixture.match_date,
+          status: fixture.status
+        }));
+        setFilteredMatches(formattedMatches);
       }
+    } catch (error) {
+      console.error("Error cargando partidos:", error);
     }
+  };
 
-    if (filters.season) {
-      filtered = filtered.filter(m => m.season.toString() === filters.season);
+  // Cargar ligas disponibles para el filtro
+  const loadLeagues = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/leagues`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setLeagues(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando ligas:", error);
     }
+  };
 
-    if (filters.dateFrom) {
-      filtered = filtered.filter(m => m.date >= filters.dateFrom);
+  // Ejecutar loadFixtures cuando cambian los filtros
+  useEffect(() => {
+    if (!loading) {
+      loadFixtures();
     }
-
-    if (filters.dateTo) {
-      filtered = filtered.filter(m => m.date <= filters.dateTo);
-    }
-
-    if (filters.teamName) {
-      const searchTerm = filters.teamName.toLowerCase();
-      filtered = filtered.filter(m =>
-        m.homeTeam.toLowerCase().includes(searchTerm) ||
-        m.awayTeam.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    setFilteredMatches(filtered);
-  }, [filters, matchesList]);
+  }, [filters, loading]);
 
   const clearFilters = () => {
     setFilters({
       leagueId: "",
-      season: "2025",
+      season: "",
       dateFrom: "",
       dateTo: "",
       teamName: "",
@@ -284,6 +239,9 @@ export default function AdminDashboard() {
           message: data.message,
           stats: data.stats
         });
+        // Recargar partidos después de sincronizar
+        await loadFixtures();
+        await loadLeagues();
       } else {
         setSyncResult({
           success: false,
@@ -353,7 +311,7 @@ export default function AdminDashboard() {
 
   return (
     <main className="min-h-screen bg-black">
-      {/* HEADER */}
+      {/* HEADER - igual que antes */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
@@ -539,7 +497,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* TAB CONTENT - PARTIDOS (con filtros automáticos y botón limpiar) */}
+          {/* TAB CONTENT - PARTIDOS (con datos reales) */}
           {activeTab === "partidos" && (
             <div className="space-y-6">
               {/* PANEL DE FILTROS */}
@@ -550,7 +508,6 @@ export default function AdminDashboard() {
                     <h3 className="text-white font-medium">Filtrar partidos</h3>
                   </div>
 
-                  {/* BOTÓN DE SINCRONIZACIÓN */}
                   <button
                     onClick={syncApi}
                     disabled={syncing}
@@ -570,7 +527,6 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
-                {/* Mostrar resultado de la sincronización */}
                 {syncResult && (
                   <div className={`mb-4 p-3 rounded-lg text-sm ${syncResult.success
                     ? 'bg-green-500/10 border border-green-500/30 text-green-400'
@@ -596,8 +552,10 @@ export default function AdminDashboard() {
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
                     >
                       <option value="">Todas</option>
-                      {MOCK_LEAGUES.map(league => (
-                        <option key={league.id} value={league.id}>{league.country} - {league.name}</option>
+                      {leagues.map(league => (
+                        <option key={league.league_id} value={league.league_id}>
+                          {league.league_country} - {league.league_name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -606,7 +564,7 @@ export default function AdminDashboard() {
                     <label className="block text-gray-400 text-xs mb-1">Temporada</label>
                     <input
                       type="text"
-                      placeholder="2025"
+                      placeholder="2026"
                       value={filters.season}
                       onChange={(e) => setFilters({ ...filters, season: e.target.value })}
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
@@ -656,10 +614,10 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* LISTADO DE PARTIDOS */}
+              {/* LISTADO DE PARTIDOS REALES */}
               {filteredMatches.length === 0 ? (
                 <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-6 text-gray-400 text-sm">
-                  No se encontraron partidos
+                  No se encontraron partidos. Haz clic en "Sincronizar" para cargar partidos desde API-Football.
                 </div>
               ) : (
                 <div className="space-y-3">
