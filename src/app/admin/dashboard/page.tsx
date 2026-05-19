@@ -7,8 +7,8 @@ import Link from "next/link";
 import {
   Users, Building2, Calendar, DollarSign,
   TrendingUp, AlertCircle, Menu, X, Search,
-  Download, LogOut, Settings, PlayCircle, Save,
-  Plus, Minus, CheckCircle, Filter, Trash2, RefreshCw
+  Download, LogOut, Settings, PlayCircle,
+  Filter, Trash2, RefreshCw
 } from "lucide-react";
 import { translations, type Locale } from "@/messages";
 
@@ -19,18 +19,6 @@ function detectInitialLocale(): Locale {
   const browserLanguage = navigator.language || "";
   if (browserLanguage.toLowerCase().startsWith("es")) return "es";
   return "pt-BR";
-}
-
-interface LiveMatch {
-  id: string;
-  name: string;
-  team_home: string;
-  team_away: string;
-  match_date: string;
-  current_score_home: number;
-  current_score_away: number;
-  status: string;
-  bar?: { id: string; name: string; bar_name: string };
 }
 
 interface DisplayMatch {
@@ -60,6 +48,21 @@ interface League {
   league_country: string;
 }
 
+interface LiveFixture {
+  id: number;
+  home_team_name: string;
+  away_team_name: string;
+  home_team_logo?: string;
+  away_team_logo?: string;
+  league_name: string;
+  league_country: string;
+  status: string;
+  goals_home: number;
+  goals_away: number;
+  elapsed: number;
+  venue: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -69,16 +72,12 @@ export default function AdminDashboard() {
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [isLocaleReady, setIsLocaleReady] = useState(false);
 
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     ingresosTotales: 45230,
     baresActivos: 12,
     jugadoresUnicos: 2840,
     prediccionesPagadas: 52000,
   });
-
-  const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
-  const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
-  const [editableScores, setEditableScores] = useState<Record<string, { home: number; away: number }>>({});
 
   // Estados para partidos reales desde la BD
   const [filteredMatches, setFilteredMatches] = useState<DisplayMatch[]>([]);
@@ -90,6 +89,10 @@ export default function AdminDashboard() {
     dateTo: "",
     teamName: "",
   });
+
+  // Estados para partidos en curso
+  const [liveFixtures, setLiveFixtures] = useState<LiveFixture[]>([]);
+  const [loadingLive, setLoadingLive] = useState(false);
 
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; stats?: any } | null>(null);
@@ -130,22 +133,17 @@ export default function AdminDashboard() {
     // Cargar datos iniciales
     loadFixtures();
     loadLeagues();
+    loadLiveFixtures();
 
-    setLiveMatches([
-      {
-        id: "1",
-        name: "Flamengo vs Fluminense",
-        team_home: "Flamengo",
-        team_away: "Fluminense",
-        match_date: new Date().toISOString(),
-        current_score_home: 1,
-        current_score_away: 0,
-        status: "live",
-        bar: { id: "bar1", name: "El Goloso FC", bar_name: "El Goloso FC" }
+    // Actualizar partidos en curso cada 30 segundos
+    const interval = setInterval(() => {
+      if (activeTab === "activos") {
+        loadLiveFixtures();
       }
-    ]);
-    setEditableScores({ "1": { home: 1, away: 0 } });
-  }, [router]);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [router, activeTab]);
 
   // Cargar partidos con filtros
   const loadFixtures = async () => {
@@ -200,6 +198,25 @@ export default function AdminDashboard() {
     }
   };
 
+  // Cargar partidos en curso
+  const loadLiveFixtures = async () => {
+    setLoadingLive(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/live-fixtures`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setLiveFixtures(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando partidos en curso:", error);
+    } finally {
+      setLoadingLive(false);
+    }
+  };
+
   // Ejecutar loadFixtures cuando cambian los filtros
   useEffect(() => {
     if (!loading) {
@@ -239,9 +256,10 @@ export default function AdminDashboard() {
           message: data.message,
           stats: data.stats
         });
-        // Recargar partidos después de sincronizar
+        // Recargar datos después de sincronizar
         await loadFixtures();
         await loadLeagues();
+        await loadLiveFixtures();
       } else {
         setSyncResult({
           success: false,
@@ -265,36 +283,6 @@ export default function AdminDashboard() {
     router.push("/login");
   };
 
-  const handleScoreChange = (matchId: string, team: "home" | "away", delta: number) => {
-    setEditableScores(prev => {
-      const current = prev[matchId] || { home: 0, away: 0 };
-      const newValue = Math.max(0, current[team] + delta);
-      return { ...prev, [matchId]: { ...current, [team]: newValue } };
-    });
-  };
-
-  const handleSaveScore = async (matchId: string) => {
-    setSavingMatchId(matchId);
-    setTimeout(() => {
-      alert("Marcador actualizado (simulado)");
-      setSavingMatchId(null);
-    }, 500);
-  };
-
-  const handleFinishMatch = async (matchId: string) => {
-    if (confirm("¿Finalizar este partido?")) {
-      alert("Partido finalizado (simulado)");
-    }
-  };
-
-  if (loading || !isLocaleReady) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-yellow-500">Cargando...</div>
-      </div>
-    );
-  }
-
   // Formatear fecha de manera amigable según el idioma
   const formatMatchDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -304,7 +292,6 @@ export default function AdminDashboard() {
 
     const diffDays = Math.floor((matchDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Determinar el texto del día
     let dayText = '';
     if (diffDays === 0) {
       dayText = locale === 'pt-BR' ? 'Hoje' : 'Hoy';
@@ -313,7 +300,6 @@ export default function AdminDashboard() {
     } else if (diffDays === -1) {
       dayText = locale === 'pt-BR' ? 'Ontem' : 'Ayer';
     } else {
-      // Formatear día/mes según idioma
       if (locale === 'pt-BR') {
         dayText = date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
       } else {
@@ -321,18 +307,39 @@ export default function AdminDashboard() {
       }
     }
 
-    // Formatear hora (sin segundos)
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const timeText = `${hours}:${minutes}`;
 
-    // Capitalizar primera letra del mes en español si es necesario
     if (locale === 'es' && !dayText.includes('Hoy') && !dayText.includes('Mañana') && !dayText.includes('Ayer')) {
       dayText = dayText.charAt(0).toUpperCase() + dayText.slice(1);
     }
 
     return `${dayText} ${timeText}`;
   };
+
+  // Obtener texto del estado del partido
+  const getStatusText = (status: string) => {
+    const statusMap: Record<string, string> = {
+      '1H': 'Primer tiempo',
+      'HT': 'Medio tiempo',
+      '2H': 'Segundo tiempo',
+      'ET': 'Tiempo extra',
+      'BT': 'Pausa',
+      'P': 'Penales',
+      'INT': 'Interrumpido',
+      'LIVE': 'En vivo'
+    };
+    return statusMap[status] || 'En curso';
+  };
+
+  if (loading || !isLocaleReady) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-yellow-500">Cargando...</div>
+      </div>
+    );
+  }
 
   const t = translations[locale];
 
@@ -350,7 +357,7 @@ export default function AdminDashboard() {
 
   return (
     <main className="min-h-screen bg-black">
-      {/* HEADER - igual que antes */}
+      {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
@@ -536,7 +543,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* TAB CONTENT - PARTIDOS (con datos reales) */}
+          {/* TAB CONTENT - PARTIDOS (próximos partidos) */}
           {activeTab === "partidos" && (
             <div className="space-y-6">
               {/* PANEL DE FILTROS */}
@@ -592,7 +599,7 @@ export default function AdminDashboard() {
                     >
                       <option value="">Todas</option>
                       {leagues.map(league => (
-                        <option key={league.league_id} value={league.league_id}>
+                        <option key={league.league_id} value={league.league_id.toString()}>
                           {league.league_country} - {league.league_name}
                         </option>
                       ))}
@@ -653,7 +660,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* LISTADO DE PARTIDOS REALES */}
+              {/* LISTADO DE PARTIDOS */}
               {filteredMatches.length === 0 ? (
                 <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-6 text-gray-400 text-sm">
                   No se encontraron partidos. Haz clic en "Sincronizar" para cargar partidos desde API-Football.
@@ -662,8 +669,8 @@ export default function AdminDashboard() {
                 <div className="space-y-3">
                   {filteredMatches.map((match) => (
                     <div key={match.id} className={`bg-black/30 border rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${new Date(match.date).toDateString() === new Date().toDateString()
-                        ? 'border-yellow-500/60 bg-yellow-500/5'
-                        : 'border-yellow-500/20'
+                      ? 'border-yellow-500/60 bg-yellow-500/5'
+                      : 'border-yellow-500/20'
                       }`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
@@ -689,63 +696,59 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* TAB CONTENT - ACTIVOS */}
+          {/* TAB CONTENT - ACTIVOS (partidos en curso) */}
           {activeTab === "activos" && (
             <div className="space-y-4">
-              {liveMatches.length === 0 ? (
+              {loadingLive ? (
+                <div className="text-gray-400 text-sm">Cargando partidos en curso...</div>
+              ) : liveFixtures.length === 0 ? (
                 <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-6 text-gray-400 text-sm">
-                  No hay partidos activos
+                  No hay partidos en curso en este momento.
                 </div>
               ) : (
-                liveMatches.map((match) => (
+                liveFixtures.map((match) => (
                   <div key={match.id} className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                      <div>
+                      <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <PlayCircle className="w-4 h-4 text-green-500" />
-                          <span className="text-green-500 text-xs">En vivo</span>
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                          <span className="text-green-500 text-xs tracking-wide">
+                            {getStatusText(match.status)}
+                          </span>
                         </div>
-                        <h3 className="text-white text-lg font-medium">{match.team_home} vs {match.team_away}</h3>
-                        <p className="text-gray-500 text-xs mt-1">{match.bar?.bar_name || "Bar"}</p>
+                        <h3 className="text-white text-lg font-medium">
+                          {match.home_team_name} vs {match.away_team_name}
+                        </h3>
+                        <p className="text-gray-500 text-xs mt-1">
+                          {match.league_name} • {match.league_country}
+                        </p>
                       </div>
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => handleScoreChange(match.id, "home", -1)} className="p-2 border border-yellow-500/20 rounded-lg text-yellow-500">
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <div className="text-center">
-                              <div className="text-white text-sm">{match.team_home}</div>
-                              <div className="text-2xl text-yellow-500 font-bold">{editableScores[match.id]?.home ?? 0}</div>
-                            </div>
-                            <button onClick={() => handleScoreChange(match.id, "home", 1)} className="p-2 border border-yellow-500/20 rounded-lg text-yellow-500">
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <div className="text-gray-500 text-xl font-light">-</div>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => handleScoreChange(match.id, "away", -1)} className="p-2 border border-yellow-500/20 rounded-lg text-yellow-500">
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <div className="text-center">
-                              <div className="text-white text-sm">{match.team_away}</div>
-                              <div className="text-2xl text-yellow-500 font-bold">{editableScores[match.id]?.away ?? 0}</div>
-                            </div>
-                            <button onClick={() => handleScoreChange(match.id, "away", 1)} className="p-2 border border-yellow-500/20 rounded-lg text-yellow-500">
-                              <Plus className="w-4 h-4" />
-                            </button>
+
+                      {/* Marcador en vivo */}
+                      <div className="flex items-center gap-8">
+                        <div className="text-center">
+                          <div className="text-white text-sm">{match.home_team_name}</div>
+                          <div className="text-3xl text-yellow-500 font-bold">
+                            {match.goals_home ?? 0}
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => handleSaveScore(match.id)} disabled={savingMatchId === match.id} className="flex items-center gap-2 border border-yellow-500/30 text-yellow-500 px-4 py-2 text-sm rounded-lg">
-                            <Save className="w-4 h-4" />
-                            {savingMatchId === match.id ? "Guardando..." : "Guardar"}
-                          </button>
-                          <button onClick={() => handleFinishMatch(match.id)} className="flex items-center gap-2 border border-green-500/30 text-green-500 px-4 py-2 text-sm rounded-lg">
-                            <CheckCircle className="w-4 h-4" />
-                            Finalizar
-                          </button>
+                        <div className="text-gray-500 text-xl font-light">-</div>
+                        <div className="text-center">
+                          <div className="text-white text-sm">{match.away_team_name}</div>
+                          <div className="text-3xl text-yellow-500 font-bold">
+                            {match.goals_away ?? 0}
+                          </div>
                         </div>
+                      </div>
+
+                      {/* Info adicional */}
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">
+                          {match.elapsed ? `${match.elapsed}'` : 'Por confirmar'}
+                        </div>
+                        {match.venue && (
+                          <div className="text-xs text-gray-600 mt-1">{match.venue}</div>
+                        )}
                       </div>
                     </div>
                   </div>
