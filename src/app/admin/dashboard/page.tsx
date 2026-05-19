@@ -152,17 +152,17 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem("token");
       const params = new URLSearchParams();
-      
+
       if (filters.leagueId) params.append("leagueId", filters.leagueId);
       if (filters.season) params.append("season", filters.season);
       if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
       if (filters.dateTo) params.append("dateTo", filters.dateTo);
       if (filters.teamName) params.append("teamName", filters.teamName);
-      
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/fixtures?${params.toString()}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
-      
+
       const data = await response.json();
       if (data.success) {
         const formattedMatches: DisplayMatch[] = data.data.map((fixture: any) => ({
@@ -294,6 +294,45 @@ export default function AdminDashboard() {
       </div>
     );
   }
+
+  // Formatear fecha de manera amigable según el idioma
+  const formatMatchDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const matchDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    const diffDays = Math.floor((matchDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Determinar el texto del día
+    let dayText = '';
+    if (diffDays === 0) {
+      dayText = locale === 'pt-BR' ? 'Hoje' : 'Hoy';
+    } else if (diffDays === 1) {
+      dayText = locale === 'pt-BR' ? 'Amanhã' : 'Mañana';
+    } else if (diffDays === -1) {
+      dayText = locale === 'pt-BR' ? 'Ontem' : 'Ayer';
+    } else {
+      // Formatear día/mes según idioma
+      if (locale === 'pt-BR') {
+        dayText = date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+      } else {
+        dayText = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+      }
+    }
+
+    // Formatear hora (sin segundos)
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const timeText = `${hours}:${minutes}`;
+
+    // Capitalizar primera letra del mes en español si es necesario
+    if (locale === 'es' && !dayText.includes('Hoy') && !dayText.includes('Mañana') && !dayText.includes('Ayer')) {
+      dayText = dayText.charAt(0).toUpperCase() + dayText.slice(1);
+    }
+
+    return `${dayText} ${timeText}`;
+  };
 
   const t = translations[locale];
 
@@ -622,7 +661,10 @@ export default function AdminDashboard() {
               ) : (
                 <div className="space-y-3">
                   {filteredMatches.map((match) => (
-                    <div key={match.id} className="bg-black/30 border border-yellow-500/20 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div key={match.id} className={`bg-black/30 border rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${new Date(match.date).toDateString() === new Date().toDateString()
+                        ? 'border-yellow-500/60 bg-yellow-500/5'
+                        : 'border-yellow-500/20'
+                      }`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
                           {match.homeLogo && <img src={match.homeLogo} alt="" className="w-5 h-5" />}
@@ -632,7 +674,7 @@ export default function AdminDashboard() {
                           <span className="text-white font-medium">{match.awayTeam}</span>
                         </div>
                         <p className="text-gray-500 text-xs">
-                          {match.leagueName} • {match.country} • {new Date(match.date).toLocaleString()}
+                          {match.leagueName} • {match.country} • {formatMatchDate(match.date)}
                         </p>
                       </div>
                       <div>
