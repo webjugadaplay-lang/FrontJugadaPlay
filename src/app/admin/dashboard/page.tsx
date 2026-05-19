@@ -136,13 +136,13 @@ export default function AdminDashboard() {
     loadLiveFixtures();
 
     // Actualizar partidos en curso cada 30 segundos
-    const interval = setInterval(() => {
+    /*const interval = setInterval(() => {
       if (activeTab === "activos") {
         loadLiveFixtures();
       }
     }, 30000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(interval);*/
   }, [router, activeTab]);
 
   // Cargar partidos con filtros
