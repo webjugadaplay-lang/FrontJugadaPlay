@@ -8,7 +8,7 @@ import {
   Users, Building2, Calendar, DollarSign,
   TrendingUp, AlertCircle, Menu, X, Search,
   Download, LogOut, Settings, PlayCircle,
-  Filter, Trash2, RefreshCw
+  Filter, Trash2, RefreshCw, Plus, Check
 } from "lucide-react";
 import { translations, type Locale } from "@/messages";
 
@@ -63,6 +63,14 @@ interface LiveFixture {
   venue: string;
 }
 
+interface AvailableLeague {
+  id: number;
+  name: string;
+  country: string;
+  logo: string;
+  season: number;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -93,6 +101,16 @@ export default function AdminDashboard() {
   // Estados para partidos en curso
   const [liveFixtures, setLiveFixtures] = useState<LiveFixture[]>([]);
   const [loadingLive, setLoadingLive] = useState(false);
+
+  // Estados para gestión de ligas
+  const [availableLeagues, setAvailableLeagues] = useState<AvailableLeague[]>([]);
+  const [selectedLeagueIds, setSelectedLeagueIds] = useState<number[]>([]);
+  const [loadingLeagues, setLoadingLeagues] = useState(false);
+  const [leagueFilters, setLeagueFilters] = useState({
+    country: "",
+    season: "",
+    search: ""
+  });
 
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; stats?: any } | null>(null);
@@ -135,15 +153,7 @@ export default function AdminDashboard() {
     loadLeagues();
     loadLiveFixtures();
 
-    // Actualizar partidos en curso cada 30 segundos
-    /*const interval = setInterval(() => {
-      if (activeTab === "activos") {
-        loadLiveFixtures();
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);*/
-  }, [router, activeTab]);
+  }, [router]);
 
   // Cargar partidos con filtros
   const loadFixtures = async () => {
@@ -217,6 +227,89 @@ export default function AdminDashboard() {
     }
   };
 
+  // Cargar ligas disponibles desde API-Football
+  const loadAvailableLeagues = async () => {
+    setLoadingLeagues(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/available-leagues`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAvailableLeagues(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando ligas:", error);
+    } finally {
+      setLoadingLeagues(false);
+    }
+  };
+
+  // Agregar ligas seleccionadas
+  const addSelectedLeagues = async () => {
+    if (selectedLeagueIds.length === 0) return;
+    
+    setSyncing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const leaguesToAdd = availableLeagues.filter(league => selectedLeagueIds.includes(league.id));
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/add-leagues`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ leagues: leaguesToAdd })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSyncResult({
+          success: true,
+          message: data.message,
+          stats: data.stats
+        });
+        setSelectedLeagueIds([]);
+        // Recargar partidos después de agregar ligas
+        await loadFixtures();
+        await loadLeagues();
+      } else {
+        setSyncResult({
+          success: false,
+          message: data.message || "Error al agregar ligas"
+        });
+      }
+    } catch (error) {
+      setSyncResult({
+        success: false,
+        message: "Error de conexión con el servidor"
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Filtrar ligas según los filtros
+  const getFilteredLeagues = () => {
+    return availableLeagues.filter(league => {
+      const matchCountry = leagueFilters.country === "" || league.country === leagueFilters.country;
+      const matchSeason = leagueFilters.season === "" || league.season.toString() === leagueFilters.season;
+      const matchSearch = leagueFilters.search === "" || 
+        league.name.toLowerCase().includes(leagueFilters.search.toLowerCase()) ||
+        league.country.toLowerCase().includes(leagueFilters.search.toLowerCase());
+      return matchCountry && matchSeason && matchSearch;
+    });
+  };
+
+  // Obtener países únicos para el filtro
+  const getUniqueCountries = () => {
+    const countries = [...new Set(availableLeagues.map(league => league.country))];
+    return countries.sort();
+  };
+
   // Ejecutar loadFixtures cuando cambian los filtros
   useEffect(() => {
     if (!loading) {
@@ -256,10 +349,8 @@ export default function AdminDashboard() {
           message: data.message,
           stats: data.stats
         });
-        // Recargar datos después de sincronizar
         await loadFixtures();
         await loadLeagues();
-        await loadLiveFixtures();
       } else {
         setSyncResult({
           success: false,
@@ -511,6 +602,15 @@ export default function AdminDashboard() {
             >
               {t.admin.tabs.activeMatches}
             </button>
+            <button
+              onClick={() => {
+                setActiveTab("ligas");
+                loadAvailableLeagues();
+              }}
+              className={`pb-3 text-sm tracking-wide transition-all whitespace-nowrap ${activeTab === "ligas" ? "text-yellow-500 border-b-2 border-yellow-500" : "text-gray-500 hover:text-gray-400"}`}
+            >
+              Gestión de Ligas
+            </button>
           </div>
 
           {/* TAB CONTENT - GENERAL */}
@@ -546,14 +646,12 @@ export default function AdminDashboard() {
           {/* TAB CONTENT - PARTIDOS (próximos partidos) */}
           {activeTab === "partidos" && (
             <div className="space-y-6">
-              {/* PANEL DE FILTROS */}
               <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Filter className="w-4 h-4 text-yellow-500" />
                     <h3 className="text-white font-medium">Filtrar partidos</h3>
                   </div>
-
                   <button
                     onClick={syncApi}
                     disabled={syncing}
@@ -605,7 +703,6 @@ export default function AdminDashboard() {
                       ))}
                     </select>
                   </div>
-
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">Temporada</label>
                     <input
@@ -616,7 +713,6 @@ export default function AdminDashboard() {
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
                     />
                   </div>
-
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">Desde</label>
                     <input
@@ -626,7 +722,6 @@ export default function AdminDashboard() {
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
                     />
                   </div>
-
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">Hasta</label>
                     <input
@@ -636,7 +731,6 @@ export default function AdminDashboard() {
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
                     />
                   </div>
-
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">Equipo</label>
                     <input
@@ -648,7 +742,6 @@ export default function AdminDashboard() {
                     />
                   </div>
                 </div>
-
                 <div className="flex justify-end mt-4">
                   <button
                     onClick={clearFilters}
@@ -660,7 +753,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* LISTADO DE PARTIDOS */}
               {filteredMatches.length === 0 ? (
                 <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-6 text-gray-400 text-sm">
                   No se encontraron partidos. Haz clic en "Sincronizar" para cargar partidos desde API-Football.
@@ -674,10 +766,10 @@ export default function AdminDashboard() {
                       }`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
-                          {match.homeLogo && <img src={match.homeLogo} alt="" className="w-5 h-5" />}
+                          {match.homeLogo && <img src={match.homeLogo} alt="" className="w-5 h-5" onError={(e) => (e.currentTarget.style.display = 'none')} />}
                           <span className="text-white font-medium">{match.homeTeam}</span>
                           <span className="text-gray-500 text-sm">vs</span>
-                          {match.awayLogo && <img src={match.awayLogo} alt="" className="w-5 h-5" />}
+                          {match.awayLogo && <img src={match.awayLogo} alt="" className="w-5 h-5" onError={(e) => (e.currentTarget.style.display = 'none')} />}
                           <span className="text-white font-medium">{match.awayTeam}</span>
                         </div>
                         <p className="text-gray-500 text-xs">
@@ -723,36 +815,130 @@ export default function AdminDashboard() {
                           {match.league_name} • {match.league_country}
                         </p>
                       </div>
-
-                      {/* Marcador en vivo */}
                       <div className="flex items-center gap-8">
                         <div className="text-center">
                           <div className="text-white text-sm">{match.home_team_name}</div>
-                          <div className="text-3xl text-yellow-500 font-bold">
-                            {match.goals_home ?? 0}
-                          </div>
+                          <div className="text-3xl text-yellow-500 font-bold">{match.goals_home ?? 0}</div>
                         </div>
                         <div className="text-gray-500 text-xl font-light">-</div>
                         <div className="text-center">
                           <div className="text-white text-sm">{match.away_team_name}</div>
-                          <div className="text-3xl text-yellow-500 font-bold">
-                            {match.goals_away ?? 0}
-                          </div>
+                          <div className="text-3xl text-yellow-500 font-bold">{match.goals_away ?? 0}</div>
                         </div>
                       </div>
-
-                      {/* Info adicional */}
                       <div className="text-right">
-                        <div className="text-xs text-gray-500">
-                          {match.elapsed ? `${match.elapsed}'` : 'Por confirmar'}
-                        </div>
-                        {match.venue && (
-                          <div className="text-xs text-gray-600 mt-1">{match.venue}</div>
-                        )}
+                        <div className="text-xs text-gray-500">{match.elapsed ? `${match.elapsed}'` : 'Por confirmar'}</div>
+                        {match.venue && <div className="text-xs text-gray-600 mt-1">{match.venue}</div>}
                       </div>
                     </div>
                   </div>
                 ))
+              )}
+            </div>
+          )}
+
+          {/* TAB CONTENT - GESTIÓN DE LIGAS */}
+          {activeTab === "ligas" && (
+            <div className="space-y-6">
+              <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
+                <h3 className="text-white font-medium mb-4">Filtrar ligas disponibles</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-1">País</label>
+                    <select
+                      value={leagueFilters.country}
+                      onChange={(e) => setLeagueFilters({ ...leagueFilters, country: e.target.value })}
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
+                    >
+                      <option value="">Todos los países</option>
+                      {getUniqueCountries().map(country => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-1">Temporada</label>
+                    <select
+                      value={leagueFilters.season}
+                      onChange={(e) => setLeagueFilters({ ...leagueFilters, season: e.target.value })}
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
+                    >
+                      <option value="">Todas</option>
+                      <option value="2025">2025</option>
+                      <option value="2026">2026</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-1">Buscar liga</label>
+                    <input
+                      type="text"
+                      placeholder="Nombre de la liga..."
+                      value={leagueFilters.search}
+                      onChange={(e) => setLeagueFilters({ ...leagueFilters, search: e.target.value })}
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {loadingLeagues ? (
+                <div className="text-gray-400 text-center py-12">Cargando ligas disponibles...</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {getFilteredLeagues().map((league) => (
+                      <div
+                        key={league.id}
+                        onClick={() => {
+                          setSelectedLeagueIds(prev =>
+                            prev.includes(league.id) ? prev.filter(id => id !== league.id) : [...prev, league.id]
+                          );
+                        }}
+                        className={`bg-black/30 border rounded-xl p-4 cursor-pointer transition-all ${
+                          selectedLeagueIds.includes(league.id)
+                            ? 'border-yellow-500/60 bg-yellow-500/5'
+                            : 'border-yellow-500/20 hover:border-yellow-500/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {league.logo && <img src={league.logo} alt="" className="w-8 h-8 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />}
+                          <div className="flex-1">
+                            <h3 className="text-white font-medium">{league.name}</h3>
+                            <p className="text-gray-500 text-xs">{league.country} • Temporada {league.season}</p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border ${selectedLeagueIds.includes(league.id) ? 'bg-yellow-500 border-yellow-500 flex items-center justify-center' : 'border-gray-500'}`}>
+                            {selectedLeagueIds.includes(league.id) && <Check className="w-3 h-3 text-black" />}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {getFilteredLeagues().length === 0 && (
+                    <div className="text-gray-400 text-center py-12">No se encontraron ligas</div>
+                  )}
+                </>
+              )}
+
+              {selectedLeagueIds.length > 0 && (
+                <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+                  <button
+                    onClick={addSelectedLeagues}
+                    disabled={syncing}
+                    className="flex items-center gap-2 bg-yellow-500 text-black px-6 py-3 rounded-lg font-medium hover:bg-yellow-400 transition-all disabled:opacity-50 shadow-lg"
+                  >
+                    {syncing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                        Agregando...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Agregar {selectedLeagueIds.length} liga(s)
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           )}
