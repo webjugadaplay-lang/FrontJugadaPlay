@@ -124,7 +124,7 @@ export default function LeaguesManager() {
               <ChevronLeft className="w-6 h-6" />
             </button>
           </Link>
-          <h1 className="text-2xl text-yellow-500 font-light">Gestión de Ligas</h1>
+          <h1 className="text-2xl text-yellow-500 font-light">GESTION DE LIGAS</h1>
         </div>
 
         {/* Buscador */}
