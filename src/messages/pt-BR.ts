@@ -1,4 +1,4 @@
-// messages/pt-BR.ts
+// /messages/pt-BR.ts
 const ptBR = {
   common: {
     language: "Idioma",
@@ -6,6 +6,9 @@ const ptBR = {
   },
   header: {
     language: "Idioma",
+    backToDashboard: "Voltar ao Painel",
+    title: "JUGADA",
+    subtitle: "PLAY",
   },
   hero: {
     badge: "Prediga • Ganhe • Comemore",
@@ -163,6 +166,55 @@ const ptBR = {
       updateScoreError: "Não foi possível atualizar o placar",
       finishMatchError: "Não foi possível finalizar a partida",
     },
+  },
+  createRoom: {
+    title: "CRIAR",
+    titleHighlight: "SALA",
+    subtitle: "Selecione o torneio, os times e complete os dados da partida",
+    continent: "CONTINENTE",
+    country: "PAÍS",
+    tournament: "TORNEIO / CAMPEONATO *",
+    homeTeam: "TIME DA CASA *",
+    awayTeam: "TIME VISITANTE *",
+    date: "DATA *",
+    time: "HORA *",
+    predictionClose: "FECHAMENTO DAS PREVISÕES",
+    closeAtStart: "No início da partida",
+    close15min: "15 minutos antes",
+    roomType: "TIPO DE SALA",
+    practiceMode: "Modo Prática",
+    noRealMoney: "Sem dinheiro real",
+    paidMode: "Modo Pago",
+    realPrizes: "Prêmios reais",
+    predictionValue: "VALOR POR PREVISÃO (R$)",
+    prizeSummary: "RESUMO ESTIMADO (50 jogadores)",
+    totalCollected: "Total arrecadado:",
+    prizes70: "Prêmios (70%):",
+    yourCommission20: "Sua comissão (20%):",
+    platform10: "Plataforma (10%):",
+    createButton: "CRIAR SALA",
+    cancelButton: "CANCELAR",
+    errors: {
+      noBar: "Não foi possível identificar o bar. Por favor, tente novamente.",
+      selectTeams: "Você deve selecionar os dois times",
+      sameTeams: "Os times local e visitante devem ser diferentes",
+      requiredDateTime: "Data e hora da partida são obrigatórias",
+    }
+  },
+  barDashboard: {
+    title: "PAINEL DO",
+    titleHighlight: "BAR",
+    createRoom: "CRIAR SALA",
+    activeRooms: "SALAS ATIVAS",
+    noActiveRooms: "Não há salas ativas",
+    upcomingMatches: "PRÓXIMOS JOGOS",
+    noUpcomingMatches: "Não há próximos jogos",
+    history: "HISTÓRICO",
+    noHistory: "Não há jogos finalizados",
+    earnings: "GANHOS",
+    totalEarnings: "GANHO TOTAL",
+    totalPlayers: "JOGADORES TOTAIS",
+    totalRooms: "SALAS CRIADAS",
   },
   currencyPrefix: "R$",
 };

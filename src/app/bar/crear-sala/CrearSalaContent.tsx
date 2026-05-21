@@ -7,6 +7,27 @@ import {
   ArrowLeft, Crown, Trophy, Zap,
   Globe, MapPin, ChevronDown, Users
 } from "lucide-react";
+import { translations, type Locale } from "@/messages";
+
+// Función para detectar idioma inicial (exactamente igual a la landing)
+function detectInitialLocale(): Locale {
+  if (typeof window === "undefined") return "pt-BR";
+
+  const savedLocale = localStorage.getItem("jugadaplay_locale");
+  if (savedLocale === "pt-BR" || savedLocale === "es") {
+    return savedLocale;
+  }
+
+  const browserLanguage =
+    navigator.language || (navigator.languages && navigator.languages[0]) || "";
+
+  const normalizedLanguage = browserLanguage.toLowerCase();
+
+  if (normalizedLanguage.startsWith("es")) return "es";
+  if (normalizedLanguage.startsWith("pt")) return "pt-BR";
+
+  return "pt-BR";
+}
 
 interface Continent {
   id: number;
@@ -38,6 +59,11 @@ export default function CrearSalaContent() {
   const searchParams = useSearchParams();
   const barIdParam = searchParams.get("barId");
   
+  // Estado del idioma (exactamente igual a la landing)
+  const [locale, setLocale] = useState<Locale>("pt-BR");
+  const [isLocaleReady, setIsLocaleReady] = useState(false);
+  const t = translations[locale];
+  
   const [barId, setBarId] = useState<string>("");
   const [tipoSala, setTipoSala] = useState<"practice" | "paid">("paid");
   const [valorPrediccion, setValorPrediccion] = useState("5");
@@ -54,7 +80,6 @@ export default function CrearSalaContent() {
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingTournaments, setLoadingTournaments] = useState(false);
 
-  // Estados para equipos
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamHomeId, setSelectedTeamHomeId] = useState<string>("");
   const [selectedTeamAwayId, setSelectedTeamAwayId] = useState<string>("");
@@ -65,7 +90,19 @@ export default function CrearSalaContent() {
 
   const isMundial = selectedContinent === "7";
 
-  // Obtener barId desde URL o localStorage al cargar
+  // Detectar idioma al inicio (exactamente igual a la landing)
+  useEffect(() => {
+    const detectedLocale = detectInitialLocale();
+    setLocale(detectedLocale);
+    setIsLocaleReady(true);
+  }, []);
+
+  // Guardar idioma en localStorage (exactamente igual a la landing)
+  useEffect(() => {
+    if (!isLocaleReady) return;
+    localStorage.setItem("jugadaplay_locale", locale);
+  }, [locale, isLocaleReady]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
@@ -77,20 +114,16 @@ export default function CrearSalaContent() {
 
     const user = JSON.parse(userData);
     
-    // Si viene barId por URL (desde el selector), usarlo
     if (barIdParam) {
       setBarId(barIdParam);
     } else if (user.role === "bar") {
-      // Compatibilidad con usuarios rol "bar" (si existen)
       setBarId(user.barId || "");
     } else if (user.role === "owner") {
-      // Owner debería tener barId del selector, si no, redirigir
       console.error("No se especificó barId para crear sala");
       router.push("/bar/dashboard");
     }
   }, [router, barIdParam]);
 
-  // Cargar continentes al inicio
   useEffect(() => {
     fetchContinents();
   }, []);
@@ -108,7 +141,6 @@ export default function CrearSalaContent() {
     }
   };
 
-  // Cuando se selecciona un continente
   useEffect(() => {
     if (!selectedContinent) {
       setCountries([]);
@@ -117,7 +149,6 @@ export default function CrearSalaContent() {
       return;
     }
 
-    // Resetear todos los estados
     setSelectedCountry("");
     setSelectedTournament("");
     setSelectedTeamHomeId("");
@@ -129,11 +160,9 @@ export default function CrearSalaContent() {
     const continentId = parseInt(selectedContinent);
 
     if (continentId === 7) {
-      // MUNDIAL - Cargar torneos internacionales y selecciones
       fetchInternationalTournaments();
       fetchInternationalTeams();
     } else {
-      // OTROS CONTINENTES - Cargar países
       fetchCountries(continentId);
     }
   }, [selectedContinent]);
@@ -192,7 +221,6 @@ export default function CrearSalaContent() {
     }
   };
 
-  // Cuando se selecciona un país (solo si NO es Mundial)
   useEffect(() => {
     if (selectedCountry && !isMundial) {
       setSelectedTournament("");
@@ -221,7 +249,6 @@ export default function CrearSalaContent() {
     }
   };
 
-  // Cuando se selecciona un torneo (solo si NO es Mundial)
   useEffect(() => {
     if (selectedTournament && !isMundial) {
       setSelectedTeamHomeId("");
@@ -253,22 +280,21 @@ export default function CrearSalaContent() {
   const selectedTeamAway = teams.find(t => t.id.toString() === selectedTeamAwayId)?.name || "";
 
   const handleCreateRoom = async () => {
-    // Validar barId
     if (!barId) {
-      setError("No se pudo identificar el bar. Por favor, intenta de nuevo.");
+      setError(t.createRoom.errors.noBar);
       return;
     }
 
     if (!selectedTeamHomeId || !selectedTeamAwayId) {
-      setError("Debes seleccionar los dos equipos");
+      setError(t.createRoom.errors.selectTeams);
       return;
     }
     if (selectedTeamHomeId === selectedTeamAwayId) {
-      setError("Los equipos local y visitante deben ser diferentes");
+      setError(t.createRoom.errors.sameTeams);
       return;
     }
     if (!matchDate || !matchTime) {
-      setError("Fecha y hora del partido son obligatorias");
+      setError(t.createRoom.errors.requiredDateTime);
       return;
     }
 
@@ -335,18 +361,44 @@ export default function CrearSalaContent() {
 
   const pozo = calcularPozo();
 
+  if (!isLocaleReady) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-yellow-500">{t.common.loading}</div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-black">
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
-          <div className="flex items-center h-20">
+          <div className="flex justify-between items-center h-20">
             <Link href="/bar/dashboard" className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-              <Crown className="w-5 h-5 text-yellow-500" strokeWidth={1.5} />
-              <span className="text-lg font-light tracking-wider text-white">
-                JUGADA<span className="text-yellow-500 font-medium">PLAY</span>
-              </span>
+              <div className="flex items-center">
+                <Crown className="w-5 h-5 text-yellow-500" strokeWidth={1.5} />
+                <span className="text-lg font-light tracking-wider text-white ml-2">
+                  {t.header.title}
+                  <span className="text-yellow-500 font-medium">{t.header.subtitle}</span>
+                </span>
+              </div>
             </Link>
+
+            {/* Selector de idioma - EXACTAMENTE IGUAL a la landing page */}
+            <div className="flex items-center gap-2">
+              <label className="text-gray-400 text-xs tracking-wide">
+                {t.header.language}
+              </label>
+              <select
+                value={locale}
+                onChange={(e) => setLocale(e.target.value as Locale)}
+                className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs px-3 py-2 rounded-sm outline-none focus:border-yellow-500/60"
+              >
+                <option value="pt-BR">PT</option>
+                <option value="es">ES</option>
+              </select>
+            </div>
           </div>
         </div>
       </header>
@@ -358,17 +410,18 @@ export default function CrearSalaContent() {
             <div className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
               <div className="border-b border-yellow-500/20 px-8 pt-8 pb-4">
                 <h1 className="text-2xl font-light tracking-tight text-white">
-                  CREAR <span className="text-yellow-500 font-medium">SALA</span>
+                  {t.createRoom.title}{" "}
+                  <span className="text-yellow-500 font-medium">{t.createRoom.titleHighlight}</span>
                 </h1>
                 <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
-                <p className="text-gray-500 text-sm mt-2">Selecciona el torneo, los equipos y completa los datos del partido</p>
+                <p className="text-gray-500 text-sm mt-2">{t.createRoom.subtitle}</p>
               </div>
 
               <div className="p-8 space-y-6">
                 {/* SELECTOR DE CONTINENTE */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                    <Globe className="w-4 h-4" /> CONTINENTE
+                    <Globe className="w-4 h-4" /> {t.createRoom.continent}
                   </label>
                   <div className="relative">
                     <select
@@ -385,11 +438,11 @@ export default function CrearSalaContent() {
                   </div>
                 </div>
 
-                {/* SELECTOR DE PAÍS - SOLO SI NO ES MUNDIAL */}
+                {/* SELECTOR DE PAÍS */}
                 {selectedContinent && !isMundial && countries.length > 0 && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                      <MapPin className="w-4 h-4" /> PAÍS
+                      <MapPin className="w-4 h-4" /> {t.createRoom.country}
                     </label>
                     <div className="relative">
                       <select
@@ -405,7 +458,7 @@ export default function CrearSalaContent() {
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                     </div>
-                    {loadingCountries && <p className="text-gray-500 text-xs">Cargando países...</p>}
+                    {loadingCountries && <p className="text-gray-500 text-xs">{t.common.loading}</p>}
                   </div>
                 )}
 
@@ -413,7 +466,7 @@ export default function CrearSalaContent() {
                 {selectedContinent && tournaments.length > 0 && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                      <Trophy className="w-4 h-4" /> TORNEO / CAMPEONATO *
+                      <Trophy className="w-4 h-4" /> {t.createRoom.tournament}
                     </label>
                     <div className="relative">
                       <select
@@ -429,7 +482,7 @@ export default function CrearSalaContent() {
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                     </div>
-                    {loadingTournaments && <p className="text-gray-500 text-xs">Cargando torneos...</p>}
+                    {loadingTournaments && <p className="text-gray-500 text-xs">{t.common.loading}</p>}
                   </div>
                 )}
 
@@ -438,7 +491,7 @@ export default function CrearSalaContent() {
                   <>
                     <div className="space-y-2">
                       <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                        <Users className="w-4 h-4" /> EQUIPO LOCAL *
+                        <Users className="w-4 h-4" /> {t.createRoom.homeTeam}
                       </label>
                       <div className="relative">
                         <select
@@ -458,7 +511,7 @@ export default function CrearSalaContent() {
 
                     <div className="space-y-2">
                       <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                        <Users className="w-4 h-4" /> EQUIPO VISITANTE *
+                        <Users className="w-4 h-4" /> {t.createRoom.awayTeam}
                       </label>
                       <div className="relative">
                         <select
@@ -476,14 +529,14 @@ export default function CrearSalaContent() {
                       </div>
                     </div>
 
-                    {loadingTeams && <p className="text-gray-500 text-xs text-center">Cargando equipos...</p>}
+                    {loadingTeams && <p className="text-gray-500 text-xs text-center">{t.common.loading}</p>}
                   </>
                 )}
 
                 {/* FECHA Y HORA */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="block text-xs text-yellow-500 tracking-wider">FECHA *</label>
+                    <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.date}</label>
                     <input 
                       type="date" 
                       value={matchDate} 
@@ -492,7 +545,7 @@ export default function CrearSalaContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-xs text-yellow-500 tracking-wider">HORA *</label>
+                    <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.time}</label>
                     <input 
                       type="time" 
                       value={matchTime} 
@@ -504,7 +557,7 @@ export default function CrearSalaContent() {
 
                 {/* CIERRE DE PREDICCIONES */}
                 <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">CIERRE DE PREDICCIONES</label>
+                  <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.predictionClose}</label>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2">
                       <input 
@@ -514,7 +567,7 @@ export default function CrearSalaContent() {
                         onChange={() => setCierrePredictions("inicio")} 
                         className="w-4 h-4 accent-yellow-500"
                       />
-                      <span className="text-gray-400 text-sm">Al inicio del partido</span>
+                      <span className="text-gray-400 text-sm">{t.createRoom.closeAtStart}</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input 
@@ -524,41 +577,44 @@ export default function CrearSalaContent() {
                         onChange={() => setCierrePredictions("15min")} 
                         className="w-4 h-4 accent-yellow-500"
                       />
-                      <span className="text-gray-400 text-sm">15 minutos antes</span>
+                      <span className="text-gray-400 text-sm">{t.createRoom.close15min}</span>
                     </label>
                   </div>
                 </div>
 
                 {/* TIPO DE SALA */}
-                <div className="grid grid-cols-2 gap-4">
-                  <button 
-                    onClick={() => setTipoSala("practice")} 
-                    className={`p-4 rounded-lg border transition-all ${
-                      tipoSala === "practice" 
-                        ? "border-yellow-500 bg-yellow-500/10" 
-                        : "border-yellow-500/20 hover:border-yellow-500/40"
-                    }`}
-                  >
-                    <div className="text-white font-medium">Modo Práctica</div>
-                    <div className="text-gray-500 text-xs">Sin dinero real</div>
-                  </button>
-                  <button 
-                    onClick={() => setTipoSala("paid")} 
-                    className={`p-4 rounded-lg border transition-all ${
-                      tipoSala === "paid" 
-                        ? "border-yellow-500 bg-yellow-500/10" 
-                        : "border-yellow-500/20 hover:border-yellow-500/40"
-                    }`}
-                  >
-                    <div className="text-white font-medium">Modo Pago</div>
-                    <div className="text-gray-500 text-xs">Premios reales</div>
-                  </button>
+                <div className="space-y-2">
+                  <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.roomType}</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button 
+                      onClick={() => setTipoSala("practice")} 
+                      className={`p-4 rounded-lg border transition-all ${
+                        tipoSala === "practice" 
+                          ? "border-yellow-500 bg-yellow-500/10" 
+                          : "border-yellow-500/20 hover:border-yellow-500/40"
+                      }`}
+                    >
+                      <div className="text-white font-medium">{t.createRoom.practiceMode}</div>
+                      <div className="text-gray-500 text-xs">{t.createRoom.noRealMoney}</div>
+                    </button>
+                    <button 
+                      onClick={() => setTipoSala("paid")} 
+                      className={`p-4 rounded-lg border transition-all ${
+                        tipoSala === "paid" 
+                          ? "border-yellow-500 bg-yellow-500/10" 
+                          : "border-yellow-500/20 hover:border-yellow-500/40"
+                      }`}
+                    >
+                      <div className="text-white font-medium">{t.createRoom.paidMode}</div>
+                      <div className="text-gray-500 text-xs">{t.createRoom.realPrizes}</div>
+                    </button>
+                  </div>
                 </div>
 
                 {/* VALOR DE PREDICCIÓN */}
                 {tipoSala === "paid" && (
                   <div className="space-y-2">
-                    <label className="block text-xs text-yellow-500 tracking-wider">VALOR POR PREDICCIÓN (R$)</label>
+                    <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.predictionValue}</label>
                     <input 
                       type="number" 
                       value={valorPrediccion} 
@@ -575,23 +631,23 @@ export default function CrearSalaContent() {
                   <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Zap className="w-4 h-4 text-yellow-500" />
-                      <h3 className="text-white text-sm font-medium">RESUMEN ESTIMADO (50 jugadores)</h3>
+                      <h3 className="text-white text-sm font-medium">{t.createRoom.prizeSummary}</h3>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Total recaudado:</span>
+                        <span className="text-gray-500">{t.createRoom.totalCollected}</span>
                         <span className="text-white font-medium">R$ {pozo.total}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Premios (70%):</span>
+                        <span className="text-gray-500">{t.createRoom.prizes70}</span>
                         <span className="text-yellow-500 font-medium">R$ {pozo.premios}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Tu comisión (20%):</span>
+                        <span className="text-gray-500">{t.createRoom.yourCommission20}</span>
                         <span className="text-green-500 font-medium">R$ {pozo.bar}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Plataforma (10%):</span>
+                        <span className="text-gray-500">{t.createRoom.platform10}</span>
                         <span className="text-gray-500">R$ {pozo.plataforma}</span>
                       </div>
                     </div>
@@ -607,7 +663,7 @@ export default function CrearSalaContent() {
                 <div className="flex gap-4 pt-2">
                   <Link href="/bar/dashboard" className="flex-1">
                     <button className="w-full border border-yellow-500/30 text-gray-400 py-3 rounded-lg hover:bg-yellow-500/5 transition-all">
-                      CANCELAR
+                      {t.createRoom.cancelButton}
                     </button>
                   </Link>
                   <button 
@@ -615,7 +671,7 @@ export default function CrearSalaContent() {
                     disabled={loading} 
                     className="group relative flex-1 overflow-hidden bg-yellow-500 text-black py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-400 transition-all"
                   >
-                    <span className="relative z-10">{loading ? "CREANDO..." : "CREAR SALA"}</span>
+                    <span className="relative z-10">{loading ? t.common.loading : t.createRoom.createButton}</span>
                   </button>
                 </div>
               </div>
