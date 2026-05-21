@@ -239,8 +239,8 @@ export default function BarDashboard() {
                           key={bar.id}
                           onClick={() => handleBarChange(bar.id, bar.name || bar.bar_name)}
                           className={`w-full text-left px-4 py-2 text-sm hover:bg-yellow-500/10 transition-colors ${selectedBarId === bar.id
-                              ? "text-yellow-500"
-                              : "text-gray-400"
+                            ? "text-yellow-500"
+                            : "text-gray-400"
                             }`}
                         >
                           {bar.name || bar.bar_name}
@@ -295,8 +295,8 @@ export default function BarDashboard() {
                           setIsMenuOpen(false);
                         }}
                         className={`block w-full text-left py-1 ${selectedBarId === bar.id
-                            ? "text-yellow-500"
-                            : "text-gray-400"
+                          ? "text-yellow-500"
+                          : "text-gray-400"
                           }`}
                       >
                         {bar.name || bar.bar_name}
@@ -332,10 +332,6 @@ export default function BarDashboard() {
         <div className="container mx-auto max-w-7xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-              <h1 className="text-3xl font-light tracking-tight text-white">
-                DASHBOARD
-              </h1>
-              <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
               {userBars.length > 1 && (
                 <p className="text-gray-500 text-sm mt-2">
                   Administrando: <span className="text-yellow-500">{selectedBarName}</span>
@@ -411,8 +407,8 @@ export default function BarDashboard() {
             <button
               onClick={() => setActiveTab("activas")}
               className={`pb-3 text-sm tracking-wide transition-all ${activeTab === "activas"
-                  ? "text-yellow-500 border-b-2 border-yellow-500"
-                  : "text-gray-500 hover:text-gray-400"
+                ? "text-yellow-500 border-b-2 border-yellow-500"
+                : "text-gray-500 hover:text-gray-400"
                 }`}
             >
               SALAS ACTIVAS ({rooms.activas.length})
@@ -421,8 +417,8 @@ export default function BarDashboard() {
             <button
               onClick={() => setActiveTab("proximos")}
               className={`pb-3 text-sm tracking-wide transition-all ${activeTab === "proximos"
-                  ? "text-yellow-500 border-b-2 border-yellow-500"
-                  : "text-gray-500 hover:text-gray-400"
+                ? "text-yellow-500 border-b-2 border-yellow-500"
+                : "text-gray-500 hover:text-gray-400"
                 }`}
             >
               PRÓXIMOS PARTIDOS ({rooms.proximos.length})
