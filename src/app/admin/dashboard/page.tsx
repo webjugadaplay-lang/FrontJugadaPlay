@@ -153,6 +153,8 @@ export default function AdminDashboard() {
     // Cargar datos iniciales
     loadFixtures();
     loadLeagues();
+    console.log("🟢 Cambiando a pestaña ACTIVOS"); // ← LOG
+    setActiveTab("activos");
     loadLiveFixtures();
 
   }, [router]);
@@ -219,8 +221,14 @@ export default function AdminDashboard() {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
+      console.log("🔍 Respuesta completa de live-fixtures:", data); // ← LOG 1
+
       if (data.success) {
+        console.log("📋 Partidos en curso recibidos:", data.data.length); // ← LOG 2
+        console.log("📋 Primer partido:", data.data[0]); // ← LOG 3
         setLiveFixtures(data.data);
+      } else {
+        console.error("❌ Error en respuesta:", data.message);
       }
     } catch (error) {
       console.error("Error cargando partidos en curso:", error);
@@ -833,47 +841,16 @@ export default function AdminDashboard() {
           {activeTab === "activos" && (
             <div className="space-y-4">
               {loadingLive ? (
-                <div className="text-gray-400 text-sm">Cargando partidos en curso...</div>
+                <div>Cargando...</div>
               ) : liveFixtures.length === 0 ? (
-                <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-6 text-gray-400 text-sm">
-                  No hay partidos en curso en este momento.
-                </div>
+                <div>No hay partidos en curso</div>
               ) : (
-                liveFixtures.map((match) => (
-                  <div key={match.id} className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                          <span className="text-green-500 text-xs tracking-wide">
-                            {getStatusText(match.status)}
-                          </span>
-                        </div>
-                        <h3 className="text-white text-lg font-medium">
-                          {match.home_team_name} vs {match.away_team_name}
-                        </h3>
-                        <p className="text-gray-500 text-xs mt-1">
-                          {match.league_name} • {match.league_country}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-8">
-                        <div className="text-center">
-                          <div className="text-white text-sm">{match.home_team_name}</div>
-                          <div className="text-3xl text-yellow-500 font-bold">{match.goals_home ?? 0}</div>
-                        </div>
-                        <div className="text-gray-500 text-xl font-light">-</div>
-                        <div className="text-center">
-                          <div className="text-white text-sm">{match.away_team_name}</div>
-                          <div className="text-3xl text-yellow-500 font-bold">{match.goals_away ?? 0}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500">{match.elapsed ? `${match.elapsed}'` : 'Por confirmar'}</div>
-                        {match.venue && <div className="text-xs text-gray-600 mt-1">{match.venue}</div>}
-                      </div>
-                    </div>
-                  </div>
-                ))
+                <>
+                  {console.log("🎯 Renderizando", liveFixtures.length, "partidos")} // ← LOG
+                  {liveFixtures.map((match) => (
+                    <div key={match.id}>...</div>
+                  ))}
+                </>
               )}
             </div>
           )}
@@ -884,7 +861,7 @@ export default function AdminDashboard() {
               {/* Panel de filtros */}
               <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
                 <h3 className="text-white font-medium mb-4">Filtrar ligas disponibles</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">País</label>
@@ -899,7 +876,7 @@ export default function AdminDashboard() {
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">Temporada</label>
                     <select
@@ -912,7 +889,7 @@ export default function AdminDashboard() {
                       <option value="2026">2026</option>
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">Buscar liga</label>
                     <input
@@ -924,7 +901,7 @@ export default function AdminDashboard() {
                     />
                   </div>
                 </div>
-                
+
                 {/* Checkbox para mostrar solo ligas sincronizadas */}
                 <div className="flex items-center gap-3 mt-4 pt-4 border-t border-yellow-500/20">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -938,7 +915,7 @@ export default function AdminDashboard() {
                       Mostrar solo ligas sincronizadas
                     </span>
                   </label>
-                  
+
                   {showOnlySynced && syncedLeagues.length === 0 && (
                     <span className="text-xs text-yellow-500">
                       (No hay ligas sincronizadas aún)
@@ -963,21 +940,20 @@ export default function AdminDashboard() {
                             );
                           }
                         }}
-                        className={`bg-black/30 border rounded-xl p-4 transition-all ${
-                          syncedLeagues.some(sl => sl.league_id === league.id)
-                            ? 'border-green-500/60 bg-green-500/10 cursor-default'
-                            : selectedLeagueIds.includes(league.id)
-                              ? 'border-yellow-500/60 bg-yellow-500/5 cursor-pointer'
-                              : 'border-yellow-500/20 hover:border-yellow-500/40 cursor-pointer'
-                        }`}
+                        className={`bg-black/30 border rounded-xl p-4 transition-all ${syncedLeagues.some(sl => sl.league_id === league.id)
+                          ? 'border-green-500/60 bg-green-500/10 cursor-default'
+                          : selectedLeagueIds.includes(league.id)
+                            ? 'border-yellow-500/60 bg-yellow-500/5 cursor-pointer'
+                            : 'border-yellow-500/20 hover:border-yellow-500/40 cursor-pointer'
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           {league.logo && (
-                            <img 
-                              src={league.logo} 
-                              alt="" 
-                              className="w-8 h-8 object-contain" 
-                              onError={(e) => (e.currentTarget.style.display = 'none')} 
+                            <img
+                              src={league.logo}
+                              alt=""
+                              className="w-8 h-8 object-contain"
+                              onError={(e) => (e.currentTarget.style.display = 'none')}
                             />
                           )}
                           <div className="flex-1">
@@ -990,11 +966,10 @@ export default function AdminDashboard() {
                             <p className="text-gray-500 text-xs">{league.country} • Temporada {league.season}</p>
                           </div>
                           {!syncedLeagues.some(sl => sl.league_id === league.id) && (
-                            <div className={`w-5 h-5 rounded-full border ${
-                              selectedLeagueIds.includes(league.id)
-                                ? 'bg-yellow-500 border-yellow-500 flex items-center justify-center'
-                                : 'border-gray-500'
-                            }`}>
+                            <div className={`w-5 h-5 rounded-full border ${selectedLeagueIds.includes(league.id)
+                              ? 'bg-yellow-500 border-yellow-500 flex items-center justify-center'
+                              : 'border-gray-500'
+                              }`}>
                               {selectedLeagueIds.includes(league.id) && <Check className="w-3 h-3 text-black" />}
                             </div>
                           )}
