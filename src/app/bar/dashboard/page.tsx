@@ -309,18 +309,14 @@ export default function BarDashboard() {
                     {selectedBarName}
                   </span>
                 )}
-                <span className="text-gray-400 text-sm">
-                  SALDO: R$ {stats.bar.balance.toFixed(2)}
-                </span>
+                
                 <button
                   onClick={handleLogout}
                   className="text-gray-400 hover:text-yellow-500 py-2 text-sm text-left"
                 >
                   SALIR
                 </button>
-                <button className="border border-yellow-500/50 text-yellow-500 py-2 text-sm rounded-sm">
-                  RETIRAR
-                </button>
+                
               </div>
             </div>
           )}
@@ -339,9 +335,7 @@ export default function BarDashboard() {
               )}
             </div>
 
-            <Link
-              href={`/bar/crear-sala?barId=${selectedBarId}`}
-            >
+            <Link href={`/bar/crear-sala?barId=${selectedBarId}`}>
               <button className="group relative overflow-hidden bg-yellow-500 text-black px-6 py-2.5 rounded-sm text-sm font-medium tracking-wide flex items-center gap-2 hover:bg-yellow-400 transition-all">
                 <Plus className="w-4 h-4" />
                 <span>CREAR NUEVA SALA</span>
