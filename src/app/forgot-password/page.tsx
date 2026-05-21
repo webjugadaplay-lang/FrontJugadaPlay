@@ -93,7 +93,7 @@ export default function ForgotPasswordPage() {
                 <img
                   src="/logo-jugadaplay.svg"
                   alt="Jugada Play"
-                  className="h-10 md:h-12 w-auto object-contain"
+                  className="h-10 md:h-12 lg:h-14 w-auto object-contain"
                 />
               </Link>
             </div>
@@ -130,11 +130,11 @@ export default function ForgotPasswordPage() {
           <div className="flex items-center h-20">
             <Link href="/login" className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-              <img
-                src="/logo-jugadaplay.svg"
-                alt="Jugada Play"
-                className="h-10 md:h-12 w-auto object-contain"
-              />
+                <img
+                  src="/logo-jugadaplay.svg"
+                  alt="Jugada Play"
+                  className="h-10 md:h-12 lg:h-14 w-auto object-contain"
+                />
             </Link>
           </div>
         </div>

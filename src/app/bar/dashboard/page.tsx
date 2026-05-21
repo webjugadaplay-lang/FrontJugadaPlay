@@ -254,13 +254,10 @@ export default function BarDashboard() {
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
             <Link href="/" className="flex items-center">
-              <Image
+              <img
                 src="/logo-jugadaplay.svg"
                 alt="Jugada Play"
-                width={140}
-                height={40}
-                className="h-8 md:h-10 w-auto object-contain"
-                priority
+                className="h-10 md:h-12 lg:h-14 w-auto object-contain"
               />
             </Link>
 

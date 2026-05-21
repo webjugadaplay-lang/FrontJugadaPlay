@@ -268,7 +268,7 @@ export default function PlayerDashboard() {
               <img
                 src="/logo-jugadaplay.svg"
                 alt="Jugada Play"
-                className="h-10 md:h-12 w-auto object-contain"
+                className="h-10 md:h-12 lg:h-14 w-auto object-contain"
               />
             </Link>
 

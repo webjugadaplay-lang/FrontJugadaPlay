@@ -311,11 +311,11 @@ export default function RegistroJugador() {
           <div className="flex items-center justify-between h-20 gap-4">
             <Link href="/" className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-              <img
-                src="/logo-jugadaplay.svg"
-                alt="Jugada Play"
-                className="h-10 md:h-12 w-auto object-contain"
-              />
+                <img
+                  src="/logo-jugadaplay.svg"
+                  alt="Jugada Play"
+                  className="h-10 md:h-12 lg:h-14 w-auto object-contain"
+                />
             </Link>
 
             <div className="flex items-center gap-2">

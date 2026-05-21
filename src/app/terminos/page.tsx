@@ -56,7 +56,7 @@ export default function TerminosPage() {
     title: locale === "pt-BR" ? "Termos e Condições de Uso" : "Términos y Condiciones de Uso",
     subtitle: locale === "pt-BR" ? "Bem-vindo ao Jugada Play" : "Bienvenido a Jugada Play",
     lastUpdate: locale === "pt-BR" ? "Última atualização: 13 de abril de 2026" : "Última actualización: 13 de abril de 2026",
-    welcome: locale === "pt-BR" 
+    welcome: locale === "pt-BR"
       ? "Ao acessar, registrar-se ou utilizar a plataforma, o usuário aceita os presentes Termos e Condições."
       : "Al acceder, registrarse o utilizar la plataforma, el usuario acepta los presentes Términos y Condiciones.",
     sections: locale === "pt-BR" ? [
@@ -155,11 +155,10 @@ export default function TerminosPage() {
   return (
     <main className="min-h-screen bg-black">
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
-            : "bg-transparent"
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+          ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20"
+          : "bg-transparent"
+          }`}
       >
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
@@ -199,8 +198,8 @@ export default function TerminosPage() {
         <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-yellow-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
 
         <div className="relative z-10 container mx-auto max-w-4xl">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="inline-flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors mb-8 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -260,8 +259,8 @@ export default function TerminosPage() {
       <footer className="border-t border-yellow-500/10 py-12 px-6 mt-10">
         <div className="container mx-auto text-center">
           <div className="flex justify-center space-x-8 mb-6">
-            <Link 
-              href="/terminos" 
+            <Link
+              href="/terminos"
               className="text-gray-600 text-xs tracking-wider hover:text-yellow-500 cursor-pointer transition-colors"
             >
               {t.footer.terms}

@@ -587,8 +587,8 @@ export default function CrearSalaContent() {
                     <button
                       onClick={() => setTipoSala("practice")}
                       className={`p-4 rounded-lg border transition-all ${tipoSala === "practice"
-                          ? "border-yellow-500 bg-yellow-500/10"
-                          : "border-yellow-500/20 hover:border-yellow-500/40"
+                        ? "border-yellow-500 bg-yellow-500/10"
+                        : "border-yellow-500/20 hover:border-yellow-500/40"
                         }`}
                     >
                       <div className="text-white font-medium">{t.createRoom.practiceMode}</div>
@@ -597,8 +597,8 @@ export default function CrearSalaContent() {
                     <button
                       onClick={() => setTipoSala("paid")}
                       className={`p-4 rounded-lg border transition-all ${tipoSala === "paid"
-                          ? "border-yellow-500 bg-yellow-500/10"
-                          : "border-yellow-500/20 hover:border-yellow-500/40"
+                        ? "border-yellow-500 bg-yellow-500/10"
+                        : "border-yellow-500/20 hover:border-yellow-500/40"
                         }`}
                     >
                       <div className="text-white font-medium">{t.createRoom.paidMode}</div>
