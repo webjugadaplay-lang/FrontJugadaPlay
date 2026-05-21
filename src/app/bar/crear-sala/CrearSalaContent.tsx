@@ -58,12 +58,12 @@ export default function CrearSalaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const barIdParam = searchParams.get("barId");
-  
+
   // Estado del idioma (exactamente igual a la landing)
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [isLocaleReady, setIsLocaleReady] = useState(false);
   const t = translations[locale];
-  
+
   const [barId, setBarId] = useState<string>("");
   const [tipoSala, setTipoSala] = useState<"practice" | "paid">("paid");
   const [valorPrediccion, setValorPrediccion] = useState("5");
@@ -113,7 +113,7 @@ export default function CrearSalaContent() {
     }
 
     const user = JSON.parse(userData);
-    
+
     if (barIdParam) {
       setBarId(barIdParam);
     } else if (user.role === "bar") {
@@ -376,13 +376,13 @@ export default function CrearSalaContent() {
           <div className="flex justify-between items-center h-20">
             <Link href="/bar/dashboard" className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-              <div className="flex items-center">
-                <Crown className="w-5 h-5 text-yellow-500" strokeWidth={1.5} />
-                <span className="text-lg font-light tracking-wider text-white ml-2">
-                  {t.header.title}
-                  <span className="text-yellow-500 font-medium">{t.header.subtitle}</span>
-                </span>
-              </div>
+              <Link href="/" className="flex items-center">
+                <img
+                  src="/logo-jugadaplay.svg"
+                  alt="Jugada Play"
+                  className="h-10 md:h-12 lg:h-14 w-auto object-contain"
+                />
+              </Link>
             </Link>
 
             {/* Selector de idioma - EXACTAMENTE IGUAL a la landing page */}
@@ -537,19 +537,19 @@ export default function CrearSalaContent() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.date}</label>
-                    <input 
-                      type="date" 
-                      value={matchDate} 
-                      onChange={(e) => setMatchDate(e.target.value)} 
+                    <input
+                      type="date"
+                      value={matchDate}
+                      onChange={(e) => setMatchDate(e.target.value)}
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-yellow-500/60"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.time}</label>
-                    <input 
-                      type="time" 
-                      value={matchTime} 
-                      onChange={(e) => setMatchTime(e.target.value)} 
+                    <input
+                      type="time"
+                      value={matchTime}
+                      onChange={(e) => setMatchTime(e.target.value)}
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-yellow-500/60"
                     />
                   </div>
@@ -560,21 +560,21 @@ export default function CrearSalaContent() {
                   <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.predictionClose}</label>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2">
-                      <input 
-                        type="radio" 
-                        name="cierre" 
-                        checked={cierrePredictions === "inicio"} 
-                        onChange={() => setCierrePredictions("inicio")} 
+                      <input
+                        type="radio"
+                        name="cierre"
+                        checked={cierrePredictions === "inicio"}
+                        onChange={() => setCierrePredictions("inicio")}
                         className="w-4 h-4 accent-yellow-500"
                       />
                       <span className="text-gray-400 text-sm">{t.createRoom.closeAtStart}</span>
                     </label>
                     <label className="flex items-center gap-2">
-                      <input 
-                        type="radio" 
-                        name="cierre" 
-                        checked={cierrePredictions === "15min"} 
-                        onChange={() => setCierrePredictions("15min")} 
+                      <input
+                        type="radio"
+                        name="cierre"
+                        checked={cierrePredictions === "15min"}
+                        onChange={() => setCierrePredictions("15min")}
                         className="w-4 h-4 accent-yellow-500"
                       />
                       <span className="text-gray-400 text-sm">{t.createRoom.close15min}</span>
@@ -586,24 +586,22 @@ export default function CrearSalaContent() {
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.roomType}</label>
                   <div className="grid grid-cols-2 gap-4">
-                    <button 
-                      onClick={() => setTipoSala("practice")} 
-                      className={`p-4 rounded-lg border transition-all ${
-                        tipoSala === "practice" 
-                          ? "border-yellow-500 bg-yellow-500/10" 
+                    <button
+                      onClick={() => setTipoSala("practice")}
+                      className={`p-4 rounded-lg border transition-all ${tipoSala === "practice"
+                          ? "border-yellow-500 bg-yellow-500/10"
                           : "border-yellow-500/20 hover:border-yellow-500/40"
-                      }`}
+                        }`}
                     >
                       <div className="text-white font-medium">{t.createRoom.practiceMode}</div>
                       <div className="text-gray-500 text-xs">{t.createRoom.noRealMoney}</div>
                     </button>
-                    <button 
-                      onClick={() => setTipoSala("paid")} 
-                      className={`p-4 rounded-lg border transition-all ${
-                        tipoSala === "paid" 
-                          ? "border-yellow-500 bg-yellow-500/10" 
+                    <button
+                      onClick={() => setTipoSala("paid")}
+                      className={`p-4 rounded-lg border transition-all ${tipoSala === "paid"
+                          ? "border-yellow-500 bg-yellow-500/10"
                           : "border-yellow-500/20 hover:border-yellow-500/40"
-                      }`}
+                        }`}
                     >
                       <div className="text-white font-medium">{t.createRoom.paidMode}</div>
                       <div className="text-gray-500 text-xs">{t.createRoom.realPrizes}</div>
@@ -615,12 +613,12 @@ export default function CrearSalaContent() {
                 {tipoSala === "paid" && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.predictionValue}</label>
-                    <input 
-                      type="number" 
-                      value={valorPrediccion} 
-                      onChange={(e) => setValorPrediccion(e.target.value)} 
-                      min="1" 
-                      max="50" 
+                    <input
+                      type="number"
+                      value={valorPrediccion}
+                      onChange={(e) => setValorPrediccion(e.target.value)}
+                      min="1"
+                      max="50"
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-yellow-500/60"
                     />
                   </div>
@@ -666,9 +664,9 @@ export default function CrearSalaContent() {
                       {t.createRoom.cancelButton}
                     </button>
                   </Link>
-                  <button 
-                    onClick={handleCreateRoom} 
-                    disabled={loading} 
+                  <button
+                    onClick={handleCreateRoom}
+                    disabled={loading}
                     className="group relative flex-1 overflow-hidden bg-yellow-500 text-black py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-400 transition-all"
                   >
                     <span className="relative z-10">{loading ? t.common.loading : t.createRoom.createButton}</span>
