@@ -1,4 +1,5 @@
 // /messages/es.ts
+// /messages/es.ts - Versión completa
 const es = {
   common: {
     language: "Idioma",
@@ -205,17 +206,21 @@ const es = {
   barDashboard: {
     title: "PANEL DEL",
     titleHighlight: "BAR",
-    createRoom: "CREAR SALA",
-    activeRooms: "SALAS ACTIVAS",
-    noActiveRooms: "No hay salas activas",
-    upcomingMatches: "PRÓXIMOS PARTIDOS",
-    noUpcomingMatches: "No hay próximos partidos",
-    history: "HISTORIAL",
-    noHistory: "No hay partidos finalizados",
-    earnings: "GANANCIAS",
-    totalEarnings: "GANANCIA TOTAL",
+    createNewRoom: "CREAR NUEVA SALA",
+    selectBar: "SELECCIONAR BAR",
+    logout: "SALIR",
     totalPlayers: "JUGADORES TOTALES",
-    totalRooms: "SALAS CREADAS",
+    collectedToday: "RECAUDADO HOY",
+    totalReceived: "TOTAL RECIBIDO",
+    rating: "CALIFICACIÓN",
+    activeRooms: "SALAS ACTIVAS",
+    upcomingMatches: "PRÓXIMOS PARTIDOS",
+    viewRoom: "VER SALA",
+    activateRoom: "ACTIVAR SALA",
+    rankingOfTheDay: "RANKING DEL DÍA",
+    noPredictionsToday: "Sin predicciones hoy",
+    players: "jugadores",
+    hits: "aciertos",
   },
   currencyPrefix: "R$",
 };
