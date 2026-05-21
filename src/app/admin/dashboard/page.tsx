@@ -103,7 +103,6 @@ export default function AdminDashboard() {
   const [loadingLive, setLoadingLive] = useState(false);
 
   // Estados para gestión de ligas
-  const [syncedLeagueIds, setSyncedLeagueIds] = useState<number[]>([]);
   const [availableLeagues, setAvailableLeagues] = useState<AvailableLeague[]>([]);
   const [selectedLeagueIds, setSelectedLeagueIds] = useState<number[]>([]);
   const [loadingLeagues, setLoadingLeagues] = useState(false);
@@ -112,9 +111,10 @@ export default function AdminDashboard() {
     season: "",
     search: ""
   });
+  const [showOnlySynced, setShowOnlySynced] = useState(false);
+  const [syncedLeagues, setSyncedLeagues] = useState<any[]>([]);
 
   const [syncing, setSyncing] = useState(false);
-  const [syncedLeagues, setSyncedLeagues] = useState<any[]>([]);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; stats?: any } | null>(null);
 
   // Idioma
@@ -194,7 +194,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Cargar ligas disponibles para el filtro
+  // Cargar ligas disponibles para el filtro de partidos
   const loadLeagues = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -248,6 +248,22 @@ export default function AdminDashboard() {
     }
   };
 
+  // Cargar ligas ya sincronizadas por el admin
+  const loadUserLeagues = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/user-leagues`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSyncedLeagues(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando ligas sincronizadas:", error);
+    }
+  };
+
   // Agregar ligas seleccionadas
   const addSelectedLeagues = async () => {
     if (selectedLeagueIds.length === 0) return;
@@ -278,8 +294,8 @@ export default function AdminDashboard() {
         });
         setSelectedLeagueIds([]);
         // Recargar las listas
-        await loadUserLeagues();  // <--- Actualizar ligas sincronizadas
-        await loadAvailableLeagues();  // <--- Recargar disponibles
+        await loadUserLeagues();
+        await loadAvailableLeagues();
       } else {
         setSyncResult({
           success: false,
@@ -296,32 +312,36 @@ export default function AdminDashboard() {
     }
   };
 
-  //Leer las ligas seleccionadas por el usuario
-  const loadUserLeagues = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/user-leagues`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setSyncedLeagues(data.data);
-      }
-    } catch (error) {
-      console.error("Error cargando ligas sincronizadas:", error);
-    }
-  };
-
-  // Filtrar ligas según los filtros
+  // Filtrar ligas según los filtros y el checkbox
   const getFilteredLeagues = () => {
-    return availableLeagues.filter(league => {
-      const matchCountry = leagueFilters.country === "" || league.country === leagueFilters.country;
-      const matchSeason = leagueFilters.season === "" || league.season.toString() === leagueFilters.season;
-      const matchSearch = leagueFilters.search === "" ||
-        league.name.toLowerCase().includes(leagueFilters.search.toLowerCase()) ||
-        league.country.toLowerCase().includes(leagueFilters.search.toLowerCase());
-      return matchCountry && matchSeason && matchSearch;
-    });
+    let filtered = availableLeagues;
+
+    // 1. Filtrar por país
+    if (leagueFilters.country !== "") {
+      filtered = filtered.filter(league => league.country === leagueFilters.country);
+    }
+
+    // 2. Filtrar por temporada
+    if (leagueFilters.season !== "") {
+      filtered = filtered.filter(league => league.season.toString() === leagueFilters.season);
+    }
+
+    // 3. Filtrar por búsqueda de nombre
+    if (leagueFilters.search !== "") {
+      const searchLower = leagueFilters.search.toLowerCase();
+      filtered = filtered.filter(league =>
+        league.name.toLowerCase().includes(searchLower) ||
+        league.country.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // 4. Mostrar solo ligas sincronizadas si el checkbox está marcado
+    if (showOnlySynced) {
+      const syncedIds = syncedLeagues.map(sl => sl.league_id);
+      filtered = filtered.filter(league => syncedIds.includes(league.id));
+    }
+
+    return filtered;
   };
 
   // Obtener países únicos para el filtro
@@ -330,7 +350,7 @@ export default function AdminDashboard() {
     return countries.sort();
   };
 
-  // Ejecutar loadFixtures cuando cambian los filtros
+  // Ejecutar loadFixtures cuando cambian los filtros de partidos
   useEffect(() => {
     if (!loading) {
       loadFixtures();
@@ -626,7 +646,7 @@ export default function AdminDashboard() {
               onClick={() => {
                 setActiveTab("ligas");
                 loadAvailableLeagues();
-                loadUserLeagues();  // <--- Agregar esta línea
+                loadUserLeagues();
               }}
               className={`pb-3 text-sm tracking-wide transition-all whitespace-nowrap ${activeTab === "ligas" ? "text-yellow-500 border-b-2 border-yellow-500" : "text-gray-500 hover:text-gray-400"}`}
             >
@@ -861,8 +881,10 @@ export default function AdminDashboard() {
           {/* TAB CONTENT - GESTIÓN DE LIGAS */}
           {activeTab === "ligas" && (
             <div className="space-y-6">
+              {/* Panel de filtros */}
               <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
                 <h3 className="text-white font-medium mb-4">Filtrar ligas disponibles</h3>
+                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">País</label>
@@ -877,6 +899,7 @@ export default function AdminDashboard() {
                       ))}
                     </select>
                   </div>
+                  
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">Temporada</label>
                     <select
@@ -889,6 +912,7 @@ export default function AdminDashboard() {
                       <option value="2026">2026</option>
                     </select>
                   </div>
+                  
                   <div>
                     <label className="block text-gray-400 text-xs mb-1">Buscar liga</label>
                     <input
@@ -899,6 +923,27 @@ export default function AdminDashboard() {
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
                     />
                   </div>
+                </div>
+                
+                {/* Checkbox para mostrar solo ligas sincronizadas */}
+                <div className="flex items-center gap-3 mt-4 pt-4 border-t border-yellow-500/20">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showOnlySynced}
+                      onChange={(e) => setShowOnlySynced(e.target.checked)}
+                      className="w-4 h-4 rounded border-yellow-500/30 bg-black text-yellow-500 focus:ring-yellow-500 focus:ring-offset-0"
+                    />
+                    <span className="text-sm text-gray-300">
+                      Mostrar solo ligas sincronizadas
+                    </span>
+                  </label>
+                  
+                  {showOnlySynced && syncedLeagues.length === 0 && (
+                    <span className="text-xs text-yellow-500">
+                      (No hay ligas sincronizadas aún)
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -918,15 +963,23 @@ export default function AdminDashboard() {
                             );
                           }
                         }}
-                        className={`bg-black/30 border rounded-xl p-4 transition-all ${syncedLeagues.some(sl => sl.league_id === league.id)
-                            ? 'border-green-500/60 bg-green-500/10 cursor-default' // Verde: ya sincronizada
+                        className={`bg-black/30 border rounded-xl p-4 transition-all ${
+                          syncedLeagues.some(sl => sl.league_id === league.id)
+                            ? 'border-green-500/60 bg-green-500/10 cursor-default'
                             : selectedLeagueIds.includes(league.id)
-                              ? 'border-yellow-500/60 bg-yellow-500/5 cursor-pointer' // Amarillo: seleccionada
-                              : 'border-yellow-500/20 hover:border-yellow-500/40 cursor-pointer' // Gris: normal
-                          }`}
+                              ? 'border-yellow-500/60 bg-yellow-500/5 cursor-pointer'
+                              : 'border-yellow-500/20 hover:border-yellow-500/40 cursor-pointer'
+                        }`}
                       >
                         <div className="flex items-center gap-3">
-                          {league.logo && <img src={league.logo} alt="" className="w-8 h-8 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />}
+                          {league.logo && (
+                            <img 
+                              src={league.logo} 
+                              alt="" 
+                              className="w-8 h-8 object-contain" 
+                              onError={(e) => (e.currentTarget.style.display = 'none')} 
+                            />
+                          )}
                           <div className="flex-1">
                             <h3 className="text-white font-medium">
                               {league.name}
@@ -937,10 +990,11 @@ export default function AdminDashboard() {
                             <p className="text-gray-500 text-xs">{league.country} • Temporada {league.season}</p>
                           </div>
                           {!syncedLeagues.some(sl => sl.league_id === league.id) && (
-                            <div className={`w-5 h-5 rounded-full border ${selectedLeagueIds.includes(league.id)
+                            <div className={`w-5 h-5 rounded-full border ${
+                              selectedLeagueIds.includes(league.id)
                                 ? 'bg-yellow-500 border-yellow-500 flex items-center justify-center'
                                 : 'border-gray-500'
-                              }`}>
+                            }`}>
                               {selectedLeagueIds.includes(league.id) && <Check className="w-3 h-3 text-black" />}
                             </div>
                           )}
@@ -954,6 +1008,7 @@ export default function AdminDashboard() {
                 </>
               )}
 
+              {/* Botón flotante para agregar ligas seleccionadas */}
               {selectedLeagueIds.length > 0 && (
                 <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
                   <button
