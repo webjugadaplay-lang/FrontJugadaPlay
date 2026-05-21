@@ -327,14 +327,7 @@ export default function BarDashboard() {
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-7xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              {userBars.length > 1 && (
-                <p className="text-gray-500 text-sm mt-2">
-                  Administrando: <span className="text-yellow-500">{selectedBarName}</span>
-                </p>
-              )}
-            </div>
-
+            
             <Link href={`/bar/crear-sala?barId=${selectedBarId}`}>
               <button className="group relative overflow-hidden bg-yellow-500 text-black px-6 py-2.5 rounded-sm text-sm font-medium tracking-wide flex items-center gap-2 hover:bg-yellow-400 transition-all">
                 <Plus className="w-4 h-4" />
