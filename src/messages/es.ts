@@ -1,5 +1,4 @@
 // /messages/es.ts
-// /messages/es.ts - Versión completa
 const es = {
   common: {
     language: "Idioma",
@@ -172,7 +171,16 @@ const es = {
   createRoom: {
     title: "CREAR",
     titleHighlight: "SALA",
-    subtitle: "Selecciona el torneo, los equipos y completa los datos del partido",
+    subtitle: "Selecciona la liga, temporada y el partido para crear tu sala",
+    // Nuevas propiedades para ligas y partidos
+    league: "LIGA / TORNEO",
+    season: "TEMPORADA",
+    match: "PARTIDO",
+    selectLeague: "Selecciona una liga",
+    selectSeason: "Selecciona una temporada",
+    selectMatch: "Selecciona un partido",
+    noMatches: "No hay partidos disponibles para esta liga y temporada",
+    // Propiedades existentes
     continent: "CONTINENTE",
     country: "PAÍS",
     tournament: "TORNEO / CAMPEONATO *",
@@ -201,6 +209,7 @@ const es = {
       selectTeams: "Debes seleccionar los dos equipos",
       sameTeams: "Los equipos local y visitante deben ser diferentes",
       requiredDateTime: "Fecha y hora del partido son obligatorias",
+      selectMatch: "Debes seleccionar un partido",
     }
   },
   barDashboard: {

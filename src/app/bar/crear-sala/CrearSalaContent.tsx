@@ -1,15 +1,18 @@
+//src/app/bar/crear-sala/CrearSalaContent.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
-  ArrowLeft, Crown, Trophy, Zap,
-  Globe, MapPin, ChevronDown, Users
+  ArrowLeft, Trophy, Zap,
+  ChevronDown, Users, Calendar,
+  Clock, AlertCircle
 } from "lucide-react";
 import { translations, type Locale } from "@/messages";
 
-// Función para detectar idioma inicial (exactamente igual a la landing)
+// Función para detectar idioma inicial
 function detectInitialLocale(): Locale {
   if (typeof window === "undefined") return "pt-BR";
 
@@ -29,29 +32,33 @@ function detectInitialLocale(): Locale {
   return "pt-BR";
 }
 
-interface Continent {
+// Interfaces para los datos
+interface League {
   id: number;
-  name: string;
-  code: string;
+  league_id: number;
+  league_name: string;
+  league_country: string | null;
+  league_logo: string | null;
+  season_2025: boolean;
+  season_2026: boolean;
 }
 
-interface Country {
-  id: number;
-  name: string;
-  code: string;
-  flag: string;
+interface Season {
+  value: number;
+  label: string;
 }
 
-interface Tournament {
+interface Fixture {
   id: number;
-  name: string;
-  type: string;
-  country_id: number | null;
-}
-
-interface Team {
-  id: number;
-  name: string;
+  league_id: number;
+  league_name: string;
+  home_team_name: string;
+  home_team_logo: string | null;
+  away_team_name: string;
+  away_team_logo: string | null;
+  match_date: string;
+  venue: string | null;
+  status: string;
 }
 
 export default function CrearSalaContent() {
@@ -59,11 +66,12 @@ export default function CrearSalaContent() {
   const searchParams = useSearchParams();
   const barIdParam = searchParams.get("barId");
 
-  // Estado del idioma (exactamente igual a la landing)
+  // Estado del idioma
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [isLocaleReady, setIsLocaleReady] = useState(false);
   const t = translations[locale];
 
+  // Estado del formulario
   const [barId, setBarId] = useState<string>("");
   const [tipoSala, setTipoSala] = useState<"practice" | "paid">("paid");
   const [valorPrediccion, setValorPrediccion] = useState("5");
@@ -71,38 +79,34 @@ export default function CrearSalaContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [continents, setContinents] = useState<Continent[]>([]);
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [selectedContinent, setSelectedContinent] = useState<string>("");
-  const [selectedCountry, setSelectedCountry] = useState<string>("");
-  const [selectedTournament, setSelectedTournament] = useState<string>("");
-  const [loadingCountries, setLoadingCountries] = useState(false);
-  const [loadingTournaments, setLoadingTournaments] = useState(false);
+  // Estados para los datos
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [selectedLeagueId, setSelectedLeagueId] = useState<string>("");
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [selectedSeason, setSelectedSeason] = useState<string>("");
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [selectedFixtureId, setSelectedFixtureId] = useState<string>("");
+  const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
+  
+  // Estados de carga
+  const [loadingLeagues, setLoadingLeagues] = useState(false);
+  const [loadingSeasons, setLoadingSeasons] = useState(false);
+  const [loadingFixtures, setLoadingFixtures] = useState(false);
 
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeamHomeId, setSelectedTeamHomeId] = useState<string>("");
-  const [selectedTeamAwayId, setSelectedTeamAwayId] = useState<string>("");
-  const [loadingTeams, setLoadingTeams] = useState(false);
-
-  const [matchDate, setMatchDate] = useState("");
-  const [matchTime, setMatchTime] = useState("");
-
-  const isMundial = selectedContinent === "7";
-
-  // Detectar idioma al inicio (exactamente igual a la landing)
+  // Detectar idioma al inicio
   useEffect(() => {
     const detectedLocale = detectInitialLocale();
     setLocale(detectedLocale);
     setIsLocaleReady(true);
   }, []);
 
-  // Guardar idioma en localStorage (exactamente igual a la landing)
+  // Guardar idioma en localStorage
   useEffect(() => {
     if (!isLocaleReady) return;
     localStorage.setItem("jugadaplay_locale", locale);
   }, [locale, isLocaleReady]);
 
+  // Obtener barId
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
@@ -124,160 +128,111 @@ export default function CrearSalaContent() {
     }
   }, [router, barIdParam]);
 
+  // Cargar ligas al iniciar
   useEffect(() => {
-    fetchContinents();
+    fetchLeagues();
   }, []);
 
-  const fetchContinents = async () => {
+  const fetchLeagues = async () => {
+    setLoadingLeagues(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/continents`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/league`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      if (data.success) setContinents(data.data);
+      if (data.success) {
+        setLeagues(data.data);
+      }
     } catch (error) {
-      console.error("Error cargando continentes:", error);
+      console.error("Error cargando ligas:", error);
+      setError("Error al cargar las ligas");
+    } finally {
+      setLoadingLeagues(false);
     }
   };
 
+  // Cuando se selecciona una liga, cargar sus temporadas
   useEffect(() => {
-    if (!selectedContinent) {
-      setCountries([]);
-      setTournaments([]);
-      setTeams([]);
+    if (!selectedLeagueId) {
+      setSeasons([]);
+      setSelectedSeason("");
+      setFixtures([]);
+      setSelectedFixtureId("");
+      setSelectedFixture(null);
       return;
     }
 
-    setSelectedCountry("");
-    setSelectedTournament("");
-    setSelectedTeamHomeId("");
-    setSelectedTeamAwayId("");
-    setTeams([]);
-    setTournaments([]);
-    setCountries([]);
+    fetchSeasons(selectedLeagueId);
+  }, [selectedLeagueId]);
 
-    const continentId = parseInt(selectedContinent);
+  const fetchSeasons = async (leagueId: string) => {
+    setLoadingSeasons(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/league/${leagueId}/seasons`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSeasons(data.data);
+        // Si hay temporadas, seleccionar la más reciente por defecto
+        if (data.data.length > 0) {
+          const latestSeason = data.data[data.data.length - 1].value.toString();
+          setSelectedSeason(latestSeason);
+        }
+      }
+    } catch (error) {
+      console.error("Error cargando temporadas:", error);
+      setError("Error al cargar las temporadas");
+    } finally {
+      setLoadingSeasons(false);
+    }
+  };
 
-    if (continentId === 7) {
-      fetchInternationalTournaments();
-      fetchInternationalTeams();
+  // Cuando se selecciona una liga y temporada, cargar los fixtures
+  useEffect(() => {
+    if (!selectedLeagueId || !selectedSeason) {
+      setFixtures([]);
+      setSelectedFixtureId("");
+      setSelectedFixture(null);
+      return;
+    }
+
+    fetchFixtures(selectedLeagueId, selectedSeason);
+  }, [selectedLeagueId, selectedSeason]);
+
+  const fetchFixtures = async (leagueId: string, season: string) => {
+    setLoadingFixtures(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/league/fixtures?leagueId=${leagueId}&season=${season}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        setFixtures(data.data);
+      }
+    } catch (error) {
+      console.error("Error cargando partidos:", error);
+      setError("Error al cargar los partidos");
+    } finally {
+      setLoadingFixtures(false);
+    }
+  };
+
+  // Cuando se selecciona un fixture, guardarlo
+  useEffect(() => {
+    if (selectedFixtureId) {
+      const fixture = fixtures.find(f => f.id.toString() === selectedFixtureId);
+      setSelectedFixture(fixture || null);
     } else {
-      fetchCountries(continentId);
+      setSelectedFixture(null);
     }
-  }, [selectedContinent]);
-
-  const fetchCountries = async (continentId: number) => {
-    setLoadingCountries(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/countries?continentId=${continentId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setCountries(data.data);
-      }
-    } catch (error) {
-      console.error("Error cargando países:", error);
-    } finally {
-      setLoadingCountries(false);
-    }
-  };
-
-  const fetchInternationalTournaments = async () => {
-    setLoadingTournaments(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tournaments/international`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTournaments(data.data);
-      }
-    } catch (error) {
-      console.error("Error cargando torneos internacionales:", error);
-    } finally {
-      setLoadingTournaments(false);
-    }
-  };
-
-  const fetchInternationalTeams = async () => {
-    setLoadingTeams(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teams/international`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTeams(data.data);
-      }
-    } catch (error) {
-      console.error("Error cargando equipos internacionales:", error);
-    } finally {
-      setLoadingTeams(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedCountry && !isMundial) {
-      setSelectedTournament("");
-      setSelectedTeamHomeId("");
-      setSelectedTeamAwayId("");
-      setTeams([]);
-      fetchTournamentsByCountry(parseInt(selectedCountry));
-    }
-  }, [selectedCountry]);
-
-  const fetchTournamentsByCountry = async (countryId: number) => {
-    setLoadingTournaments(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tournaments?countryId=${countryId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTournaments(data.data);
-      }
-    } catch (error) {
-      console.error("Error cargando torneos del país:", error);
-    } finally {
-      setLoadingTournaments(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedTournament && !isMundial) {
-      setSelectedTeamHomeId("");
-      setSelectedTeamAwayId("");
-      fetchTeamsByTournament(parseInt(selectedTournament));
-    }
-  }, [selectedTournament]);
-
-  const fetchTeamsByTournament = async (tournamentId: number) => {
-    setLoadingTeams(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teams-by-tournament?tournamentId=${tournamentId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTeams(data.data);
-      }
-    } catch (error) {
-      console.error("Error cargando equipos:", error);
-    } finally {
-      setLoadingTeams(false);
-    }
-  };
-
-  const availableAwayTeams = teams.filter(team => team.id.toString() !== selectedTeamHomeId);
-  const selectedTeamHome = teams.find(t => t.id.toString() === selectedTeamHomeId)?.name || "";
-  const selectedTeamAway = teams.find(t => t.id.toString() === selectedTeamAwayId)?.name || "";
+  }, [selectedFixtureId, fixtures]);
 
   const handleCreateRoom = async () => {
     if (!barId) {
@@ -285,16 +240,8 @@ export default function CrearSalaContent() {
       return;
     }
 
-    if (!selectedTeamHomeId || !selectedTeamAwayId) {
-      setError(t.createRoom.errors.selectTeams);
-      return;
-    }
-    if (selectedTeamHomeId === selectedTeamAwayId) {
-      setError(t.createRoom.errors.sameTeams);
-      return;
-    }
-    if (!matchDate || !matchTime) {
-      setError(t.createRoom.errors.requiredDateTime);
+    if (!selectedFixture) {
+      setError(t.createRoom.errors.selectMatch || "Debes seleccionar un partido");
       return;
     }
 
@@ -303,18 +250,9 @@ export default function CrearSalaContent() {
 
     try {
       const token = localStorage.getItem("token");
-      const matchDateTime = new Date(`${matchDate}T${matchTime}`);
+      const matchDateTime = new Date(selectedFixture.match_date);
       const closeTime = new Date(matchDateTime);
       if (cierrePredictions === "15min") closeTime.setMinutes(closeTime.getMinutes() - 15);
-
-      let tournamentName = "";
-      if (isMundial && selectedTournament) {
-        const tournament = tournaments.find(t => t.id.toString() === selectedTournament);
-        tournamentName = tournament?.name || "Partido Internacional";
-      } else if (selectedTournament) {
-        const tournament = tournaments.find(t => t.id.toString() === selectedTournament);
-        tournamentName = tournament?.name || "Partido Amistoso";
-      }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms`, {
         method: "POST",
@@ -324,11 +262,12 @@ export default function CrearSalaContent() {
         },
         body: JSON.stringify({
           barId: barId,
-          name: `${selectedTeamHome} vs ${selectedTeamAway}`,
+          name: `${selectedFixture.home_team_name} vs ${selectedFixture.away_team_name}`,
           sport: "Fútbol",
-          tournament: tournamentName,
-          team_home: selectedTeamHome,
-          team_away: selectedTeamAway,
+          tournament: selectedFixture.league_name,
+          team_home: selectedFixture.home_team_name,
+          team_away: selectedFixture.away_team_name,
+          fixture_id: selectedFixture.id,
           match_date: matchDateTime.toISOString(),
           prediction_close_time: closeTime.toISOString(),
           entry_fee: tipoSala === "paid" ? parseFloat(valorPrediccion) : 0,
@@ -361,6 +300,15 @@ export default function CrearSalaContent() {
 
   const pozo = calcularPozo();
 
+  // Formatear fecha para mostrar
+  const formatMatchDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'pt-BR'),
+      time: date.toLocaleTimeString(locale === 'es' ? 'es-ES' : 'pt-BR', { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
   if (!isLocaleReady) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -376,14 +324,17 @@ export default function CrearSalaContent() {
           <div className="flex justify-between items-center h-20">
             <Link href="/bar/dashboard" className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-                <img
-                  src="/logo-jugadaplay.svg"
-                  alt="Jugada Play"
-                  className="h-10 md:h-12 lg:h-14 w-auto object-contain"
-                />
+              <Image
+                src="/logo-jugadaplay.svg"
+                alt="Jugada Play"
+                width={140}
+                height={40}
+                className="h-8 md:h-10 w-auto object-contain"
+                priority
+              />
             </Link>
 
-            {/* Selector de idioma - EXACTAMENTE IGUAL a la landing page */}
+            {/* Selector de idioma */}
             <div className="flex items-center gap-2">
               <label className="text-gray-400 text-xs tracking-wide">
                 {t.header.language}
@@ -416,142 +367,123 @@ export default function CrearSalaContent() {
               </div>
 
               <div className="p-8 space-y-6">
-                {/* SELECTOR DE CONTINENTE */}
+                {/* SELECTOR DE LIGA */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                    <Globe className="w-4 h-4" /> {t.createRoom.continent}
+                    <Trophy className="w-4 h-4" /> {t.createRoom.league}
                   </label>
                   <div className="relative">
                     <select
-                      value={selectedContinent}
-                      onChange={(e) => setSelectedContinent(e.target.value)}
+                      value={selectedLeagueId}
+                      onChange={(e) => setSelectedLeagueId(e.target.value)}
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
+                      disabled={loadingLeagues}
                     >
-                      <option value="">Selecciona un continente</option>
-                      {continents.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                      <option value="">{t.createRoom.selectLeague}</option>
+                      {leagues.map((league) => (
+                        <option key={league.id} value={league.league_id}>
+                          {league.league_country ? `${league.league_country} - ` : ''}{league.league_name}
+                        </option>
                       ))}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                   </div>
+                  {loadingLeagues && <p className="text-gray-500 text-xs">{t.common.loading}</p>}
                 </div>
 
-                {/* SELECTOR DE PAÍS */}
-                {selectedContinent && !isMundial && countries.length > 0 && (
+                {/* SELECTOR DE TEMPORADA */}
+                {selectedLeagueId && seasons.length > 0 && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                      <MapPin className="w-4 h-4" /> {t.createRoom.country}
+                      <Calendar className="w-4 h-4" /> {t.createRoom.season}
                     </label>
                     <div className="relative">
                       <select
-                        value={selectedCountry}
-                        onChange={(e) => setSelectedCountry(e.target.value)}
+                        value={selectedSeason}
+                        onChange={(e) => setSelectedSeason(e.target.value)}
                         className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
-                        disabled={loadingCountries}
+                        disabled={loadingSeasons}
                       >
-                        <option value="">Selecciona un país</option>
-                        {countries.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
+                        <option value="">{t.createRoom.selectSeason}</option>
+                        {seasons.map((season) => (
+                          <option key={season.value} value={season.value}>
+                            {season.label}
+                          </option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                     </div>
-                    {loadingCountries && <p className="text-gray-500 text-xs">{t.common.loading}</p>}
+                    {loadingSeasons && <p className="text-gray-500 text-xs">{t.common.loading}</p>}
                   </div>
                 )}
 
-                {/* SELECTOR DE TORNEO */}
-                {selectedContinent && tournaments.length > 0 && (
+                {/* SELECTOR DE PARTIDO */}
+                {selectedLeagueId && selectedSeason && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                      <Trophy className="w-4 h-4" /> {t.createRoom.tournament}
+                      <Users className="w-4 h-4" /> {t.createRoom.match}
                     </label>
                     <div className="relative">
                       <select
-                        value={selectedTournament}
-                        onChange={(e) => setSelectedTournament(e.target.value)}
+                        value={selectedFixtureId}
+                        onChange={(e) => setSelectedFixtureId(e.target.value)}
                         className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
-                        disabled={loadingTournaments}
+                        disabled={loadingFixtures}
                       >
-                        <option value="">Selecciona un torneo</option>
-                        {tournaments.map((t) => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
+                        <option value="">{t.createRoom.selectMatch}</option>
+                        {fixtures.map((fixture) => {
+                          const { date, time } = formatMatchDate(fixture.match_date);
+                          return (
+                            <option key={fixture.id} value={fixture.id}>
+                              {fixture.home_team_name} vs {fixture.away_team_name} - {date} {time}
+                            </option>
+                          );
+                        })}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                     </div>
-                    {loadingTournaments && <p className="text-gray-500 text-xs">{t.common.loading}</p>}
+                    {loadingFixtures && <p className="text-gray-500 text-xs">{t.common.loading}</p>}
+                    {!loadingFixtures && fixtures.length === 0 && selectedLeagueId && selectedSeason && (
+                      <div className="flex items-center gap-2 text-yellow-500/70 text-xs bg-yellow-500/5 p-2 rounded">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>{t.createRoom.noMatches}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* SELECTORES DE EQUIPOS */}
-                {selectedContinent && teams.length > 0 && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                        <Users className="w-4 h-4" /> {t.createRoom.homeTeam}
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={selectedTeamHomeId}
-                          onChange={(e) => setSelectedTeamHomeId(e.target.value)}
-                          className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
-                          disabled={loadingTeams}
-                        >
-                          <option value="">Selecciona equipo local</option>
-                          {teams.map((team) => (
-                            <option key={team.id} value={team.id}>{team.name}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
+                {/* INFO DEL PARTIDO SELECCIONADO */}
+                {selectedFixture && (
+                  <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-white text-sm font-medium">Partido seleccionado</h3>
+                      <span className="text-xs text-green-500">✓</span>
+                    </div>
+                    <div className="text-center mb-3">
+                      <div className="text-white font-medium">
+                        {selectedFixture.home_team_name} vs {selectedFixture.away_team_name}
+                      </div>
+                      <div className="text-gray-500 text-xs mt-1">
+                        {selectedFixture.league_name}
                       </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
-                        <Users className="w-4 h-4" /> {t.createRoom.awayTeam}
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={selectedTeamAwayId}
-                          onChange={(e) => setSelectedTeamAwayId(e.target.value)}
-                          className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-500/60"
-                          disabled={loadingTeams || !selectedTeamHomeId}
-                        >
-                          <option value="">Selecciona equipo visitante</option>
-                          {availableAwayTeams.map((team) => (
-                            <option key={team.id} value={team.id}>{team.name}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
-                      </div>
+                    <div className="flex justify-center gap-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {formatMatchDate(selectedFixture.match_date).date}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatMatchDate(selectedFixture.match_date).time}
+                      </span>
                     </div>
-
-                    {loadingTeams && <p className="text-gray-500 text-xs text-center">{t.common.loading}</p>}
-                  </>
+                    {selectedFixture.venue && (
+                      <div className="text-center text-gray-600 text-xs mt-2">
+                        {selectedFixture.venue}
+                      </div>
+                    )}
+                  </div>
                 )}
-
-                {/* FECHA Y HORA */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.date}</label>
-                    <input
-                      type="date"
-                      value={matchDate}
-                      onChange={(e) => setMatchDate(e.target.value)}
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-yellow-500/60"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs text-yellow-500 tracking-wider">{t.createRoom.time}</label>
-                    <input
-                      type="time"
-                      value={matchTime}
-                      onChange={(e) => setMatchTime(e.target.value)}
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-yellow-500/60"
-                    />
-                  </div>
-                </div>
 
                 {/* CIERRE DE PREDICCIONES */}
                 <div className="space-y-2">
@@ -664,7 +596,7 @@ export default function CrearSalaContent() {
                   </Link>
                   <button
                     onClick={handleCreateRoom}
-                    disabled={loading}
+                    disabled={loading || !selectedFixture}
                     className="group relative flex-1 overflow-hidden bg-yellow-500 text-black py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-400 transition-all"
                   >
                     <span className="relative z-10">{loading ? t.common.loading : t.createRoom.createButton}</span>

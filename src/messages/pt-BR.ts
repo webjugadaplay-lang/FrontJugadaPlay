@@ -170,7 +170,16 @@ const ptBR = {
   createRoom: {
     title: "CRIAR",
     titleHighlight: "SALA",
-    subtitle: "Selecione o torneio, os times e complete os dados da partida",
+    subtitle: "Selecione a liga, temporada e a partida para criar sua sala",
+    // Novas propriedades para ligas e partidas
+    league: "LIGA / TORNEIO",
+    season: "TEMPORADA",
+    match: "PARTIDA",
+    selectLeague: "Selecione uma liga",
+    selectSeason: "Selecione uma temporada",
+    selectMatch: "Selecione uma partida",
+    noMatches: "Não há partidas disponíveis para esta liga e temporada",
+    // Propriedades existentes
     continent: "CONTINENTE",
     country: "PAÍS",
     tournament: "TORNEIO / CAMPEONATO *",
@@ -199,6 +208,7 @@ const ptBR = {
       selectTeams: "Você deve selecionar os dois times",
       sameTeams: "Os times local e visitante devem ser diferentes",
       requiredDateTime: "Data e hora da partida são obrigatórias",
+      selectMatch: "Você deve selecionar uma partida",
     }
   },
   barDashboard: {
