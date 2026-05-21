@@ -376,13 +376,11 @@ export default function CrearSalaContent() {
           <div className="flex justify-between items-center h-20">
             <Link href="/bar/dashboard" className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-              <Link href="/" className="flex items-center">
                 <img
                   src="/logo-jugadaplay.svg"
                   alt="Jugada Play"
                   className="h-10 md:h-12 lg:h-14 w-auto object-contain"
                 />
-              </Link>
             </Link>
 
             {/* Selector de idioma - EXACTAMENTE IGUAL a la landing page */}
