@@ -258,9 +258,7 @@ export default function BarDashboard() {
               )}
 
               <div className="w-px h-6 bg-yellow-500/20"></div>
-              <button className="text-gray-400 hover:text-yellow-500 transition-colors text-sm">
-                SALDO: R$ {stats.bar.balance.toFixed(2)}
-              </button>
+
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm"
@@ -268,9 +266,7 @@ export default function BarDashboard() {
                 <LogOut className="w-4 h-4" />
                 SALIR
               </button>
-              <button className="relative overflow-hidden border border-yellow-500/50 text-yellow-500 px-4 py-1.5 text-sm rounded-sm hover:border-yellow-500 transition-all">
-                RETIRAR
-              </button>
+              
             </div>
 
             <button
