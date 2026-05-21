@@ -63,12 +63,12 @@ interface StatsData {
 
 export default function BarDashboard() {
   const router = useRouter();
-  
+
   // Estado del idioma (exactamente igual a la landing)
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [isLocaleReady, setIsLocaleReady] = useState(false);
   const t = translations[locale];
-  
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("activas");
   const [loading, setLoading] = useState(true);
@@ -279,11 +279,10 @@ export default function BarDashboard() {
                         <button
                           key={bar.id}
                           onClick={() => handleBarChange(bar.id, bar.name || bar.bar_name)}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-yellow-500/10 transition-colors ${
-                            selectedBarId === bar.id
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-yellow-500/10 transition-colors ${selectedBarId === bar.id
                               ? "text-yellow-500"
                               : "text-gray-400"
-                          }`}
+                            }`}
                         >
                           {bar.name || bar.bar_name}
                         </button>
@@ -301,14 +300,6 @@ export default function BarDashboard() {
 
               <div className="w-px h-6 bg-yellow-500/20"></div>
 
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm"
-              >
-                <LogOut className="w-4 h-4" />
-                {t.barDashboard.logout}
-              </button>
-
               {/* Selector de idioma */}
               <div className="flex items-center gap-2">
                 <label className="text-gray-400 text-xs tracking-wide">
@@ -323,6 +314,14 @@ export default function BarDashboard() {
                   <option value="es">ES</option>
                 </select>
               </div>
+
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm"
+              >
+                <LogOut className="w-4 h-4" />
+                {t.barDashboard.logout}
+              </button>
             </div>
 
             <button
@@ -347,11 +346,10 @@ export default function BarDashboard() {
                           handleBarChange(bar.id, bar.name || bar.bar_name);
                           setIsMenuOpen(false);
                         }}
-                        className={`block w-full text-left py-1 ${
-                          selectedBarId === bar.id
+                        className={`block w-full text-left py-1 ${selectedBarId === bar.id
                             ? "text-yellow-500"
                             : "text-gray-400"
-                        }`}
+                          }`}
                       >
                         {bar.name || bar.bar_name}
                       </button>
@@ -363,7 +361,7 @@ export default function BarDashboard() {
                     {selectedBarName}
                   </span>
                 )}
-                
+
                 <button
                   onClick={handleLogout}
                   className="text-gray-400 hover:text-yellow-500 py-2 text-sm text-left"
@@ -460,22 +458,20 @@ export default function BarDashboard() {
           <div className="flex space-x-6 mb-6 border-b border-yellow-500/20">
             <button
               onClick={() => setActiveTab("activas")}
-              className={`pb-3 text-sm tracking-wide transition-all ${
-                activeTab === "activas"
+              className={`pb-3 text-sm tracking-wide transition-all ${activeTab === "activas"
                   ? "text-yellow-500 border-b-2 border-yellow-500"
                   : "text-gray-500 hover:text-gray-400"
-              }`}
+                }`}
             >
               {t.barDashboard.activeRooms} ({rooms.activas.length})
             </button>
 
             <button
               onClick={() => setActiveTab("proximos")}
-              className={`pb-3 text-sm tracking-wide transition-all ${
-                activeTab === "proximos"
+              className={`pb-3 text-sm tracking-wide transition-all ${activeTab === "proximos"
                   ? "text-yellow-500 border-b-2 border-yellow-500"
                   : "text-gray-500 hover:text-gray-400"
-              }`}
+                }`}
             >
               {t.barDashboard.upcomingMatches} ({rooms.proximos.length})
             </button>
