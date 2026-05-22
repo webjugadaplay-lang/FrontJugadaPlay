@@ -87,7 +87,7 @@ export default function CrearSalaContent() {
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [selectedFixtureId, setSelectedFixtureId] = useState<string>("");
   const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
-  
+
   // Estados de carga
   const [loadingLeagues, setLoadingLeagues] = useState(false);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
@@ -151,20 +151,20 @@ export default function CrearSalaContent() {
     try {
       const token = localStorage.getItem("token");
       console.log("Fetching leagues from:", `${process.env.NEXT_PUBLIC_API_URL}/api/league`);
-      
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/league`, {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await handleApiResponse(response);
-      
+
       if (data.success) {
         setLeagues(data.data);
       } else {
@@ -198,18 +198,18 @@ export default function CrearSalaContent() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/league/${leagueId}/seasons`, {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await handleApiResponse(response);
-      
+
       if (data.success) {
         setSeasons(data.data);
         if (data.data.length > 0) {
@@ -246,20 +246,20 @@ export default function CrearSalaContent() {
       const token = localStorage.getItem("token");
       const url = `${process.env.NEXT_PUBLIC_API_URL}/api/league/fixtures?leagueId=${leagueId}&season=${season}`;
       console.log("Fetching fixtures from:", url);
-      
+
       const response = await fetch(url, {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await handleApiResponse(response);
-      
+
       if (data.success) {
         setFixtures(data.data);
       } else {
@@ -299,24 +299,6 @@ export default function CrearSalaContent() {
 
     try {
       const token = localStorage.getItem("token");
-      const matchDateTime = new Date(selectedFixture.match_date);
-      const closeTime = new Date(matchDateTime);
-      if (cierrePredictions === "15min") closeTime.setMinutes(closeTime.getMinutes() - 15);
-
-      const requestBody = {
-        barId: barId,
-        name: `${selectedFixture.home_team_name} vs ${selectedFixture.away_team_name}`,
-        sport: "Fútbol",
-        tournament: selectedFixture.league_name,
-        team_home: selectedFixture.home_team_name,
-        team_away: selectedFixture.away_team_name,
-        fixture_id: selectedFixture.id,
-        match_date: matchDateTime.toISOString(),
-        prediction_close_time: closeTime.toISOString(),
-        entry_fee: tipoSala === "paid" ? parseFloat(valorPrediccion) : 0,
-      };
-
-      console.log("Creating room with data:", requestBody);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms`, {
         method: "POST",
@@ -324,18 +306,22 @@ export default function CrearSalaContent() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          barId: barId,
+          fixture_id: selectedFixture.id,  // ← Enviar el ID del fixture
+          entry_fee: tipoSala === "paid" ? parseFloat(valorPrediccion) : 0,
+          prediction_close_minutes: cierrePredictions === "15min" ? 15 : 0
+        }),
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al crear sala");
       }
 
-      const data = await handleApiResponse(response);
-      
-      if (response.ok) {
+      const data = await response.json();
+
+      if (data.success) {
         router.push("/bar/dashboard");
       } else {
         throw new Error(data.message || "Error al crear sala");
