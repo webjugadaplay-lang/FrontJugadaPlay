@@ -128,6 +128,18 @@ export default function CrearSalaContent() {
     }
   }, [router, barIdParam]);
 
+  // Función helper para manejar respuestas del servidor
+  const handleApiResponse = async (response: Response) => {
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      return await response.json();
+    }
+    // Si no es JSON, algo salió mal
+    const text = await response.text();
+    console.error("Respuesta no JSON:", text.substring(0, 200));
+    throw new Error("El servidor devolvió una respuesta inválida");
+  };
+
   // Cargar ligas al iniciar
   useEffect(() => {
     fetchLeagues();
@@ -135,18 +147,32 @@ export default function CrearSalaContent() {
 
   const fetchLeagues = async () => {
     setLoadingLeagues(true);
+    setError("");
     try {
       const token = localStorage.getItem("token");
+      console.log("Fetching leagues from:", `${process.env.NEXT_PUBLIC_API_URL}/api/league`);
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/league`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
       });
-      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await handleApiResponse(response);
+      
       if (data.success) {
         setLeagues(data.data);
+      } else {
+        setError(data.message || "Error al cargar las ligas");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error cargando ligas:", error);
-      setError("Error al cargar las ligas");
+      setError(`Error al cargar las ligas: ${error.message}`);
     } finally {
       setLoadingLeagues(false);
     }
@@ -168,23 +194,34 @@ export default function CrearSalaContent() {
 
   const fetchSeasons = async (leagueId: string) => {
     setLoadingSeasons(true);
+    setError("");
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/league/${leagueId}/seasons`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
       });
-      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await handleApiResponse(response);
+      
       if (data.success) {
         setSeasons(data.data);
-        // Si hay temporadas, seleccionar la más reciente por defecto
         if (data.data.length > 0) {
           const latestSeason = data.data[data.data.length - 1].value.toString();
           setSelectedSeason(latestSeason);
         }
+      } else {
+        setError(data.message || "Error al cargar las temporadas");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error cargando temporadas:", error);
-      setError("Error al cargar las temporadas");
+      setError(`Error al cargar temporadas: ${error.message}`);
     } finally {
       setLoadingSeasons(false);
     }
@@ -204,21 +241,33 @@ export default function CrearSalaContent() {
 
   const fetchFixtures = async (leagueId: string, season: string) => {
     setLoadingFixtures(true);
+    setError("");
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/league/fixtures?leagueId=${leagueId}&season=${season}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      const data = await response.json();
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/league/fixtures?leagueId=${leagueId}&season=${season}`;
+      console.log("Fetching fixtures from:", url);
+      
+      const response = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await handleApiResponse(response);
+      
       if (data.success) {
         setFixtures(data.data);
+      } else {
+        setError(data.message || "Error al cargar los partidos");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error cargando partidos:", error);
-      setError("Error al cargar los partidos");
+      setError(`Error al cargar partidos: ${error.message}`);
     } finally {
       setLoadingFixtures(false);
     }
@@ -254,33 +303,45 @@ export default function CrearSalaContent() {
       const closeTime = new Date(matchDateTime);
       if (cierrePredictions === "15min") closeTime.setMinutes(closeTime.getMinutes() - 15);
 
+      const requestBody = {
+        barId: barId,
+        name: `${selectedFixture.home_team_name} vs ${selectedFixture.away_team_name}`,
+        sport: "Fútbol",
+        tournament: selectedFixture.league_name,
+        team_home: selectedFixture.home_team_name,
+        team_away: selectedFixture.away_team_name,
+        fixture_id: selectedFixture.id,
+        match_date: matchDateTime.toISOString(),
+        prediction_close_time: closeTime.toISOString(),
+        entry_fee: tipoSala === "paid" ? parseFloat(valorPrediccion) : 0,
+      };
+
+      console.log("Creating room with data:", requestBody);
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          barId: barId,
-          name: `${selectedFixture.home_team_name} vs ${selectedFixture.away_team_name}`,
-          sport: "Fútbol",
-          tournament: selectedFixture.league_name,
-          team_home: selectedFixture.home_team_name,
-          team_away: selectedFixture.away_team_name,
-          fixture_id: selectedFixture.id,
-          match_date: matchDateTime.toISOString(),
-          prediction_close_time: closeTime.toISOString(),
-          entry_fee: tipoSala === "paid" ? parseFloat(valorPrediccion) : 0,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await handleApiResponse(response);
+      
       if (response.ok) {
         router.push("/bar/dashboard");
       } else {
         throw new Error(data.message || "Error al crear sala");
       }
     } catch (err: any) {
+      console.error("Error creating room:", err);
       setError(err.message);
     } finally {
       setLoading(false);
