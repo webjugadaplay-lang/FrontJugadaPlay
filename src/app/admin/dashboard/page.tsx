@@ -101,6 +101,7 @@ export default function AdminDashboard() {
   // Estados para partidos en curso
   const [liveFixtures, setLiveFixtures] = useState<LiveFixture[]>([]);
   const [loadingLive, setLoadingLive] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null); // Para mostrar última actualización
 
   // Estados para gestión de ligas
   const [availableLeagues, setAvailableLeagues] = useState<AvailableLeague[]>([]);
@@ -153,11 +154,56 @@ export default function AdminDashboard() {
     // Cargar datos iniciales
     loadFixtures();
     loadLeagues();
-    console.log("🟢 Cambiando a pestaña ACTIVOS"); // ← LOG
     setActiveTab("activos");
     loadLiveFixtures();
 
   }, [router]);
+
+  // ==================== POLLING AUTOMÁTICO PARA PARTIDOS EN VIVO ====================
+  useEffect(() => {
+    // Solo ejecutar si ya terminó la carga inicial y estamos en la pestaña de activos
+    if (!loading && activeTab === "activos" && user) {
+      
+      console.log("🎬 INICIANDO POLLING para partidos en curso - Actualizando cada 20 segundos");
+      
+      // Cargar inmediatamente al entrar a la pestaña
+      loadLiveFixtures();
+      
+      // Configurar el intervalo de polling (cada 20 segundos)
+      const intervalId = setInterval(() => {
+        console.log(`⏰ [${new Date().toLocaleTimeString()}] Polling automático - Actualizando partidos en curso...`);
+        loadLiveFixtures();
+      }, 20000); // 20 segundos
+      
+      // Cleanup: detener polling cuando cambiamos de pestaña o desmontamos el componente
+      return () => {
+        console.log("🛑 DETENIENDO POLLING para partidos en curso");
+        clearInterval(intervalId);
+      };
+    }
+  }, [activeTab, loading, user]); // Se ejecuta cuando cambia la pestaña activa
+
+  // ==================== POLLING PARA PRÓXIMOS PARTIDOS ====================
+  useEffect(() => {
+    if (!loading && activeTab === "partidos" && user) {
+      
+      console.log("🎬 INICIANDO POLLING para próximos partidos - Actualizando cada 60 segundos");
+      
+      // Cargar inmediatamente
+      loadFixtures();
+      
+      // Polling cada 60 segundos (menos urgente que los partidos en vivo)
+      const intervalId = setInterval(() => {
+        console.log(`⏰ [${new Date().toLocaleTimeString()}] Polling automático - Actualizando próximos partidos...`);
+        loadFixtures();
+      }, 60000); // 60 segundos
+      
+      return () => {
+        console.log("🛑 DETENIENDO POLLING para próximos partidos");
+        clearInterval(intervalId);
+      };
+    }
+  }, [activeTab, loading, user, filters]); // Incluir filters para refrescar cuando cambien
 
   // Cargar partidos con filtros
   const loadFixtures = async () => {
@@ -190,6 +236,7 @@ export default function AdminDashboard() {
           status: fixture.status
         }));
         setFilteredMatches(formattedMatches);
+        console.log(`📋 Próximos partidos cargados: ${formattedMatches.length}`);
       }
     } catch (error) {
       console.error("Error cargando partidos:", error);
@@ -212,26 +259,37 @@ export default function AdminDashboard() {
     }
   };
 
-  // Cargar partidos en curso
+  // Cargar partidos en curso (MEJORADA CON LOGS)
   const loadLiveFixtures = async () => {
     setLoadingLive(true);
     try {
+      console.log(`🕒 [${new Date().toLocaleTimeString()}] Solicitando partidos en curso al servidor...`);
+      
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/live-fixtures`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
-      console.log("🔍 Respuesta completa de live-fixtures:", data); // ← LOG 1
-
+      
+      console.log(`📊 Respuesta del servidor: success=${data.success}, cantidad=${data.data?.length || 0}`);
+      
       if (data.success) {
-        console.log("📋 Partidos en curso recibidos:", data.data.length); // ← LOG 2
-        console.log("📋 Primer partido:", data.data[0]); // ← LOG 3
-        setLiveFixtures(data.data);
+        if (data.data && data.data.length > 0) {
+          console.log(`🎮 ${data.data.length} partido(s) en curso encontrado(s):`);
+          data.data.forEach((match: LiveFixture, idx: number) => {
+            console.log(`  ${idx+1}. ${match.home_team_name} ${match.goals_home}-${match.goals_away} ${match.away_team_name} (${match.status} - ${match.elapsed}')`);
+          });
+          setLiveFixtures(data.data);
+        } else {
+          console.log("ℹ️ No hay partidos en curso en este momento");
+          setLiveFixtures([]);
+        }
+        setLastUpdate(new Date()); // Actualizar timestamp
       } else {
-        console.error("❌ Error en respuesta:", data.message);
+        console.error("❌ Error en respuesta del servidor:", data.message);
       }
     } catch (error) {
-      console.error("Error cargando partidos en curso:", error);
+      console.error("❌ Error crítico cargando partidos en curso:", error);
     } finally {
       setLoadingLive(false);
     }
@@ -301,7 +359,6 @@ export default function AdminDashboard() {
           stats: data.stats
         });
         setSelectedLeagueIds([]);
-        // Recargar las listas
         await loadUserLeagues();
         await loadAvailableLeagues();
       } else {
@@ -324,17 +381,14 @@ export default function AdminDashboard() {
   const getFilteredLeagues = () => {
     let filtered = availableLeagues;
 
-    // 1. Filtrar por país
     if (leagueFilters.country !== "") {
       filtered = filtered.filter(league => league.country === leagueFilters.country);
     }
 
-    // 2. Filtrar por temporada
     if (leagueFilters.season !== "") {
       filtered = filtered.filter(league => league.season.toString() === leagueFilters.season);
     }
 
-    // 3. Filtrar por búsqueda de nombre
     if (leagueFilters.search !== "") {
       const searchLower = leagueFilters.search.toLowerCase();
       filtered = filtered.filter(league =>
@@ -343,7 +397,6 @@ export default function AdminDashboard() {
       );
     }
 
-    // 4. Mostrar solo ligas sincronizadas si el checkbox está marcado
     if (showOnlySynced) {
       const syncedIds = syncedLeagues.map(sl => sl.league_id);
       filtered = filtered.filter(league => syncedIds.includes(league.id));
@@ -697,6 +750,20 @@ export default function AdminDashboard() {
           {/* TAB CONTENT - PARTIDOS (próximos partidos) */}
           {activeTab === "partidos" && (
             <div className="space-y-6">
+              {/* Botón de actualización manual */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    console.log("🖱️ Actualizando próximos partidos manualmente");
+                    loadFixtures();
+                  }}
+                  className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 px-4 py-2 rounded-lg text-sm hover:bg-yellow-500/20 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Actualizar partidos
+                </button>
+              </div>
+
               <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -716,7 +783,7 @@ export default function AdminDashboard() {
                     ) : (
                       <>
                         <RefreshCw className="w-4 h-4" />
-                        Sincronizar
+                        Sincronizar con API
                       </>
                     )}
                   </button>
@@ -842,48 +909,97 @@ export default function AdminDashboard() {
           {/* TAB CONTENT - ACTIVOS (partidos en curso) */}
           {activeTab === "activos" && (
             <div className="space-y-4">
+              {/* Panel de control con botón de actualización y estado */}
+              <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <h3 className="text-white font-medium">Actualización en vivo</h3>
+                    </div>
+                    {loadingLive && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-xs text-gray-400">Actualizando...</span>
+                      </div>
+                    )}
+                    {lastUpdate && !loadingLive && (
+                      <span className="text-xs text-gray-500">
+                        Última actualización: {lastUpdate.toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                  <button 
+                    onClick={() => {
+                      console.log("🖱️ Usuario hizo clic en actualizar manual");
+                      loadLiveFixtures();
+                    }}
+                    disabled={loadingLive}
+                    className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 px-4 py-2 rounded-lg text-sm hover:bg-yellow-500/20 transition-all disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loadingLive ? 'animate-spin' : ''}`} />
+                    Actualizar ahora
+                  </button>
+                </div>
+                <div className="mt-3 text-xs text-gray-600 border-t border-yellow-500/20 pt-3">
+                  🔄 Actualización automática cada 20 segundos
+                </div>
+              </div>
+
               {loadingLive ? (
-                <div className="text-gray-400 text-sm">Cargando partidos en curso...</div>
+                <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-8 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-3 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="text-gray-400 text-sm">Cargando partidos en curso...</div>
+                  </div>
+                </div>
               ) : liveFixtures.length === 0 ? (
-                <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-6 text-gray-400 text-sm">
-                  No hay partidos en curso en este momento.
+                <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-8 text-center">
+                  <div className="text-gray-400 text-sm">
+                    No hay partidos en curso en este momento.
+                    <br />
+                    <span className="text-xs text-gray-600">Los partidos aparecerán automáticamente cuando comiencen.</span>
+                  </div>
                 </div>
               ) : (
-                liveFixtures.map((match) => (
-                  <div key={match.id} className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                          <span className="text-green-500 text-xs tracking-wide">
-                            {getStatusText(match.status)}
-                          </span>
+                <div className="space-y-3">
+                  {liveFixtures.map((match) => (
+                    <div key={match.id} className="bg-black/30 border border-yellow-500/20 rounded-xl p-5 hover:border-yellow-500/40 transition-all">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                            <span className="text-green-500 text-xs tracking-wide font-mono">
+                              {getStatusText(match.status)} • {match.elapsed ? `${match.elapsed}'` : 'Inicio'}
+                            </span>
+                          </div>
+                          <h3 className="text-white text-lg font-medium">
+                            {match.home_team_name} vs {match.away_team_name}
+                          </h3>
+                          <p className="text-gray-500 text-xs mt-1">
+                            {match.league_name} • {match.league_country}
+                          </p>
+                          {match.venue && (
+                            <p className="text-gray-600 text-xs mt-1">
+                              📍 {match.venue}
+                            </p>
+                          )}
                         </div>
-                        <h3 className="text-white text-lg font-medium">
-                          {match.home_team_name} vs {match.away_team_name}
-                        </h3>
-                        <p className="text-gray-500 text-xs mt-1">
-                          {match.league_name} • {match.league_country}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-8">
-                        <div className="text-center">
-                          <div className="text-white text-sm">{match.home_team_name}</div>
-                          <div className="text-3xl text-yellow-500 font-bold">{match.goals_home ?? 0}</div>
+                        <div className="flex items-center gap-8">
+                          <div className="text-center min-w-[80px]">
+                            <div className="text-white text-sm truncate max-w-[100px]">{match.home_team_name}</div>
+                            <div className="text-3xl text-yellow-500 font-bold">{match.goals_home ?? 0}</div>
+                          </div>
+                          <div className="text-gray-500 text-2xl font-light">-</div>
+                          <div className="text-center min-w-[80px]">
+                            <div className="text-white text-sm truncate max-w-[100px]">{match.away_team_name}</div>
+                            <div className="text-3xl text-yellow-500 font-bold">{match.goals_away ?? 0}</div>
+                          </div>
                         </div>
-                        <div className="text-gray-500 text-xl font-light">-</div>
-                        <div className="text-center">
-                          <div className="text-white text-sm">{match.away_team_name}</div>
-                          <div className="text-3xl text-yellow-500 font-bold">{match.goals_away ?? 0}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500">{match.elapsed ? `${match.elapsed}'` : 'Por confirmar'}</div>
-                        {match.venue && <div className="text-xs text-gray-600 mt-1">{match.venue}</div>}
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -966,7 +1082,6 @@ export default function AdminDashboard() {
                       <div
                         key={league.id}
                         onClick={() => {
-                          // No permitir seleccionar si ya está sincronizada
                           if (!syncedLeagues.some(sl => sl.league_id === league.id)) {
                             setSelectedLeagueIds(prev =>
                               prev.includes(league.id) ? prev.filter(id => id !== league.id) : [...prev, league.id]
