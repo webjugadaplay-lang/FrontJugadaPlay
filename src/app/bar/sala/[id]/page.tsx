@@ -57,7 +57,7 @@ interface RoomData {
 // Next.js 15 - params es una promesa
 export default function SalaActiva({ params }: { params: Promise<{ id: string }> }) {
   const { id: salaId } = use(params);
-  
+
   const router = useRouter();
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [isLocaleReady, setIsLocaleReady] = useState(false);
@@ -81,7 +81,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   }, [locale, isLocaleReady]);
 
   const codigoSala = roomData?.room?.code || (salaId ? salaId.substring(0, 6).toUpperCase() : "LOADING");
-  const joinUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/entrar?code=${codigoSala}`;
+  const joinUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/bar/sala/${salaId}`;
 
   // Cargar datos de la sala
   useEffect(() => {
@@ -177,7 +177,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   const { room, fixture, participants } = roomData;
   const matchDate = fixture ? new Date(fixture.match_date) : new Date();
   const closeDate = new Date(room.prediction_close_time);
-  
+
   const fechaPartido = matchDate.toLocaleString(locale === 'es' ? 'es-ES' : 'pt-BR');
   const cierreFecha = closeDate.toLocaleString(locale === 'es' ? 'es-ES' : 'pt-BR');
 
@@ -220,7 +220,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
-          
+
           {/* Info del partido */}
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white">
