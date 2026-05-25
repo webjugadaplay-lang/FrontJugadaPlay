@@ -112,15 +112,15 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     }
   };
 
-  // Generar QR 
+  // Generar QR
   useEffect(() => {
     if (joinUrl && !joinUrl.includes("LOADING")) {
       QRCode.toDataURL(joinUrl, {
         width: 200,
         margin: 2,
         color: {
-          dark: '#EAB308',
-          light: '#000000'
+          dark: '#000000',
+          light: '#FFFFFF'
         }
       })
     }
