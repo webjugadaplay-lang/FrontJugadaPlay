@@ -1,12 +1,11 @@
 //app/entrar/page.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, QrCode, Key, Camera, X } from "lucide-react";
-// @ts-ignore - Instascan no tiene tipos
-import Instascan from "instascan";
+import { Scanner } from "@yudiel/react-qr-scanner";
 
 export default function EntrarSalaPage() {
   const router = useRouter();
@@ -15,7 +14,6 @@ export default function EntrarSalaPage() {
   const [error, setError] = useState("");
   const [modoQR, setModoQR] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const scannerRef = useRef<any>(null);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -35,14 +33,6 @@ export default function EntrarSalaPage() {
 
     setUser(parsedUser);
   }, [router]);
-
-  useEffect(() => {
-    return () => {
-      if (scannerRef.current && scannerRef.current.stop) {
-        scannerRef.current.stop();
-      }
-    };
-  }, []);
 
   const extractRoomIdFromUrl = (url: string): string | null => {
     try {
@@ -119,88 +109,45 @@ export default function EntrarSalaPage() {
       setError(err.message || "Error al verificar la sala");
     } finally {
       setLoading(false);
+      setScanning(false);
+      setModoQR(false);
     }
   };
 
-  const iniciarScanner = () => {
-    setScanning(true);
-    setError("");
-
-    const videoElement = document.getElementById("preview") as HTMLVideoElement;
-
-    if (!videoElement) {
-      setError("Error al iniciar la cámara");
-      setScanning(false);
-      return;
-    }
-
-    // Crear scanner con configuración simple
-    scannerRef.current = new Instascan.Scanner({
-      video: videoElement,
-      mirror: false,
-    });
-
-    // Listener cuando se escanea un QR
-    scannerRef.current.addListener("scan", async (content: string) => {
-      console.log("QR escaneado:", content);
-
-      const roomId = extractRoomIdFromUrl(content);
-
-      if (!roomId) {
-        setError("QR no válido");
-        return;
-      }
-
-      // Detener scanner
-      if (scannerRef.current && scannerRef.current.stop) {
-        scannerRef.current.stop();
-      }
-
-      await procesarSalaId(roomId);
-    });
-
-    // Obtener cámaras disponibles
-    Instascan.Camera.getCameras()
-      .then((cameras: any[]) => {
-        if (cameras.length === 0) {
-          setError("No se encontró ninguna cámara");
-          setScanning(false);
+  // Manejador corregido para el scanner
+  const handleScan = (detectedCodes: any[]) => {
+    console.log("QR escaneado:", detectedCodes);
+    
+    if (detectedCodes && detectedCodes.length > 0) {
+      // El resultado está en detectedCodes[0].rawValue
+      const scannedText = detectedCodes[0]?.rawValue;
+      
+      if (scannedText) {
+        const roomId = extractRoomIdFromUrl(scannedText);
+        
+        if (!roomId) {
+          setError("QR no válido. No se pudo identificar la sala.");
           return;
         }
-
-        // Buscar cámara trasera (por nombre)
-        let backCamera = cameras.find(
-          (camera) =>
-            camera.name.toLowerCase().includes("back") ||
-            camera.name.toLowerCase().includes("rear") ||
-            camera.name.toLowerCase().includes("environment") ||
-            camera.name.toLowerCase().includes("trasera")
-        );
-
-        // Si no se encuentra, usar la última (suele ser la trasera)
-        if (!backCamera && cameras.length > 1) {
-          backCamera = cameras[cameras.length - 1];
-        }
-
-        const cameraToUse = backCamera || cameras[0];
-        console.log("Usando cámara:", cameraToUse.name);
-
-        scannerRef.current.start(cameraToUse);
-      })
-      .catch((err: Error) => {
-        console.error("Error accediendo a la cámara:", err);
-        setError("No se pudo acceder a la cámara. Verifica los permisos.");
+        
+        console.log("ID de sala extraído:", roomId);
         setScanning(false);
-      });
+        setModoQR(false);
+        procesarSalaId(roomId);
+      }
+    }
   };
 
-  const detenerScanner = () => {
-    if (scannerRef.current && scannerRef.current.stop) {
-      scannerRef.current.stop();
+  // Manejador de error corregido
+  const handleError = (error: any) => {
+    console.error("Error del scanner:", error);
+    if (error?.message?.includes("Permission")) {
+      setError("Permiso de cámara denegado. Por favor, permite el acceso a la cámara.");
+    } else if (error?.message?.includes("NotFound")) {
+      setError("No se encontró ninguna cámara en tu dispositivo.");
+    } else {
+      setError("Error al acceder a la cámara. Verifica los permisos.");
     }
-    scannerRef.current = null;
-    setScanning(false);
-    setModoQR(false);
   };
 
   const procesarCodigoManual = async () => {
@@ -333,7 +280,11 @@ export default function EntrarSalaPage() {
                   {scanning ? "Escaneando..." : "Escanear QR"}
                 </h3>
                 <button
-                  onClick={detenerScanner}
+                  onClick={() => {
+                    setScanning(false);
+                    setModoQR(false);
+                    setError("");
+                  }}
                   className="text-gray-400 hover:text-yellow-500 transition-colors"
                 >
                   <X className="w-5 h-5" />
@@ -342,20 +293,23 @@ export default function EntrarSalaPage() {
 
               {!scanning ? (
                 <button
-                  onClick={iniciarScanner}
+                  onClick={() => setScanning(true)}
                   className="w-full py-3 border border-yellow-500/50 text-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-all font-medium"
                 >
                   Iniciar cámara
                 </button>
               ) : (
                 <>
-                  <video
-                    id="preview"
-                    autoPlay
-                    playsInline
-                    className="w-full rounded-lg"
-                    style={{ maxHeight: "400px" }}
-                  ></video>
+                  <div className="w-full overflow-hidden rounded-lg">
+                    <Scanner
+                      onScan={handleScan}
+                      onError={handleError}
+                      constraints={{
+                        facingMode: "environment",
+                      }}
+                      scanDelay={500}
+                    />
+                  </div>
                   <p className="text-gray-500 text-xs text-center mt-4">
                     Coloca el código QR frente a la cámara
                   </p>
