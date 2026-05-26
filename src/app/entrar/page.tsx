@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, QrCode, Key, Camera, X } from "lucide-react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 
 export default function EntrarSalaPage() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export default function EntrarSalaPage() {
   const [error, setError] = useState("");
   const [modoQR, setModoQR] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -39,8 +39,8 @@ export default function EntrarSalaPage() {
   useEffect(() => {
     // Limpiar scanner al desmontar
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear();
+      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+        html5QrCodeRef.current.stop().catch(err => console.log("Error al detener scanner:", err));
       }
     };
   }, []);
@@ -83,29 +83,44 @@ export default function EntrarSalaPage() {
     }
   };
 
-  const iniciarScanner = () => {
+  const iniciarScanner = async () => {
     setScanning(true);
     setError("");
 
-    setTimeout(() => {
-      const scannerElement = document.getElementById("qr-reader");
-      if (!scannerElement) return;
+    const scannerElement = document.getElementById("qr-reader");
+    if (!scannerElement) {
+      setError("Error al iniciar la cámara");
+      setScanning(false);
+      return;
+    }
 
-      if (scannerRef.current) {
-        scannerRef.current.clear();
-      }
+    // Limpiar el elemento antes de crear un nuevo scanner
+    scannerElement.innerHTML = "";
 
-      scannerRef.current = new Html5QrcodeScanner(
-        "qr-reader",
+    try {
+      html5QrCodeRef.current = new Html5Qrcode("qr-reader");
+      
+      // Usar la cámara trasera por defecto (environment)
+      // 'environment' = cámara trasera, 'user' = cámara frontal
+      const cameraId = await Html5Qrcode.getCameras().then(cameras => {
+        // Buscar cámara trasera (normalmente tiene 'back' o 'environment' en el label)
+        const backCamera = cameras.find(camera => 
+          camera.label.toLowerCase().includes('back') || 
+          camera.label.toLowerCase().includes('environment') ||
+          camera.label.toLowerCase().includes('trasera')
+        );
+        
+        // Si encuentra cámara trasera, usa su ID, si no, usa la primera disponible
+        return backCamera ? backCamera.id : cameras[0]?.id;
+      }).catch(() => null);
+
+      await html5QrCodeRef.current.start(
+        cameraId || { facingMode: "environment" }, // Forzar cámara trasera
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1.0,
         },
-        false
-      );
-
-      scannerRef.current.render(
         async (decodedText) => {
           console.log("QR escaneado:", decodedText);
           
@@ -122,19 +137,34 @@ export default function EntrarSalaPage() {
           await procesarSalaId(roomId);
         },
         (errorMessage) => {
-          console.log("Error escaneando:", errorMessage);
+          // No mostramos errores de escaneo continuo para no molestar
+          console.log("Escaneando...", errorMessage);
         }
       );
-    }, 100);
+    } catch (err) {
+      console.error("Error al iniciar scanner:", err);
+      setError("No se pudo acceder a la cámara. Por favor, verifica los permisos.");
+      setScanning(false);
+    }
   };
 
-  const detenerScanner = () => {
-    if (scannerRef.current) {
-      scannerRef.current.clear();
-      scannerRef.current = null;
+  const detenerScanner = async () => {
+    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+      try {
+        await html5QrCodeRef.current.stop();
+      } catch (err) {
+        console.log("Error al detener scanner:", err);
+      }
     }
+    html5QrCodeRef.current = null;
     setScanning(false);
     setModoQR(false);
+    
+    // Limpiar el contenedor
+    const scannerElement = document.getElementById("qr-reader");
+    if (scannerElement) {
+      scannerElement.innerHTML = "";
+    }
   };
 
   const procesarSalaId = async (roomId: string) => {
@@ -191,6 +221,7 @@ export default function EntrarSalaPage() {
         }
 
         // Redirigir a la página de predicción
+        await detenerScanner();
         router.push(`/jugador/prediccion/${roomId}`);
       } else {
         throw new Error("Sala no encontrada");
@@ -200,7 +231,6 @@ export default function EntrarSalaPage() {
       setError(err.message || "Error al verificar la sala");
     } finally {
       setLoading(false);
-      detenerScanner();
     }
   };
 
