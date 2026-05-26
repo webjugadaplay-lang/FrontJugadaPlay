@@ -89,7 +89,7 @@ export default function EntrarSalaPage() {
 
     const scannerElement = document.getElementById("qr-reader");
     if (!scannerElement) {
-      setError("Error al iniciar la cámara");
+      setError("Error: No se encontró el elemento del scanner");
       setScanning(false);
       return;
     }
@@ -98,37 +98,49 @@ export default function EntrarSalaPage() {
     scannerElement.innerHTML = "";
 
     try {
+      // Primero verificar si el navegador soporta cámara
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError("Tu navegador no soporta acceso a la cámara");
+        setScanning(false);
+        return;
+      }
+
+      // Solicitar permisos de cámara primero
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop()); // Detener temporalmente
+
+      // Crear instancia del scanner
       html5QrCodeRef.current = new Html5Qrcode("qr-reader");
       
-      // Usar la cámara trasera por defecto (environment)
-      // 'environment' = cámara trasera, 'user' = cámara frontal
-      const cameraId = await Html5Qrcode.getCameras().then(cameras => {
-        // Buscar cámara trasera (normalmente tiene 'back' o 'environment' en el label)
-        const backCamera = cameras.find(camera => 
-          camera.label.toLowerCase().includes('back') || 
-          camera.label.toLowerCase().includes('environment') ||
-          camera.label.toLowerCase().includes('trasera')
-        );
-        
-        // Si encuentra cámara trasera, usa su ID, si no, usa la primera disponible
-        return backCamera ? backCamera.id : cameras[0]?.id;
-      }).catch(() => null);
+      // Configuración para forzar cámara trasera
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        videoConstraints: {
+          facingMode: { exact: "environment" } // Forzar cámara trasera exactamente
+        }
+      };
+
+      console.log("Iniciando scanner con configuración:", config);
 
       await html5QrCodeRef.current.start(
-        cameraId || { facingMode: "environment" }, // Forzar cámara trasera
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-        },
+        { facingMode: "environment" }, // Usar cámara trasera
+        config,
         async (decodedText) => {
           console.log("QR escaneado:", decodedText);
+          
+          // Detener scanner automáticamente después de escanear
+          if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+            await html5QrCodeRef.current.stop();
+          }
           
           // Extraer el ID de la sala de la URL escaneada
           const roomId = extractRoomIdFromUrl(decodedText);
           
           if (!roomId) {
             setError("QR no válido. No se pudo identificar la sala.");
+            setScanning(false);
             setLoading(false);
             return;
           }
@@ -141,9 +153,56 @@ export default function EntrarSalaPage() {
           console.log("Escaneando...", errorMessage);
         }
       );
-    } catch (err) {
+      
+      console.log("Scanner iniciado correctamente");
+      
+    } catch (err: any) {
       console.error("Error al iniciar scanner:", err);
-      setError("No se pudo acceder a la cámara. Por favor, verifica los permisos.");
+      
+      // Manejar errores específicos
+      if (err.name === 'NotAllowedError' || err.message?.includes('permission')) {
+        setError("Permiso de cámara denegado. Por favor, permite el acceso a la cámara.");
+      } else if (err.name === 'NotFoundError' || err.message?.includes('not found')) {
+        setError("No se encontró una cámara trasera en tu dispositivo.");
+      } else if (err.name === 'NotReadableError') {
+        setError("La cámara está siendo usada por otra aplicación.");
+      } else if (err.message?.includes('facingMode')) {
+        // Si falla con facingMode exact, intentar sin exact
+        try {
+          console.log("Intentando con facingMode normal...");
+          if (html5QrCodeRef.current) {
+            await html5QrCodeRef.current.start(
+              { facingMode: "environment" },
+              {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+              },
+              async (decodedText) => {
+                // Mismo callback de éxito
+                if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+                  await html5QrCodeRef.current.stop();
+                }
+                const roomId = extractRoomIdFromUrl(decodedText);
+                if (!roomId) {
+                  setError("QR no válido. No se pudo identificar la sala.");
+                  setScanning(false);
+                  return;
+                }
+                await procesarSalaId(roomId);
+              },
+              (errorMessage) => {
+                console.log("Escaneando...", errorMessage);
+              }
+            );
+          }
+        } catch (fallbackErr) {
+          setError("No se pudo acceder a la cámara trasera. Verifica los permisos.");
+        }
+      } else {
+        setError("Error al iniciar la cámara: " + (err.message || "Desconocido"));
+      }
+      
       setScanning(false);
     }
   };
@@ -152,6 +211,7 @@ export default function EntrarSalaPage() {
     if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
       try {
         await html5QrCodeRef.current.stop();
+        console.log("Scanner detenido correctamente");
       } catch (err) {
         console.log("Error al detener scanner:", err);
       }
@@ -360,38 +420,13 @@ export default function EntrarSalaPage() {
             </div>
           )}
 
-          {/* Modo QR Scanner */}
-          {modoQR && !scanning && (
+          {/* Modo QR */}
+          {(modoQR || scanning) && (
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-white font-medium flex items-center gap-2">
                   <Camera className="w-5 h-5 text-yellow-500" />
-                  Escanear código QR
-                </h3>
-                <button
-                  onClick={() => setModoQR(false)}
-                  className="text-gray-400 hover:text-yellow-500 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <button
-                onClick={iniciarScanner}
-                className="w-full py-3 border border-yellow-500/50 text-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-all font-medium"
-              >
-                Iniciar cámara
-              </button>
-            </div>
-          )}
-
-          {/* Scanner activo */}
-          {scanning && (
-            <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-white font-medium flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-yellow-500" />
-                  Apunta al código QR
+                  {scanning ? "Escaneando..." : "Escanear QR"}
                 </h3>
                 <button
                   onClick={detenerScanner}
@@ -401,16 +436,30 @@ export default function EntrarSalaPage() {
                 </button>
               </div>
 
-              <div id="qr-reader" className="w-full"></div>
+              {!scanning ? (
+                <button
+                  onClick={iniciarScanner}
+                  className="w-full py-3 border border-yellow-500/50 text-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-all font-medium"
+                >
+                  Iniciar cámara
+                </button>
+              ) : (
+                <>
+                  <div id="qr-reader" className="w-full"></div>
+                  <p className="text-gray-500 text-xs text-center mt-4">
+                    Coloca el código QR dentro del recuadro para escanearlo automáticamente
+                  </p>
+                </>
+              )}
 
-              <p className="text-gray-500 text-xs text-center mt-4">
-                Coloca el código QR dentro del recuadro para escanearlo automáticamente
-              </p>
+              {error && (
+                <p className="text-red-500 text-sm text-center mt-4">{error}</p>
+              )}
             </div>
           )}
 
           {/* Formulario código manual */}
-          {!modoQR && (
+          {!modoQR && !scanning && (
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6 md:p-8">
               <form onSubmit={handleSubmit}>
                 <div className="mb-6">
