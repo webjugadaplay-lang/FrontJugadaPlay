@@ -243,23 +243,26 @@ export default function PredecirMarcador() {
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20" : "bg-transparent"}`}>
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
-            <Link href="/entrar" className="flex items-center gap-2 text-yellow-500 hover:text-yellow-400 transition-colors group">
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-              <span className="text-sm hidden md:inline">{t.prediction.back}</span>
-            </Link>
-
             <Link href="/" className="flex items-center">
-              <img src="/logo-jugadaplay.svg" alt="Jugada Play" className="h-10 md:h-12 lg:h-14 w-auto object-contain" />
+              <img
+                src="/logo-jugadaplay.svg"
+                alt="Jugada Play"
+                className="h-10 md:h-12 lg:h-14 w-auto object-contain"
+              />
             </Link>
 
             <div className="flex items-center gap-2">
-              <label className="text-gray-400 text-xs md:text-sm tracking-wide hidden sm:block">
-                {t.header?.language || "Idioma"}
+              <label
+                htmlFor="locale-select"
+                className="text-gray-400 text-xs md:text-sm tracking-wide"
+              >
+                {t.header.language}
               </label>
               <select
+                id="locale-select"
                 value={locale}
-                onChange={(e) => cambiarIdioma(e.target.value as Locale)}
-                className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs md:text-sm px-3 py-2 rounded-sm outline-none cursor-pointer hover:border-yellow-500 transition-colors"
+                onChange={(e) => setLocale(e.target.value as Locale)}
+                className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs md:text-sm px-3 py-2 rounded-sm outline-none"
               >
                 <option value="pt-BR">PT</option>
                 <option value="es">ES</option>
