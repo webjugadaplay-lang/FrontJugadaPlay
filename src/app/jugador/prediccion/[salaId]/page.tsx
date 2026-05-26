@@ -1,3 +1,4 @@
+//jugador/prediccion/[salaId]
 "use client";
 
 import { useState, useEffect } from "react";
