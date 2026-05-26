@@ -34,29 +34,44 @@ export default function EntrarSalaPage() {
     setUser(parsedUser);
   }, [router]);
 
+  // Función mejorada para extraer el ID de la sala
   const extractRoomIdFromUrl = (url: string): string | null => {
+    console.log("Extrayendo ID de URL:", url);
+    
     try {
-      if (/^\d+$/.test(url)) return url;
+      // Si es solo un número
+      if (/^\d+$/.test(url)) {
+        console.log("Es un ID numérico directo:", url);
+        return url;
+      }
 
+      // Buscar patrones de URL
       const patterns = [
         /\/bar\/sala\/(\d+)/,
         /\/sala\/(\d+)/,
         /\/jugador\/prediccion\/(\d+)/,
+        /\/entrar\?code=(\d+)/,
         /roomId=(\d+)/,
         /id=(\d+)/,
+        /sala\/(\d+)/,
       ];
 
       for (const pattern of patterns) {
         const match = url.match(pattern);
-        if (match && match[1]) return match[1];
+        if (match && match[1]) {
+          console.log("ID encontrado con patrón:", pattern, "->", match[1]);
+          return match[1];
+        }
       }
 
-      if (url.includes("?")) {
-        const urlParams = new URLSearchParams(url.split("?")[1]);
-        const roomId = urlParams.get("roomId") || urlParams.get("id");
-        if (roomId) return roomId;
+      // Intentar extraer cualquier número de la URL
+      const numbers = url.match(/\d+/g);
+      if (numbers && numbers.length > 0) {
+        console.log("ID encontrado como número aislado:", numbers[0]);
+        return numbers[0];
       }
 
+      console.log("No se pudo extraer ID de:", url);
       return null;
     } catch (error) {
       console.error("Error extrayendo ID:", error);
@@ -65,18 +80,21 @@ export default function EntrarSalaPage() {
   };
 
   const procesarSalaId = async (roomId: string) => {
+    console.log("Procesando sala ID:", roomId);
     setLoading(true);
     setError("");
 
     try {
       const token = localStorage.getItem("token");
 
+      // Verificar si la sala existe
       const roomResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${roomId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const roomData = await roomResponse.json();
+      console.log("Respuesta de sala:", roomData);
 
       if (!roomResponse.ok) {
         throw new Error(roomData.message || "La sala no existe");
@@ -91,18 +109,26 @@ export default function EntrarSalaPage() {
           return;
         }
 
+        // Verificar si ya tiene predicción
         const checkResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${roomId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
         if (checkResponse.ok) {
-          setError("Ya tienes una predicción activa en esta sala");
-          setLoading(false);
-          return;
+          const checkData = await checkResponse.json();
+          if (checkData.success && checkData.data) {
+            setError("Ya tienes una predicción activa en esta sala");
+            setLoading(false);
+            return;
+          }
         }
 
+        // Redirigir a la página de predicción
+        console.log("Redirigiendo a:", `/jugador/prediccion/${roomId}`);
         router.push(`/jugador/prediccion/${roomId}`);
+      } else {
+        throw new Error("Sala no encontrada");
       }
     } catch (err: any) {
       console.error("Error:", err);
@@ -116,29 +142,34 @@ export default function EntrarSalaPage() {
 
   // Manejador corregido para el scanner
   const handleScan = (detectedCodes: any[]) => {
-    console.log("QR escaneado:", detectedCodes);
+    console.log("QR escaneado - detectedCodes:", detectedCodes);
     
     if (detectedCodes && detectedCodes.length > 0) {
       // El resultado está en detectedCodes[0].rawValue
       const scannedText = detectedCodes[0]?.rawValue;
+      console.log("Texto escaneado:", scannedText);
       
       if (scannedText) {
         const roomId = extractRoomIdFromUrl(scannedText);
+        console.log("ID extraído:", roomId);
         
         if (!roomId) {
           setError("QR no válido. No se pudo identificar la sala.");
           return;
         }
         
-        console.log("ID de sala extraído:", roomId);
+        console.log("Procesando sala ID:", roomId);
         setScanning(false);
         setModoQR(false);
         procesarSalaId(roomId);
+      } else {
+        setError("No se pudo leer el código QR");
       }
+    } else {
+      setError("No se detectó ningún código QR");
     }
   };
 
-  // Manejador de error corregido
   const handleError = (error: any) => {
     console.error("Error del scanner:", error);
     if (error?.message?.includes("Permission")) {
