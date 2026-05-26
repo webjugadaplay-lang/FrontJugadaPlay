@@ -515,9 +515,6 @@ export default function BarDashboard() {
                         </button>
                       </Link>
 
-                      <button className="flex-1 md:flex-none bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 px-4 py-2 text-sm rounded-sm hover:bg-yellow-500/20 transition-all">
-                        QR
-                      </button>
                     </div>
                   </div>
                 </div>
