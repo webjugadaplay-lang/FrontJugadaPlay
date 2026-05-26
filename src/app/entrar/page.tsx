@@ -34,41 +34,48 @@ export default function EntrarSalaPage() {
     setUser(parsedUser);
   }, [router]);
 
-  // Función mejorada para extraer el ID de la sala
+  // Función mejorada para extraer el ID de la sala (soporta UUID)
   const extractRoomIdFromUrl = (url: string): string | null => {
     console.log("Extrayendo ID de URL:", url);
     
     try {
-      // Si es solo un número
-      if (/^\d+$/.test(url)) {
-        console.log("Es un ID numérico directo:", url);
-        return url;
+      // Patrón para UUID (ej: 9830e0b5-0253-44f5-b3e6-fa5e692a707b)
+      const uuidPattern = /\/bar\/sala\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+      const uuidMatch = url.match(uuidPattern);
+      if (uuidMatch && uuidMatch[1]) {
+        console.log("ID UUID encontrado:", uuidMatch[1]);
+        return uuidMatch[1];
       }
-
-      // Buscar patrones de URL
+      
+      // Patrón para números simples
+      const numberPattern = /\/bar\/sala\/(\d+)/;
+      const numberMatch = url.match(numberPattern);
+      if (numberMatch && numberMatch[1]) {
+        console.log("ID numérico encontrado:", numberMatch[1]);
+        return numberMatch[1];
+      }
+      
+      // Otros patrones posibles
       const patterns = [
-        /\/bar\/sala\/(\d+)/,
-        /\/sala\/(\d+)/,
-        /\/jugador\/prediccion\/(\d+)/,
-        /\/entrar\?code=(\d+)/,
-        /roomId=(\d+)/,
-        /id=(\d+)/,
-        /sala\/(\d+)/,
+        /\/sala\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i,
+        /\/jugador\/prediccion\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i,
+        /roomId=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i,
+        /id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i,
       ];
 
       for (const pattern of patterns) {
         const match = url.match(pattern);
         if (match && match[1]) {
-          console.log("ID encontrado con patrón:", pattern, "->", match[1]);
+          console.log("ID encontrado con patrón alternativo:", match[1]);
           return match[1];
         }
       }
 
-      // Intentar extraer cualquier número de la URL
-      const numbers = url.match(/\d+/g);
-      if (numbers && numbers.length > 0) {
-        console.log("ID encontrado como número aislado:", numbers[0]);
-        return numbers[0];
+      // Si es directamente un UUID
+      const directUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (directUuidPattern.test(url)) {
+        console.log("Es un UUID directo:", url);
+        return url;
       }
 
       console.log("No se pudo extraer ID de:", url);
@@ -93,18 +100,23 @@ export default function EntrarSalaPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const roomData = await roomResponse.json();
-      console.log("Respuesta de sala:", roomData);
-
+      console.log("Respuesta status:", roomResponse.status);
+      
       if (!roomResponse.ok) {
-        throw new Error(roomData.message || "La sala no existe");
+        if (roomResponse.status === 404) {
+          throw new Error("Sala no encontrada. Verifica que el código QR sea correcto.");
+        }
+        throw new Error("Error al verificar la sala");
       }
+
+      const roomData = await roomResponse.json();
+      console.log("Datos de la sala:", roomData);
 
       if (roomData.success && roomData.data) {
         const sala = roomData.data;
 
         if (sala.status !== "active") {
-          setError("Esta sala ya no está disponible");
+          setError("Esta sala ya no está disponible para nuevas predicciones");
           setLoading(false);
           return;
         }
@@ -140,12 +152,11 @@ export default function EntrarSalaPage() {
     }
   };
 
-  // Manejador corregido para el scanner
+  // Manejador para el scanner
   const handleScan = (detectedCodes: any[]) => {
     console.log("QR escaneado - detectedCodes:", detectedCodes);
     
     if (detectedCodes && detectedCodes.length > 0) {
-      // El resultado está en detectedCodes[0].rawValue
       const scannedText = detectedCodes[0]?.rawValue;
       console.log("Texto escaneado:", scannedText);
       
@@ -158,15 +169,13 @@ export default function EntrarSalaPage() {
           return;
         }
         
-        console.log("Procesando sala ID:", roomId);
+        // Detener el scanner antes de procesar
         setScanning(false);
         setModoQR(false);
         procesarSalaId(roomId);
       } else {
         setError("No se pudo leer el código QR");
       }
-    } else {
-      setError("No se detectó ningún código QR");
     }
   };
 
