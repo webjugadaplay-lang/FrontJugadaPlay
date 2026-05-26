@@ -230,6 +230,26 @@ const ptBR = {
     players: "jogadores",
     hits: "acertos",
   },
+  prediction: {
+    title: "PREVER",
+    subtitle: "PLACAR",
+    vs: "VS",
+    homeTeam: "Mandante",
+    awayTeam: "Visitante",
+    matchInfo: "Informações da partida",
+    prizePool: "Prêmio total",
+    entryFee: "Valor de entrada",
+    yourPrediction: "Sua previsão",
+    confirm: "CONFIRMAR PREVISÃO",
+    saving: "Salvando...",
+    back: "Voltar",
+    error: "Erro ao carregar sala",
+    notFound: "Sala não encontrada",
+    invalidId: "ID de sala inválido",
+    predictionExists: "Você já tem uma previsão para esta partida",
+    matchClosed: "Esta partida não aceita mais previsões",
+    matchFinished: "Esta partida já foi encerrada"
+  },
   currencyPrefix: "R$",
 };
 

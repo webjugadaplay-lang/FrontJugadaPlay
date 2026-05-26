@@ -62,7 +62,7 @@ const es = {
     registerError: "Error al registrar",
     alreadyHaveAccount: "¿Ya tienes una cuenta?",
     login: "Iniciar sesión",
-    
+
     bar: "BAR",
     barSubtitle: "Únete a JugadaPlay y ofrece una experiencia deportiva única en tu bar",
     barInfo: "INFORMACIÓN DEL BAR",
@@ -86,7 +86,7 @@ const es = {
     benefit3: "Soporte prioritario 24/7",
     registering: "REGISTRANDO...",
     registerButton: "REGISTRAR MI BAR",
-    
+
     player: "JUGADOR",
     playerSubtitle: "Predice, gana y diviértete en tu bar favorito",
     fullName: "NOMBRE COMPLETO *",
@@ -230,6 +230,26 @@ const es = {
     noPredictionsToday: "Sin predicciones hoy",
     players: "jugadores",
     hits: "aciertos",
+  },
+  prediction: {
+    title: "PREDECIR",
+    subtitle: "MARCADOR",
+    vs: "VS",
+    homeTeam: "Local",
+    awayTeam: "Visitante",
+    matchInfo: "Información del partido",
+    prizePool: "Pozo total",
+    entryFee: "Valor de entrada",
+    yourPrediction: "Tu predicción",
+    confirm: "CONFIRMAR PREDICCIÓN",
+    saving: "Guardando...",
+    back: "Volver",
+    error: "Error al cargar la sala",
+    notFound: "Sala no encontrada",
+    invalidId: "ID de sala inválido",
+    predictionExists: "Ya tienes una predicción para este partido",
+    matchClosed: "Este partido ya no acepta predicciones",
+    matchFinished: "Este partido ya finalizó"
   },
   currencyPrefix: "R$",
 };

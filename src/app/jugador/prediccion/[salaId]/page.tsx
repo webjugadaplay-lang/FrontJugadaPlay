@@ -4,7 +4,19 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Minus, Loader2 } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Plus, 
+  Minus, 
+  Loader2, 
+  Trophy, 
+  Calendar, 
+  Clock, 
+  MapPin,
+  Award,
+  CheckCircle
+} from "lucide-react";
+import { translations, type Locale } from "@/messages";
 
 interface Room {
   id: string;
@@ -28,35 +40,26 @@ interface ExistingPrediction {
   id: string;
   score_home: number;
   score_away: number;
+  paid: boolean;
 }
 
-async function safeFetchJson(url: string, options?: RequestInit) {
-  const response = await fetch(url, options);
-  const text = await response.text();
-  const contentType = response.headers.get("content-type") || "";
-
-  console.log("FETCH URL:", url);
-  console.log("FETCH STATUS:", response.status);
-  console.log("FETCH CONTENT-TYPE:", contentType);
-  console.log("FETCH RAW:", text);
-
-  if (!contentType.includes("application/json")) {
-    throw new Error(`El endpoint no devolvió JSON: ${url}`);
-  }
-
-  const data = JSON.parse(text);
-
-  if (!response.ok) {
-    throw new Error(data.message || "Error en la petición");
-  }
-
-  return data;
+function detectInitialLocale(): Locale {
+  if (typeof window === "undefined") return "pt-BR";
+  const savedLocale = localStorage.getItem("jugadaplay_locale");
+  if (savedLocale === "pt-BR" || savedLocale === "es") return savedLocale;
+  const browserLanguage = navigator.language || "";
+  if (browserLanguage.toLowerCase().startsWith("es")) return "es";
+  if (browserLanguage.toLowerCase().startsWith("pt")) return "pt-BR";
+  return "pt-BR";
 }
 
 export default function PredecirMarcador() {
   const router = useRouter();
   const params = useParams<{ salaId: string }>();
   const salaId = params?.salaId;
+  
+  const [locale, setLocale] = useState<Locale>("pt-BR");
+  const [scrolled, setScrolled] = useState(false);
 
   const [golesLocal, setGolesLocal] = useState(0);
   const [golesVisitante, setGolesVisitante] = useState(0);
@@ -64,12 +67,28 @@ export default function PredecirMarcador() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [room, setRoom] = useState<Room | null>(null);
-  const [existingPrediction, setExistingPrediction] =
-    useState<ExistingPrediction | null>(null);
+  const [existingPrediction, setExistingPrediction] = useState<ExistingPrediction | null>(null);
+
+  const t = translations[locale];
+
+  useEffect(() => {
+    const detectedLocale = detectInitialLocale();
+    setLocale(detectedLocale);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("jugadaplay_locale", locale);
+  }, [locale]);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     if (!salaId) {
-      setError("ID de sala inválido");
+      setError(t.prediction.invalidId);
       setLoading(false);
       return;
     }
@@ -85,58 +104,52 @@ export default function PredecirMarcador() {
         }
 
         const user = JSON.parse(userData);
-
         if (user.role !== "player") {
           router.push("/login");
           return;
         }
 
+        // Cargar datos de la sala
         const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${salaId}`;
-        const roomResponse = await safeFetchJson(roomUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const roomResponse = await fetch(roomUrl, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const roomData = await roomResponse.json();
+
+        if (!roomResponse.ok || !roomData.success) {
+          throw new Error(roomData.message || t.prediction.notFound);
+        }
+
+        setRoom(roomData.data);
+
+        // Verificar si ya existe predicción
+        const predUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${salaId}`;
+        const predResponse = await fetch(predUrl, {
+          headers: { Authorization: `Bearer ${token}` }
         });
 
-        setRoom(roomResponse.data);
-
-        try {
-          const predUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${salaId}`;
-          const predResponse = await fetch(predUrl, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          const predText = await predResponse.text();
-          const predContentType =
-            predResponse.headers.get("content-type") || "";
-
-          if (predResponse.ok && predContentType.includes("application/json")) {
-            const predData = JSON.parse(predText);
-
-            if (predData?.success && predData?.data) {
-              setExistingPrediction(predData.data);
-              setGolesLocal(Number(predData.data.score_home) || 0);
-              setGolesVisitante(Number(predData.data.score_away) || 0);
-            }
+        if (predResponse.ok) {
+          const predData = await predResponse.json();
+          if (predData.success && predData.data) {
+            setExistingPrediction(predData.data);
+            setGolesLocal(predData.data.score_home || 0);
+            setGolesVisitante(predData.data.score_away || 0);
           }
-        } catch {
-          console.log("Sin predicción previa");
         }
       } catch (err: any) {
-        setError(err.message || "Error al cargar la sala");
+        console.error(err);
+        setError(err.message || t.prediction.error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [salaId, router]);
+  }, [salaId, router, t]);
 
   const handleSubmit = async () => {
     if (!salaId) {
-      setError("No se encontró el ID de la sala");
+      setError(t.prediction.invalidId);
       return;
     }
 
@@ -179,6 +192,10 @@ export default function PredecirMarcador() {
     }
   };
 
+  const cambiarIdioma = (nuevoIdioma: Locale) => {
+    setLocale(nuevoIdioma);
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -187,93 +204,204 @@ export default function PredecirMarcador() {
     );
   }
 
-  if (error) {
+  if (error || !room) {
     return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-red-500 text-center">
-          <p>{error}</p>
-          <Link href="/entrar" className="text-yellow-500">
-            Volver
-          </Link>
+      <main className="min-h-screen bg-black">
+        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20" : "bg-transparent"}`}>
+          <div className="container mx-auto px-6">
+            <div className="flex justify-between items-center h-20 gap-4">
+              <Link href="/entrar" className="flex items-center gap-2 text-yellow-500 hover:text-yellow-400 transition-colors">
+                <ArrowLeft className="w-5 h-5" />
+                <span className="text-sm hidden md:inline">{t.prediction.back}</span>
+              </Link>
+              <Link href="/" className="flex items-center">
+                <img src="/logo-jugadaplay.svg" alt="Jugada Play" className="h-10 md:h-12 object-contain" />
+              </Link>
+              <div className="w-20"></div>
+            </div>
+          </div>
+        </header>
+        <div className="min-h-screen flex items-center justify-center pt-20">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error || t.prediction.notFound}</p>
+            <Link href="/entrar" className="text-yellow-500 hover:text-yellow-400 transition-colors">
+              {t.prediction.back}
+            </Link>
+          </div>
         </div>
       </main>
     );
   }
 
-  if (!room) {
-    return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-red-500">Sala no encontrada</p>
-      </main>
-    );
-  }
-
-  const fechaPartido = new Date(room.match_date).toLocaleString();
+  const fechaPartido = new Date(room.match_date).toLocaleString(locale === "pt-BR" ? "pt-BR" : "es-CO");
+  const isMatchClosed = new Date(room.prediction_close_time) < new Date();
+  const isMatchFinished = room.status === "finished" || room.status === "closed";
 
   return (
     <main className="min-h-screen bg-black">
-      <header className="fixed top-0 left-0 right-0 bg-black p-4 border-b border-yellow-500/20">
-        <Link href="/entrar" className="flex items-center gap-2 text-white">
-          <ArrowLeft className="w-4 h-4" />
-          Volver
-        </Link>
+      {/* Header */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20" : "bg-transparent"}`}>
+        <div className="container mx-auto px-6">
+          <div className="flex justify-between items-center h-20 gap-4">
+            <Link href="/entrar" className="flex items-center gap-2 text-yellow-500 hover:text-yellow-400 transition-colors group">
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              <span className="text-sm hidden md:inline">{t.prediction.back}</span>
+            </Link>
+
+            <Link href="/" className="flex items-center">
+              <img src="/logo-jugadaplay.svg" alt="Jugada Play" className="h-10 md:h-12 lg:h-14 w-auto object-contain" />
+            </Link>
+
+            <div className="flex items-center gap-2">
+              <label className="text-gray-400 text-xs md:text-sm tracking-wide hidden sm:block">
+                {t.header?.language || "Idioma"}
+              </label>
+              <select
+                value={locale}
+                onChange={(e) => cambiarIdioma(e.target.value as Locale)}
+                className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs md:text-sm px-3 py-2 rounded-sm outline-none cursor-pointer hover:border-yellow-500 transition-colors"
+              >
+                <option value="pt-BR">PT</option>
+                <option value="es">ES</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <div className="pt-24 max-w-md mx-auto p-4 space-y-8">
-        {/* GRID CON VS */}
-        <div className="grid grid-cols-3 gap-4 items-center">
+      {/* Contenido principal */}
+      <div className="pt-28 pb-20 px-4 md:px-6">
+        <div className="container mx-auto max-w-4xl">
           
-          {/* LOCAL */}
-          <div className="text-center space-y-4">
-            <h2 className="text-white text-xl">{room.team_home}</h2>
-            <div className="flex justify-center gap-3 text-white text-2xl">
-              <button onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}>
-                <Minus />
-              </button>
-              <span>{golesLocal}</span>
-              <button onClick={() => setGolesLocal(golesLocal + 1)}>
-                <Plus />
-              </button>
+          {/* Título de la sección */}
+          <div className="text-center mb-10">
+            <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white">
+              {t.prediction.title}{" "}
+              <span className="text-yellow-500 font-medium">{t.prediction.subtitle}</span>
+            </h1>
+            <div className="w-12 h-[1px] bg-yellow-500/30 mx-auto mt-3"></div>
+          </div>
+
+          {/* Tarjeta del partido */}
+          <div className="bg-black/50 border border-yellow-500/20 rounded-xl p-6 md:p-8 mb-8">
+            {/* Equipos y marcador */}
+            <div className="grid grid-cols-3 gap-4 items-center mb-8">
+              {/* Local */}
+              <div className="text-center">
+                <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_home}</h2>
+                <div className="flex justify-center items-center gap-4 text-white">
+                  <button
+                    onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
+                    disabled={isMatchClosed || isMatchFinished}
+                    className="w-10 h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Minus className="w-5 h-5 text-yellow-500" />
+                  </button>
+                  <span className="text-5xl md:text-6xl font-bold text-white w-20 text-center">{golesLocal}</span>
+                  <button
+                    onClick={() => setGolesLocal(golesLocal + 1)}
+                    disabled={isMatchClosed || isMatchFinished}
+                    className="w-10 h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-5 h-5 text-yellow-500" />
+                  </button>
+                </div>
+              </div>
+
+              {/* VS */}
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full border-2 border-yellow-500/30 flex items-center justify-center mx-auto">
+                  <span className="text-yellow-500 text-xl font-bold">{t.prediction.vs}</span>
+                </div>
+              </div>
+
+              {/* Visitante */}
+              <div className="text-center">
+                <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_away}</h2>
+                <div className="flex justify-center items-center gap-4 text-white">
+                  <button
+                    onClick={() => setGolesVisitante(Math.max(0, golesVisitante - 1))}
+                    disabled={isMatchClosed || isMatchFinished}
+                    className="w-10 h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Minus className="w-5 h-5 text-yellow-500" />
+                  </button>
+                  <span className="text-5xl md:text-6xl font-bold text-white w-20 text-center">{golesVisitante}</span>
+                  <button
+                    onClick={() => setGolesVisitante(golesVisitante + 1)}
+                    disabled={isMatchClosed || isMatchFinished}
+                    className="w-10 h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-5 h-5 text-yellow-500" />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* VS */}
-          <div className="text-center text-yellow-500 text-2xl font-bold">
-            VS
-          </div>
-
-          {/* VISITANTE */}
-          <div className="text-center space-y-4">
-            <h2 className="text-white text-xl">{room.team_away}</h2>
-            <div className="flex justify-center gap-3 text-white text-2xl">
-              <button
-                onClick={() =>
-                  setGolesVisitante(Math.max(0, golesVisitante - 1))
-                }
-              >
-                <Minus />
-              </button>
-              <span>{golesVisitante}</span>
-              <button onClick={() => setGolesVisitante(golesVisitante + 1)}>
-                <Plus />
-              </button>
+            {/* Información del partido */}
+            <div className="border-t border-yellow-500/20 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div className="flex items-center justify-center gap-2 text-gray-400">
+                  <Calendar className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm">{fechaPartido}</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-gray-400">
+                  <Trophy className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm">
+                    {t.prediction.prizePool}: R$ {Number(room.total_pool).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-gray-400">
+                  <Award className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm">
+                    {t.prediction.entryFee}: R$ {Number(room.entry_fee).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+              {room.bar?.bar_name && (
+                <div className="text-center mt-4 text-gray-500 text-sm">
+                  <MapPin className="w-3 h-3 inline mr-1" />
+                  {room.bar.bar_name}
+                </div>
+              )}
             </div>
+
+            {/* Advertencias */}
+            {(isMatchClosed || isMatchFinished) && (
+              <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 text-sm text-center flex items-center justify-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  {isMatchFinished ? t.prediction.matchFinished : t.prediction.matchClosed}
+                </p>
+              </div>
+            )}
+
+            {existingPrediction && existingPrediction.paid && (
+              <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-green-400 text-sm text-center flex items-center justify-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Pago confirmado
+                </p>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* INFO */}
-        <div className="text-center text-gray-400 text-sm">
-          <p>{fechaPartido}</p>
-          <p>{room.bar?.bar_name || room.bar?.name}</p>
+          {/* Botón de confirmación */}
+          <button
+            onClick={handleSubmit}
+            disabled={saving || isMatchClosed || isMatchFinished}
+            className="w-full py-4 bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-bold text-lg rounded-xl hover:from-yellow-400 hover:to-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-yellow-500/25"
+          >
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {t.prediction.saving}
+              </span>
+            ) : (
+              t.prediction.confirm
+            )}
+          </button>
         </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={saving}
-          className="w-full bg-yellow-500 text-black py-3 rounded"
-        >
-          {saving ? "Guardando..." : "Confirmar"}
-        </button>
       </div>
     </main>
   );

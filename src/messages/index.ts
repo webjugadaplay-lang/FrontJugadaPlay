@@ -1,9 +1,10 @@
-import es from "./es";
-import ptBR from "./pt-BR";
-
-export type Locale = "pt-BR" | "es";
+// messages/index.ts
+import ptBR from './pt-BR';
+import es from './es';
 
 export const translations = {
-  "pt-BR": ptBR,
-  es,
-} as const;
+  'pt-BR': ptBR,
+  'es': es
+};
+
+export type Locale = 'pt-BR' | 'es';
