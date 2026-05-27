@@ -4,67 +4,35 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Plus,
-  Minus,
-  Loader2,
-  Trophy,
-  Calendar,
-  Clock,
+import { 
+  ArrowLeft, 
+  Plus, 
+  Minus, 
+  Loader2, 
+  Trophy, 
+  Calendar, 
+  Clock, 
   MapPin,
   Award,
-  CheckCircle,
-  Users,
-  Copy,
-  Check,
-  Globe,
-  Medal,
-  Info,
-  Share2
+  CheckCircle
 } from "lucide-react";
 import { translations, type Locale } from "@/messages";
 
-interface ExtendedRoom {
+interface Room {
   id: string;
   name: string;
-  code: string;
-  entry_fee: number;
-  total_pool: number;
-  status: string;
+  team_home: string;
+  team_away: string;
+  match_date: string;
   prediction_close_time: string;
-  max_participants: number;
-  current_participants: number;
-  fixture: {
-    id: string;
-    home_team: string;
-    away_team: string;
-    match_date: string;
-    status: string;
-    round: string;
-    stadium: string;
-  };
-  tournament: {
-    id: string;
-    name: string;
-    logo: string;
-    season: string;
-    country: {
-      name: string;
-      flag: string;
-    };
-  };
+  entry_fee: number | string;
+  total_pool: number | string;
+  status: string;
+  room_code?: string;
   bar: {
-    id: string;
+    id?: string;
     name: string;
     bar_name: string;
-    logo: string;
-  };
-  stats: {
-    total_predictions: number;
-    paid_predictions: number;
-    prize_per_player: number;
-    available_spots: number;
   };
 }
 
@@ -89,17 +57,16 @@ export default function PredecirMarcador() {
   const router = useRouter();
   const params = useParams<{ salaId: string }>();
   const salaId = params?.salaId;
-
+  
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [scrolled, setScrolled] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const [golesLocal, setGolesLocal] = useState(0);
   const [golesVisitante, setGolesVisitante] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [room, setRoom] = useState<ExtendedRoom | null>(null);
+  const [room, setRoom] = useState<Room | null>(null);
   const [existingPrediction, setExistingPrediction] = useState<ExistingPrediction | null>(null);
 
   const t = translations[locale];
@@ -142,6 +109,7 @@ export default function PredecirMarcador() {
           return;
         }
 
+        // Cargar datos de la sala
         const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${salaId}`;
         const roomResponse = await fetch(roomUrl, {
           headers: { Authorization: `Bearer ${token}` }
@@ -154,6 +122,7 @@ export default function PredecirMarcador() {
 
         setRoom(roomData.data);
 
+        // Verificar si ya existe predicción
         const predUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${salaId}`;
         const predResponse = await fetch(predUrl, {
           headers: { Authorization: `Bearer ${token}` }
@@ -223,14 +192,6 @@ export default function PredecirMarcador() {
     }
   };
 
-  const copyRoomCode = async () => {
-    if (room?.code) {
-      await navigator.clipboard.writeText(room.code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   const cambiarIdioma = (nuevoIdioma: Locale) => {
     setLocale(nuevoIdioma);
   };
@@ -272,10 +233,9 @@ export default function PredecirMarcador() {
     );
   }
 
-  const fechaPartido = new Date(room.fixture.match_date).toLocaleString(locale === "pt-BR" ? "pt-BR" : "es-CO");
+  const fechaPartido = new Date(room.match_date).toLocaleString(locale === "pt-BR" ? "pt-BR" : "es-CO");
   const isMatchClosed = new Date(room.prediction_close_time) < new Date();
   const isMatchFinished = room.status === "finished" || room.status === "closed";
-  const spotsLeft = room.stats.available_spots;
 
   return (
     <main className="min-h-screen bg-black">
@@ -283,23 +243,26 @@ export default function PredecirMarcador() {
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20" : "bg-transparent"}`}>
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
-            <Link href="/entrar" className="flex items-center gap-2 text-yellow-500 hover:text-yellow-400 transition-colors group">
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-              <span className="text-sm hidden md:inline">{t.prediction.back}</span>
-            </Link>
-
             <Link href="/" className="flex items-center">
-              <img src="/logo-jugadaplay.svg" alt="Jugada Play" className="h-10 md:h-12 lg:h-14 w-auto object-contain" />
+              <img
+                src="/logo-jugadaplay.svg"
+                alt="Jugada Play"
+                className="h-10 md:h-12 lg:h-14 w-auto object-contain"
+              />
             </Link>
 
             <div className="flex items-center gap-2">
-              <label className="text-gray-400 text-xs md:text-sm tracking-wide hidden sm:block">
-                {t.header?.language || "Idioma"}
+              <label
+                htmlFor="locale-select"
+                className="text-gray-400 text-xs md:text-sm tracking-wide"
+              >
+                {t.header.language}
               </label>
               <select
+                id="locale-select"
                 value={locale}
-                onChange={(e) => cambiarIdioma(e.target.value as Locale)}
-                className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs md:text-sm px-3 py-2 rounded-sm outline-none cursor-pointer hover:border-yellow-500 transition-colors"
+                onChange={(e) => setLocale(e.target.value as Locale)}
+                className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs md:text-sm px-3 py-2 rounded-sm outline-none"
               >
                 <option value="pt-BR">PT</option>
                 <option value="es">ES</option>
@@ -312,50 +275,23 @@ export default function PredecirMarcador() {
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-4 md:px-6">
         <div className="container mx-auto max-w-4xl">
-
-          {/* Título de la sala */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-4 py-1 mb-3">
-              <Medal className="w-3 h-3 text-yellow-500" />
-              <span className="text-yellow-500 text-xs uppercase tracking-wider">{room.tournament?.name || "Partido"}</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-light text-white mb-2">{room.name}</h1>
-            <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
-              <span>Código: {room.code}</span>
-              <button
-                onClick={copyRoomCode}
-                className="p-1 hover:text-yellow-500 transition-colors"
-                title="Copiar código"
-              >
-                {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-              </button>
-            </div>
+          
+          {/* Título de la sección */}
+          <div className="text-center mb-10">
+            <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white">
+              {t.prediction.title}{" "}
+              <span className="text-yellow-500 font-medium">{t.prediction.subtitle}</span>
+            </h1>
             <div className="w-12 h-[1px] bg-yellow-500/30 mx-auto mt-3"></div>
           </div>
 
           {/* Tarjeta del partido */}
           <div className="bg-black/50 border border-yellow-500/20 rounded-xl p-6 md:p-8 mb-8">
-
-            {/* Logo del torneo y país */}
-            {(room.tournament?.country?.flag || room.tournament?.logo) && (
-              <div className="flex items-center justify-center gap-3 mb-6 pb-4 border-b border-yellow-500/20">
-                {room.tournament.country.flag && (
-                  <span className="text-2xl">{room.tournament.country.flag}</span>
-                )}
-                {room.tournament.logo && (
-                  <img src={room.tournament.logo} alt={room.tournament.name} className="h-6 w-auto" />
-                )}
-                {room.tournament.season && (
-                  <span className="text-gray-500 text-xs">{room.tournament.season}</span>
-                )}
-              </div>
-            )}
-
             {/* Equipos y marcador */}
             <div className="grid grid-cols-3 gap-4 items-center mb-8">
               {/* Local */}
               <div className="text-center">
-                <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.fixture.home_team}</h2>
+                <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_home}</h2>
                 <div className="flex justify-center items-center gap-4 text-white">
                   <button
                     onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
@@ -384,7 +320,7 @@ export default function PredecirMarcador() {
 
               {/* Visitante */}
               <div className="text-center">
-                <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.fixture.away_team}</h2>
+                <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_away}</h2>
                 <div className="flex justify-center items-center gap-4 text-white">
                   <button
                     onClick={() => setGolesVisitante(Math.max(0, golesVisitante - 1))}
@@ -407,75 +343,35 @@ export default function PredecirMarcador() {
 
             {/* Información del partido */}
             <div className="border-t border-yellow-500/20 pt-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                 <div className="flex items-center justify-center gap-2 text-gray-400">
                   <Calendar className="w-4 h-4 text-yellow-500" />
-                  <span className="text-xs md:text-sm">{fechaPartido}</span>
+                  <span className="text-sm">{fechaPartido}</span>
                 </div>
-                {room.fixture.round && (
-                  <div className="flex items-center justify-center gap-2 text-gray-400">
-                    <Medal className="w-4 h-4 text-yellow-500" />
-                    <span className="text-xs md:text-sm">{room.fixture.round}</span>
-                  </div>
-                )}
-                {room.fixture.stadium && (
-                  <div className="flex items-center justify-center gap-2 text-gray-400">
-                    <MapPin className="w-4 h-4 text-yellow-500" />
-                    <span className="text-xs md:text-sm">{room.fixture.stadium}</span>
-                  </div>
-                )}
                 <div className="flex items-center justify-center gap-2 text-gray-400">
-                  <Users className="w-4 h-4 text-yellow-500" />
-                  <span className="text-xs md:text-sm">
-                    {room.current_participants}/{room.max_participants}
+                  <Trophy className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm">
+                    {t.prediction.prizePool}: R$ {Number(room.total_pool).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-gray-400">
+                  <Award className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm">
+                    {t.prediction.entryFee}: R$ {Number(room.entry_fee).toFixed(2)}
                   </span>
                 </div>
               </div>
+              {room.bar?.bar_name && (
+                <div className="text-center mt-4 text-gray-500 text-sm">
+                  <MapPin className="w-3 h-3 inline mr-1" />
+                  {room.bar.bar_name}
+                </div>
+              )}
             </div>
-
-            {/* Tarjeta de premios */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3 text-center">
-                <Trophy className="w-4 h-4 text-yellow-500 mx-auto mb-1" />
-                <p className="text-gray-400 text-xs">{t.prediction.prizePool}</p>
-                <p className="text-white font-bold text-lg">R$ {room.total_pool.toFixed(2)}</p>
-              </div>
-              <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3 text-center">
-                <Award className="w-4 h-4 text-yellow-500 mx-auto mb-1" />
-                <p className="text-gray-400 text-xs">Premio por jugador</p>
-                <p className="text-white font-bold text-lg">R$ {room.stats.prize_per_player.toFixed(2)}</p>
-              </div>
-              <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3 text-center">
-                <Info className="w-4 h-4 text-yellow-500 mx-auto mb-1" />
-                <p className="text-gray-400 text-xs">Entrada</p>
-                <p className="text-white font-bold text-lg">R$ {room.entry_fee.toFixed(2)}</p>
-              </div>
-            </div>
-
-            {/* Bar anfitrión */}
-            {room.bar && (
-              <div className="mt-4 pt-4 border-t border-yellow-500/20 flex items-center justify-center gap-2 text-gray-500 text-sm">
-                {room.bar.logo && (
-                  <img src={room.bar.logo} alt={room.bar.bar_name} className="h-5 w-5 rounded-full object-cover" />
-                )}
-                <MapPin className="w-3 h-3" />
-                <span>{room.bar.bar_name || room.bar.name}</span>
-              </div>
-            )}
-
-            {/* Cupos disponibles */}
-            {spotsLeft > 0 && spotsLeft < 5 && (
-              <div className="mt-4 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                <p className="text-yellow-500 text-xs text-center flex items-center justify-center gap-2">
-                  <Users className="w-3 h-3" />
-                  ¡Solo quedan {spotsLeft} cupos disponibles!
-                </p>
-              </div>
-            )}
 
             {/* Advertencias */}
             {(isMatchClosed || isMatchFinished) && (
-              <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
                 <p className="text-red-400 text-sm text-center flex items-center justify-center gap-2">
                   <Clock className="w-4 h-4" />
                   {isMatchFinished ? t.prediction.matchFinished : t.prediction.matchClosed}
@@ -487,7 +383,7 @@ export default function PredecirMarcador() {
               <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                 <p className="text-green-400 text-sm text-center flex items-center justify-center gap-2">
                   <CheckCircle className="w-4 h-4" />
-                  Pago confirmado - ¡Buena suerte!
+                  Pago confirmado
                 </p>
               </div>
             )}
@@ -505,7 +401,7 @@ export default function PredecirMarcador() {
                 {t.prediction.saving}
               </span>
             ) : (
-              existingPrediction ? "ACTUALIZAR PREDICCIÓN" : t.prediction.confirm
+              t.prediction.confirm
             )}
           </button>
         </div>
