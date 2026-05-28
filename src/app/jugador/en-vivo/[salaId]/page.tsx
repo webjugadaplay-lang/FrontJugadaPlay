@@ -1,4 +1,5 @@
 // app/jugador/en-vivo/[salaId]/page.tsx
+// app/jugador/en-vivo/[salaId]/page.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -47,8 +48,17 @@ interface LiveRoomData {
 
 export default function EnVivo() {
   const router = useRouter();
-  const params = useParams<{ salaId: string }>();
-  const salaId = params?.salaId;
+  const params = useParams();
+  
+  // ✅ CORRECCIÓN: Obtener salaId correctamente en Next.js 15+
+  const salaId = params?.salaId as string;
+  
+  // ✅ Debug: Verificar que el ID se obtiene correctamente
+  useEffect(() => {
+    console.log("🔍 [DEBUG] params completos:", params);
+    console.log("🔍 [DEBUG] salaId obtenido:", salaId);
+    console.log("🔍 [DEBUG] tipo de salaId:", typeof salaId);
+  }, [params, salaId]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -58,7 +68,13 @@ export default function EnVivo() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchLiveRoom = async (showRefreshIndicator = false) => {
-    if (!salaId) return;
+    // ✅ VALIDACIÓN: Verificar que salaId existe antes de hacer la petición
+    if (!salaId || salaId === 'undefined' || salaId === 'null') {
+      console.error("❌ salaId inválido:", salaId);
+      setError("ID de sala inválido o no proporcionado");
+      setLoading(false);
+      return;
+    }
 
     if (showRefreshIndicator) {
       setIsRefreshing(true);
@@ -80,6 +96,8 @@ export default function EnVivo() {
         return;
       }
 
+      console.log("📡 Haciendo petición a:", `${process.env.NEXT_PUBLIC_API_URL}/api/player/live-room/${salaId}`);
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/player/live-room/${salaId}`,
         {
@@ -99,8 +117,10 @@ export default function EnVivo() {
         throw new Error("No se pudo cargar la información en vivo");
       }
 
+      console.log("✅ Datos recibidos:", data.data);
       setLiveData(data.data);
       setLastUpdate(new Date());
+      setError(""); // Limpiar error si había
     } catch (err: any) {
       console.error("❌ Error cargando sala en vivo:", err);
       setError(err.message || "Error al cargar la sala en vivo");
@@ -114,11 +134,14 @@ export default function EnVivo() {
 
   // Cargar inicial y configurar intervalo
   useEffect(() => {
-    if (!salaId) {
+    if (!salaId || salaId === 'undefined' || salaId === 'null') {
+      console.error("❌ SalaId no disponible en useEffect:", salaId);
       setError("ID de sala inválido");
       setLoading(false);
       return;
     }
+
+    console.log("🚀 Iniciando carga para salaId:", salaId);
 
     // Cargar inmediatamente
     fetchLiveRoom(true);
@@ -134,7 +157,7 @@ export default function EnVivo() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [salaId, router]);
+  }, [salaId]); // ✅ Dependencia correcta
 
   // Refrescar manualmente con el botón
   const handleManualRefresh = () => {
@@ -153,7 +176,8 @@ export default function EnVivo() {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-red-500">{error || "No se pudo cargar la sala"}</p>
+          <p className="text-red-500 mb-4">{error || "No se pudo cargar la sala"}</p>
+          <p className="text-gray-500 text-sm mb-4">Debug: salaId = {salaId || "undefined"}</p>
           <Link href="/jugador/dashboard" className="text-yellow-500 mt-4 inline-block">
             Volver al dashboard
           </Link>
