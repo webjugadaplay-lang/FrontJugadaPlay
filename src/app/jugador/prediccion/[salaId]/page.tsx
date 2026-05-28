@@ -4,14 +4,14 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { 
-  ArrowLeft, 
-  Plus, 
-  Minus, 
-  Loader2, 
-  Trophy, 
-  Calendar, 
-  Clock, 
+import {
+  ArrowLeft,
+  Plus,
+  Minus,
+  Loader2,
+  Trophy,
+  Calendar,
+  Clock,
   MapPin,
   Award,
   CheckCircle
@@ -36,11 +36,12 @@ interface Room {
   };
 }
 
-interface ExistingPrediction {
+interface Prediction {
   id: string;
   score_home: number;
   score_away: number;
   paid: boolean;
+  created_at: string;
 }
 
 function detectInitialLocale(): Locale {
@@ -57,7 +58,7 @@ export default function PredecirMarcador() {
   const router = useRouter();
   const params = useParams<{ salaId: string }>();
   const salaId = params?.salaId;
-  
+
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [scrolled, setScrolled] = useState(false);
 
@@ -67,7 +68,8 @@ export default function PredecirMarcador() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [room, setRoom] = useState<Room | null>(null);
-  const [existingPrediction, setExistingPrediction] = useState<ExistingPrediction | null>(null);
+  const [existingPredictions, setExistingPredictions] = useState<Prediction[]>([]);
+  const [lastPrediction, setLastPrediction] = useState<Prediction | null>(null);
 
   const t = translations[locale];
 
@@ -85,6 +87,46 @@ export default function PredecirMarcador() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Función para cargar las predicciones existentes
+  const fetchExistingPredictions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/player/predictions/${salaId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        console.log(`📦 Encontradas ${data.data.length} predicciones previas`);
+        setExistingPredictions(data.data);
+        
+        // Obtener la predicción más reciente
+        if (data.data.length > 0) {
+          const mostRecent = data.data[0]; // Ya vienen ordenadas por createdAt DESC
+          setLastPrediction(mostRecent);
+          setGolesLocal(mostRecent.score_home);
+          setGolesVisitante(mostRecent.score_away);
+        } else {
+          setLastPrediction(null);
+          setGolesLocal(0);
+          setGolesVisitante(0);
+        }
+      } else {
+        console.log("No hay predicciones previas para esta sala");
+        setExistingPredictions([]);
+        setLastPrediction(null);
+        setGolesLocal(0);
+        setGolesVisitante(0);
+      }
+    } catch (error) {
+      console.error("Error al buscar predicciones:", error);
+      setExistingPredictions([]);
+      setLastPrediction(null);
+    }
+  };
 
   useEffect(() => {
     if (!salaId) {
@@ -122,20 +164,9 @@ export default function PredecirMarcador() {
 
         setRoom(roomData.data);
 
-        // Verificar si ya existe predicción
-        const predUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction/${salaId}`;
-        const predResponse = await fetch(predUrl, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // Cargar predicciones existentes
+        await fetchExistingPredictions();
 
-        if (predResponse.ok) {
-          const predData = await predResponse.json();
-          if (predData.success && predData.data) {
-            setExistingPrediction(predData.data);
-            setGolesLocal(predData.data.score_home || 0);
-            setGolesVisitante(predData.data.score_away || 0);
-          }
-        }
       } catch (err: any) {
         console.error(err);
         setError(err.message || t.prediction.error);
@@ -181,19 +212,21 @@ export default function PredecirMarcador() {
         throw new Error(data.message || "Error al guardar");
       }
 
-      if (!existingPrediction) {
+      // Recargar las predicciones para mostrar la nueva
+      await fetchExistingPredictions();
+
+      // Si es la primera predicción (no había ninguna antes), redirigir a pago
+      if (existingPredictions.length === 0) {
         router.push(`/jugador/pago/${salaId}`);
       } else {
-        router.push("/jugador/dashboard");
+        // Si ya tenía predicciones, mostrar mensaje de éxito y quedarse
+        alert("¡Predicción guardada exitosamente!");
+        setSaving(false);
       }
     } catch (err: any) {
       setError(err.message);
       setSaving(false);
     }
-  };
-
-  const cambiarIdioma = (nuevoIdioma: Locale) => {
-    setLocale(nuevoIdioma);
   };
 
   if (loading) {
@@ -275,7 +308,7 @@ export default function PredecirMarcador() {
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-4 md:px-6">
         <div className="container mx-auto max-w-4xl">
-          
+
           {/* Título de la sección */}
           <div className="text-center mb-10">
             <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white">
@@ -284,6 +317,16 @@ export default function PredecirMarcador() {
             </h1>
             <div className="w-12 h-[1px] bg-yellow-500/30 mx-auto mt-3"></div>
           </div>
+
+          {/* Mostrar contador de predicciones */}
+          {existingPredictions.length > 0 && (
+            <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-center">
+              <p className="text-yellow-500 text-sm">
+                Ya has hecho {existingPredictions.length} predicción{existingPredictions.length !== 1 ? 'es' : ''} para este partido.
+                {existingPredictions.length === 1 ? ' Esta es tu primera predicción.' : ' ¡Puedes hacer otra!'}
+              </p>
+            </div>
+          )}
 
           {/* Tarjeta del partido */}
           <div className="bg-black/50 border border-yellow-500/20 rounded-xl p-6 md:p-8 mb-8">
@@ -379,11 +422,11 @@ export default function PredecirMarcador() {
               </div>
             )}
 
-            {existingPrediction && existingPrediction.paid && (
+            {lastPrediction && lastPrediction.paid && (
               <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                 <p className="text-green-400 text-sm text-center flex items-center justify-center gap-2">
                   <CheckCircle className="w-4 h-4" />
-                  Pago confirmado
+                  Última predicción pagada: {lastPrediction.score_home} x {lastPrediction.score_away}
                 </p>
               </div>
             )}
@@ -401,7 +444,7 @@ export default function PredecirMarcador() {
                 {t.prediction.saving}
               </span>
             ) : (
-              t.prediction.confirm
+              existingPredictions.length === 0 ? "Guardar y Continuar al Pago" : "Guardar Nueva Predicción"
             )}
           </button>
         </div>
