@@ -274,7 +274,7 @@ export default function PlayerDashboard() {
 
             <div className="hidden md:flex items-center space-x-8">
               <span className="text-yellow-500 text-sm tracking-wide">
-                Hola, {user?.name || "Jugador"}
+                Hola, {user?.nickname || "Jugador"}
               </span>
               <button
                 onClick={handleLogout}
@@ -297,7 +297,7 @@ export default function PlayerDashboard() {
             <div className="md:hidden py-4 border-t border-yellow-500/20">
               <div className="flex flex-col space-y-3">
                 <span className="text-yellow-500 text-sm">
-                  Hola, {user?.name || "Jugador"}
+                  Hola, {user?.nickname || "Jugador"}
                 </span>
                 <button
                   onClick={handleLogout}
@@ -315,7 +315,7 @@ export default function PlayerDashboard() {
         <div className="container mx-auto max-w-6xl">
           <div className="mb-8">
             <h1 className="text-3xl font-light tracking-tight text-white">
-              MI <span className="text-yellow-500 font-medium">DASHBOARD</span>
+              MI <span className="text-yellow-500 font-medium">{user.nickname}</span>
             </h1>
             <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
           </div>
