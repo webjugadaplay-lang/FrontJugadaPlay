@@ -1,4 +1,3 @@
-// app/jugador/dashboard/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -26,12 +25,14 @@ interface Prediction {
   room: {
     id: string;
     name: string;
-    team_home: string;
-    team_away: string;
-    match_date: string;
     entry_fee: number;
     total_pool: number;
     status: string;
+    Fixture: {
+      home_team_name: string;
+      away_team_name: string;
+      match_date: string;
+    };
   };
 }
 
@@ -97,7 +98,7 @@ export default function PlayerDashboard() {
 
       const data = await response.json();
 
-      console.log("RESPUESTA /player/predictions:", data);
+      console.log("RESPUESTA /player/my-predictions:", data);
 
       if (!response.ok) {
         throw new Error(data.message || "Error al cargar predicciones");
@@ -189,9 +190,7 @@ export default function PlayerDashboard() {
 
               historialData.push({
                 id: pred.id,
-                partido:
-                  pred.room?.name ||
-                  `${pred.room?.team_home} vs ${pred.room?.team_away}`,
+                partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
                 resultado: `${resultado.score_home} x ${resultado.score_away}`,
                 prediccion: `${pred.score_home} x ${pred.score_away}`,
                 ganado: acerto,
@@ -199,19 +198,17 @@ export default function PlayerDashboard() {
                   acerto && resultado.winners_count > 0
                     ? Number(resultado.total_prize) / Number(resultado.winners_count)
                     : 0,
-                fecha: pred.room?.match_date,
+                fecha: pred.room?.Fixture?.match_date,
               });
             } else {
               historialData.push({
                 id: pred.id,
-                partido:
-                  pred.room?.name ||
-                  `${pred.room?.team_home} vs ${pred.room?.team_away}`,
+                partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
                 resultado: "Pendiente",
                 prediccion: `${pred.score_home} x ${pred.score_away}`,
                 ganado: false,
                 premio: 0,
-                fecha: pred.room?.match_date,
+                fecha: pred.room?.Fixture?.match_date,
               });
             }
           } catch (error) {
@@ -222,14 +219,12 @@ export default function PlayerDashboard() {
 
             historialData.push({
               id: pred.id,
-              partido:
-                pred.room?.name ||
-                `${pred.room?.team_home} vs ${pred.room?.team_away}`,
+              partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
               resultado: "Pendiente",
               prediccion: `${pred.score_home} x ${pred.score_away}`,
               ganado: false,
               premio: 0,
-              fecha: pred.room?.match_date,
+              fecha: pred.room?.Fixture?.match_date,
             });
           }
         }
@@ -370,13 +365,13 @@ export default function PlayerDashboard() {
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                           <h3 className="text-white font-medium mb-1">
-                            {prediccion.room?.team_home} vs {prediccion.room?.team_away}
+                            {prediccion.room?.Fixture?.home_team_name} vs {prediccion.room?.Fixture?.away_team_name}
                           </h3>
 
                           <div className="flex flex-col md:flex-row gap-2 md:gap-4 text-sm">
                             <span className="flex items-center gap-1 text-gray-500">
                               <Clock className="w-3 h-3" />
-                              {new Date(prediccion.room?.match_date).toLocaleString()}
+                              {new Date(prediccion.room?.Fixture?.match_date).toLocaleString()}
                             </span>
 
                             <span className="text-yellow-500">
