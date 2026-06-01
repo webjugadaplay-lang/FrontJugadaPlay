@@ -91,10 +91,8 @@ export default function PlayerDashboard() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/player/predictions`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `${process.env.NEXT_PUBLIC_API_URL}/api/player/my-predictions`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const data = await response.json();
@@ -315,7 +313,7 @@ export default function PlayerDashboard() {
         <div className="container mx-auto max-w-6xl">
           <div className="mb-8">
             <h1 className="text-3xl font-light tracking-tight text-white">
-              MI <span className="text-yellow-500 font-medium">{user.nickname}</span>
+              <span className="text-yellow-500 font-medium">{user.nickname}</span>
             </h1>
             <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
           </div>
