@@ -120,6 +120,8 @@ export default function PlayerDashboard() {
         );
 
         setPartidosActivos(activas);
+        console.log("📊 PREDICCIONES ACTIVAS:", activas);
+        console.log("📊 Cantidad de activas:", activas.length);
 
         const partidosJugados = finalizadas.length;
         let aciertos = 0;
