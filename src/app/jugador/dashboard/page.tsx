@@ -19,9 +19,10 @@ import {
 interface Prediction {
   id: string;
   room_id: string;
-  score_home: number;
-  score_away: number;
+  goals_home: number;    // ← cambia score_home a goals_home
+  goals_away: number;    // ← cambia score_away a goals_away
   paid: boolean;
+  is_paid: boolean;
   room: {
     id: string;
     name: string;
@@ -142,8 +143,8 @@ export default function PlayerDashboard() {
               const resultado: MatchResult = resultData.data;
 
               if (
-                pred.score_home === resultado.score_home &&
-                pred.score_away === resultado.score_away
+                pred.goals_home === resultado.score_home &&
+                pred.goals_away === resultado.score_away
               ) {
                 aciertos++;
 
@@ -187,14 +188,14 @@ export default function PlayerDashboard() {
             if (resultResponse.ok && resultData.success && resultData.data) {
               const resultado: MatchResult = resultData.data;
               const acerto =
-                pred.score_home === resultado.score_home &&
-                pred.score_away === resultado.score_away;
+                pred.goals_home === resultado.score_home &&
+                pred.goals_away === resultado.score_away;
 
               historialData.push({
                 id: pred.id,
                 partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
                 resultado: `${resultado.score_home} x ${resultado.score_away}`,
-                prediccion: `${pred.score_home} x ${pred.score_away}`,
+                prediccion: `${pred.goals_home} x ${pred.goals_away}`,
                 ganado: acerto,
                 premio:
                   acerto && resultado.winners_count > 0
@@ -207,7 +208,7 @@ export default function PlayerDashboard() {
                 id: pred.id,
                 partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
                 resultado: "Pendiente",
-                prediccion: `${pred.score_home} x ${pred.score_away}`,
+                prediccion: `${pred.goals_home} x ${pred.goals_away}`,
                 ganado: false,
                 premio: 0,
                 fecha: pred.room?.Fixture?.match_date,
@@ -223,7 +224,7 @@ export default function PlayerDashboard() {
               id: pred.id,
               partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
               resultado: "Pendiente",
-              prediccion: `${pred.score_home} x ${pred.score_away}`,
+              prediccion: `${pred.goals_home} x ${pred.goals_away}`,
               ganado: false,
               premio: 0,
               fecha: pred.room?.Fixture?.match_date,
@@ -308,12 +309,6 @@ export default function PlayerDashboard() {
 
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-light tracking-tight text-white">
-              <span className="text-yellow-500 font-medium">{user.nickname}</span>
-            </h1>
-            <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
-          </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
@@ -385,7 +380,7 @@ export default function PlayerDashboard() {
                                 Pozo: R$ {pozo}
                               </span>
                               <span className="text-green-500">
-                                Tu predicción: {prediccion.score_home} x {prediccion.score_away}
+                                Tu predicción: {prediccion.goals_home} x {prediccion.goals_away}
                               </span>
                             </div>
                           </div>
