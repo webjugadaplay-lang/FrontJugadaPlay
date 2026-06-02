@@ -357,42 +357,46 @@ export default function PlayerDashboard() {
 
             {partidosActivos.length > 0 ? (
               <div className="space-y-3">
-                {partidosActivos.map((prediccion) => (
-                  <Link
-                    key={prediccion.id}
-                    href={`/jugador/en-vivo/${prediccion.room_id}`}
-                    className="block"
-                  >
-                    <div className="bg-black/30 border border-yellow-500/20 rounded-lg p-4 hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-all cursor-pointer">
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                          <h3 className="text-white font-medium mb-1">
-                            {prediccion.room?.Fixture?.home_team_name} vs {prediccion.room?.Fixture?.away_team_name}
-                          </h3>
-
-                          <div className="flex flex-col md:flex-row gap-2 md:gap-4 text-sm">
-                            <span className="flex items-center gap-1 text-gray-500">
-                              <Clock className="w-3 h-3" />
-                              {new Date(prediccion.room?.Fixture?.match_date).toLocaleString()}
-                            </span>
-
-                            <span className="text-yellow-500">
-                              Pozo: R$ {prediccion.room?.total_pool}
-                            </span>
-
-                            <span className="text-green-500">
-                              Tu predicción: {prediccion.score_home} x {prediccion.score_away}
-                            </span>
+                {partidosActivos.map((prediccion) => {
+                  // Extraer datos de forma segura
+                  const fixture = prediccion.room?.Fixture;
+                  const equipoLocal = fixture?.home_team_name || "Local";
+                  const equipoVisitante = fixture?.away_team_name || "Visitante";
+                  const fechaPartido = fixture?.match_date ? new Date(fixture.match_date).toLocaleString() : "Fecha no disponible";
+                  const pozo = prediccion.room?.total_pool || "0";
+                  return (
+                    <Link
+                      key={prediccion.id}
+                      href={`/jugador/en-vivo/${prediccion.room_id}`}
+                      className="block"
+                    >
+                      <div className="bg-black/30 border border-yellow-500/20 rounded-lg p-4 hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-all cursor-pointer">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                          <div>
+                            <h3 className="text-white font-medium mb-1">
+                              {equipoLocal} vs {equipoVisitante}
+                            </h3>
+                            <div className="flex flex-col md:flex-row gap-2 md:gap-4 text-sm">
+                              <span className="flex items-center gap-1 text-gray-500">
+                                <Clock className="w-3 h-3" />
+                                {fechaPartido}
+                              </span>
+                              <span className="text-yellow-500">
+                                Pozo: R$ {pozo}
+                              </span>
+                              <span className="text-green-500">
+                                Tu predicción: {prediccion.score_home} x {prediccion.score_away}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-yellow-500 text-sm font-medium">
+                            VER EN VIVO
                           </div>
                         </div>
-
-                        <div className="text-yellow-500 text-sm font-medium">
-                          VER EN VIVO
-                        </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="bg-black/30 border border-yellow-500/20 rounded-lg p-8 text-center">
