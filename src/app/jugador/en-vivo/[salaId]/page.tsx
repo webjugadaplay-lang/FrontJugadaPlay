@@ -49,10 +49,10 @@ interface LiveRoomData {
 export default function EnVivo() {
   const router = useRouter();
   const params = useParams();
-  
+
   // ✅ CORRECCIÓN: Obtener salaId correctamente en Next.js 15+
   const salaId = params?.salaId as string;
-  
+
   // ✅ Debug: Verificar que el ID se obtiene correctamente
   useEffect(() => {
     console.log("🔍 [DEBUG] params completos:", params);
@@ -206,10 +206,11 @@ export default function EnVivo() {
               <Link href="/jugador/dashboard" className="text-white">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <Crown className="w-5 h-5 text-yellow-500" strokeWidth={1.5} />
-              <span className="text-white text-sm">
-                JUGADA<span className="text-yellow-500">PLAY</span>
-              </span>
+              <img
+                src="/logo-jugadaplay.svg"
+                alt="Jugada Play"
+                className="h-10 md:h-12 lg:h-14 w-auto object-contain"
+              />
             </div>
             <div className="flex items-center gap-3">
               <button
