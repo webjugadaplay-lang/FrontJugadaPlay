@@ -421,7 +421,7 @@ export default function PlayerDashboard() {
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-center md:justify-start">
+                  <div className="flex items-center justify-center">
                     <Link
                       href={`/jugador/en-vivo/${partidosActivos[0].room_id}`}
                       className="w-full md:w-auto"
