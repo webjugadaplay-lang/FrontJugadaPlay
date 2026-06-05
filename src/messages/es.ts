@@ -29,6 +29,13 @@ const es = {
     contact: "CONTACTO",
     rights: "© 2026 JUGADAPLAY. TODOS LOS DERECHOS RESERVADOS.",
   },
+  playerDashboard: {
+    hello: "Hola",
+    player: "Jugador",
+    activePredictions: "Predicciones Activas",
+    history: "Historial",
+    youMissed: "Fallaste",
+  },
   login: {
     loading: "Cargando...",
     title1: "INICIAR",

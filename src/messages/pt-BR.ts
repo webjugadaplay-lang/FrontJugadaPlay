@@ -29,6 +29,13 @@ const ptBR = {
     contact: "CONTATO",
     rights: "© 2026 JUGADAPLAY. TODOS OS DIREITOS RESERVADOS.",
   },
+  playerDashboard: {
+    hello: "Olá",
+    player: "Jogador",
+    activePredictions: "Previsões Ativas",
+    history: "Histórico",
+    youMissed: "Errou",
+  },
   login: {
     loading: "Carregando...",
     title1: "INICIAR",
