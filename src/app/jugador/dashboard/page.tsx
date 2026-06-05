@@ -308,7 +308,7 @@ export default function PlayerDashboard() {
               <span className="text-yellow-500 text-sm tracking-wide">
                 {t.header.language === "Idioma" ? `Hola, ${user?.nickname || "Jugador"}` : `Olá, ${user?.nickname || "Jogador"}`}
               </span>
-              
+
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="locale-select"
@@ -326,7 +326,7 @@ export default function PlayerDashboard() {
                   <option value="es">ES</option>
                 </select>
               </div>
-              
+
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm"
@@ -350,7 +350,7 @@ export default function PlayerDashboard() {
                 <span className="text-yellow-500 text-sm">
                   {t.header.language === "Idioma" ? `Hola, ${user?.nickname || "Jugador"}` : `Olá, ${user?.nickname || "Jogador"}`}
                 </span>
-                
+
                 <div className="flex items-center justify-between">
                   <label
                     htmlFor="locale-select-mobile"
@@ -368,7 +368,7 @@ export default function PlayerDashboard() {
                     <option value="es">Español</option>
                   </select>
                 </div>
-                
+
                 <button
                   onClick={handleLogout}
                   className="text-gray-400 hover:text-yellow-500 py-2 text-sm text-left"
@@ -387,44 +387,46 @@ export default function PlayerDashboard() {
           {/* HERO */}
           {partidosActivos.length > 0 && (
             <div className="mb-10">
-              <div className="justify-between items-center rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-8">
+              <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-6 md:p-8">
 
-                <div className="text-yellow-500 uppercase tracking-[0.2em] text-xs mb-3">
-                  {t.hero.badge}
+                <div className="text-center">
+                  <div className="text-yellow-500 uppercase tracking-[0.2em] text-xs mb-3">
+                    {t.hero.badge}
+                  </div>
+
+                  <h1 className="text-2xl md:text-5xl font-bold text-white mb-6 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-0">
+                    <span className="break-words">{partidosActivos[0].room?.Fixture?.home_team_name}</span>
+                    <span className="text-yellow-500 mx-0 md:mx-4">VS</span>
+                    <span className="break-words">{partidosActivos[0].room?.Fixture?.away_team_name}</span>
+                  </h1>
                 </div>
 
-                <h1 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                  {partidosActivos[0].room?.Fixture?.home_team_name}
-                  <span className="text-yellow-500 mx-4">VS</span>
-                  {partidosActivos[0].room?.Fixture?.away_team_name}
-                </h1>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
 
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div>
+                  <div className="text-center">
                     <p className="text-gray-400 text-sm mb-1">
                       {t.prediction.yourPrediction}
                     </p>
-
-                    <p className="text-green-500 text-4xl font-bold">
+                    <p className="text-green-500 text-3xl md:text-4xl font-bold">
                       {partidosActivos[0].goals_home} x {partidosActivos[0].goals_away}
                     </p>
                   </div>
 
-                  <div>
+                  <div className="text-center">
                     <p className="text-gray-400 text-sm mb-1">
                       {t.prediction.prizePool}
                     </p>
-
-                    <p className="text-yellow-500 text-4xl font-bold">
+                    <p className="text-yellow-500 text-3xl md:text-4xl font-bold">
                       {t.currencyPrefix} {partidosActivos[0].room?.total_pool}
                     </p>
                   </div>
 
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-center md:justify-start">
                     <Link
                       href={`/jugador/en-vivo/${partidosActivos[0].room_id}`}
+                      className="w-full md:w-auto"
                     >
-                      <button className="bg-yellow-500 text-black font-bold px-8 py-4 rounded-xl hover:scale-105 transition-all">
+                      <button className="bg-yellow-500 text-black font-bold px-6 md:px-8 py-3 md:py-4 rounded-xl hover:scale-105 transition-all w-full md:w-auto text-sm md:text-base">
                         {t.barDashboard.viewRoom}
                       </button>
                     </Link>
@@ -482,7 +484,7 @@ export default function PlayerDashboard() {
               </div>
             </div>
           </div>
-          
+
           {/* ACTIVAS */}
           <div className="mb-12">
 
