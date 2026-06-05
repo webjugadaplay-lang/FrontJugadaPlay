@@ -33,6 +33,7 @@ const es = {
     hello: "Hola",
     player: "Jugador",
     activePredictions: "Predicciones Activas",
+    goToRoom: "UNIRME A SALA",
     history: "Historial",
     youMissed: "Fallaste",
   },

@@ -33,6 +33,7 @@ const ptBR = {
     hello: "Olá",
     player: "Jogador",
     activePredictions: "Previsões Ativas",
+    goToRoom: "ENTRAR NA SALA",
     history: "Histórico",
     youMissed: "Errou",
   },
