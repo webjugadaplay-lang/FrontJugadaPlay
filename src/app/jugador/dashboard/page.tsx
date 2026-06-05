@@ -487,6 +487,11 @@ export default function PlayerDashboard() {
 
           {/* ACTIVAS */}
           <div className="mb-12">
+            <Link href="/jugador/entrar">
+              <button className="fixed bottom-6 right-6 z-40 bg-yellow-500 text-black rounded-full p-4 shadow-lg hover:scale-110 transition-all duration-300">
+                UNIRSE A UNA SALA
+              </button>
+            </Link>
 
             <h2 className="text-2xl text-white font-semibold mb-5">
               {locale === "es" ? "Predicciones Activas" : "Previsões Ativas"}
@@ -534,6 +539,7 @@ export default function PlayerDashboard() {
               ))}
             </div>
           </div>
+
 
           {/* HISTORIAL */}
           <div>
