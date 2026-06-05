@@ -1,3 +1,4 @@
+//src/aoo/jugador/dashboar/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -310,151 +311,283 @@ export default function PlayerDashboard() {
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-            <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
-              <Trophy className="w-5 h-5 text-yellow-500 mb-2" />
-              <div className="text-2xl font-light text-white">
+          {/* HERO */}
+          {partidosActivos.length > 0 && (
+            <div className="mb-10">
+              <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-8">
+
+                <div className="text-yellow-500 uppercase tracking-[0.2em] text-xs mb-3">
+                  Partido Destacado
+                </div>
+
+                <h1 className="text-3xl md:text-5xl font-bold text-white mb-6">
+                  {partidosActivos[0].room?.Fixture?.home_team_name}
+                  <span className="text-yellow-500 mx-4">VS</span>
+                  {partidosActivos[0].room?.Fixture?.away_team_name}
+                </h1>
+
+                <div className="grid md:grid-cols-3 gap-6">
+
+                  <div>
+                    <p className="text-gray-400 text-sm mb-1">
+                      Tu Predicción
+                    </p>
+
+                    <p className="text-green-500 text-4xl font-bold">
+                      {partidosActivos[0].goals_home} x {partidosActivos[0].goals_away}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-gray-400 text-sm mb-1">
+                      Pozo Actual
+                    </p>
+
+                    <p className="text-yellow-500 text-4xl font-bold">
+                      R$ {partidosActivos[0].room?.total_pool}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <Link
+                      href={`/jugador/en-vivo/${partidosActivos[0].room_id}`}
+                    >
+                      <button className="bg-yellow-500 text-black font-bold px-8 py-4 rounded-xl hover:scale-105 transition-all">
+                        VER EN VIVO
+                      </button>
+                    </Link>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STATS */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+
+            <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
+
+              <Trophy className="w-7 h-7 text-yellow-500 mb-4" />
+
+              <div className="text-4xl font-bold text-white">
                 {stats.partidosJugados}
               </div>
-              <div className="text-xs text-gray-500">PARTIDOS JUGADOS</div>
+
+              <div className="text-gray-500 text-sm mt-2">
+                PARTIDOS
+              </div>
+
             </div>
 
-            <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
-              <Star className="w-5 h-5 text-yellow-500 mb-2" />
-              <div className="text-2xl font-light text-white">
+            <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
+
+              <Star className="w-7 h-7 text-yellow-500 mb-4" />
+
+              <div className="text-4xl font-bold text-green-500">
                 {stats.aciertos}
               </div>
-              <div className="text-xs text-gray-500">ACIERTOS</div>
+
+              <div className="text-gray-500 text-sm mt-2">
+                ACIERTOS
+              </div>
+
             </div>
 
-            <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
-              <TrendingUp className="w-5 h-5 text-yellow-500 mb-2" />
-              <div className="text-2xl font-light text-white">
+            <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
+
+              <TrendingUp className="w-7 h-7 text-yellow-500 mb-4" />
+
+              <div className="text-4xl font-bold text-blue-400">
                 {stats.tasaAcierto}%
               </div>
-              <div className="text-xs text-gray-500">TASA DE ACIERTO</div>
+
+              <div className="text-gray-500 text-sm mt-2">
+                EFECTIVIDAD
+              </div>
+
             </div>
 
-            <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
-              <Trophy className="w-5 h-5 text-yellow-500 mb-2" />
-              <div className="text-2xl font-light text-white">
+            <div className="rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-black p-6 hover:border-yellow-500 hover:scale-105 transition-all">
+
+              <Trophy className="w-7 h-7 text-yellow-500 mb-4" />
+
+              <div className="text-4xl font-bold text-yellow-500">
                 R$ {stats.totalGanado}
               </div>
-              <div className="text-xs text-gray-500">TOTAL GANADO</div>
+
+              <div className="text-gray-500 text-sm mt-2">
+                GANADO
+              </div>
+
             </div>
+
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-white text-lg font-light tracking-wide mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-yellow-500" />
-              MIS PREDICCIONES ACTIVAS
-            </h2>
+          {/* PROGRESO */}
+          <div className="mb-12">
 
-            {partidosActivos.length > 0 ? (
-              <div className="space-y-3">
-                {partidosActivos.map((prediccion) => {
-                  // Extraer datos de forma segura
-                  const fixture = prediccion.room?.Fixture;
-                  const equipoLocal = fixture?.home_team_name || "Local";
-                  const equipoVisitante = fixture?.away_team_name || "Visitante";
-                  const fechaPartido = fixture?.match_date ? new Date(fixture.match_date).toLocaleString() : "Fecha no disponible";
-                  const pozo = prediccion.room?.total_pool || "0";
-                  return (
-                    <Link
-                      key={prediccion.id}
-                      href={`/jugador/en-vivo/${prediccion.room_id}`}
-                      className="block"
-                    >
-                      <div className="bg-black/30 border border-yellow-500/20 rounded-lg p-4 hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-all cursor-pointer">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                          <div>
-                            <h3 className="text-white font-medium mb-1">
-                              {equipoLocal} vs {equipoVisitante}
-                            </h3>
-                            <div className="flex flex-col md:flex-row gap-2 md:gap-4 text-sm">
-                              <span className="flex items-center gap-1 text-gray-500">
-                                <Clock className="w-3 h-3" />
-                                {fechaPartido}
-                              </span>
-                              <span className="text-yellow-500">
-                                Pozo: R$ {pozo}
-                              </span>
-                              <span className="text-green-500">
-                                Tu predicción: {prediccion.goals_home} x {prediccion.goals_away}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-yellow-500 text-sm font-medium">
-                            VER EN VIVO
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="bg-black/30 border border-yellow-500/20 rounded-lg p-8 text-center">
-                <p className="text-gray-500">No tienes predicciones activas</p>
-                <Link href="/entrar">
-                  <button className="mt-4 border border-yellow-500/50 text-yellow-500 px-4 py-2 text-sm rounded-sm hover:bg-yellow-500/10 transition-all">
-                    UNIRME A UNA SALA
-                  </button>
-                </Link>
-              </div>
-            )}
+            <div className="flex justify-between mb-2">
+
+              <span className="text-white">
+                Nivel Novato
+              </span>
+
+              <span className="text-yellow-500">
+                {stats.aciertos}/10
+              </span>
+
+            </div>
+
+            <div className="h-4 bg-gray-900 rounded-full overflow-hidden">
+
+              <div
+                className="h-full bg-yellow-500 transition-all duration-1000"
+                style={{
+                  width: `${Math.min(
+                    (stats.aciertos / 10) * 100,
+                    100
+                  )}%`,
+                }}
+              />
+
+            </div>
+
           </div>
 
-          <div>
-            <h2 className="text-white text-lg font-light tracking-wide mb-4 flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-yellow-500" />
-              HISTORIAL DE PREDICCIONES
+          {/* ACTIVAS */}
+          <div className="mb-12">
+
+            <h2 className="text-2xl text-white font-semibold mb-5">
+              Predicciones Activas
             </h2>
 
-            {historial.length > 0 ? (
-              <div className="space-y-3">
-                {historial.map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-black/30 border border-yellow-500/20 rounded-lg p-4"
-                  >
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-4">
+
+              {partidosActivos.map((prediccion) => (
+
+                <Link
+                  key={prediccion.id}
+                  href={`/jugador/en-vivo/${prediccion.room_id}`}
+                >
+
+                  <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500 transition-all">
+
+                    <div className="flex justify-between items-center">
+
                       <div>
-                        <h3 className="text-white font-medium mb-1">{item.partido}</h3>
-                        <div className="flex flex-col md:flex-row gap-2 md:gap-4 text-sm">
-                          <span className="text-gray-500">
-                            Resultado: {item.resultado}
+
+                        <h3 className="text-white text-lg font-semibold">
+                          {prediccion.room?.Fixture?.home_team_name}
+                          {" vs "}
+                          {prediccion.room?.Fixture?.away_team_name}
+                        </h3>
+
+                        <p className="text-gray-400 mt-2">
+                          Tu predicción:
+                          <span className="text-green-500 ml-2 font-bold">
+                            {prediccion.goals_home} x {prediccion.goals_away}
                           </span>
-                          <span className="text-gray-500">
-                            Tu predicción: {item.prediccion}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 text-xs mt-1">
-                          {item.fecha ? new Date(item.fecha).toLocaleDateString() : ""}
                         </p>
+
                       </div>
 
-                      <div>
-                        {item.ganado ? (
-                          <span className="text-green-500 text-sm flex items-center gap-1">
-                            <CheckCircle className="w-4 h-4" /> + R$ {Math.round(item.premio)}
-                          </span>
-                        ) : (
-                          <span className="text-red-500 text-sm flex items-center gap-1">
-                            <XCircle className="w-4 h-4" /> No acertaste
-                          </span>
-                        )}
+                      <div className="text-right">
+
+                        <div className="text-yellow-500 text-2xl font-bold">
+                          R$ {prediccion.room?.total_pool}
+                        </div>
+
+                        <div className="text-gray-500 text-sm">
+                          Pozo
+                        </div>
+
                       </div>
+
                     </div>
+
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-black/30 border border-yellow-500/20 rounded-lg p-8 text-center">
-                <p className="text-gray-500">No hay historial de predicciones</p>
-              </div>
-            )}
+
+                </Link>
+
+              ))}
+
+            </div>
+
           </div>
+
+          {/* HISTORIAL */}
+          <div>
+
+            <h2 className="text-2xl text-white font-semibold mb-5">
+              Historial
+            </h2>
+
+            <div className="space-y-4">
+
+              {historial.map((item) => (
+
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5"
+                >
+
+                  <div className="flex justify-between items-center">
+
+                    <div>
+
+                      <h3 className="text-white font-semibold">
+                        {item.partido}
+                      </h3>
+
+                      <div className="mt-2 text-gray-400">
+
+                        Resultado:
+                        <span className="ml-2">
+                          {item.resultado}
+                        </span>
+
+                      </div>
+
+                      <div className="text-gray-400">
+
+                        Predicción:
+                        <span className="ml-2">
+                          {item.prediccion}
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                    {item.ganado ? (
+
+                      <div className="bg-green-500/20 text-green-500 px-4 py-2 rounded-full font-semibold">
+
+                        + R$ {Math.round(item.premio)}
+
+                      </div>
+
+                    ) : (
+
+                      <div className="bg-red-500/20 text-red-500 px-4 py-2 rounded-full font-semibold">
+
+                        Fallaste
+
+                      </div>
+
+                    )}
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          </div>
+
         </div>
       </div>
     </main>

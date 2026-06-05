@@ -46,7 +46,7 @@ const es = {
     noAccount: "¿NO TIENES CUENTA AÚN?",
     registerBar: "REGISTRAR MI BAR",
     registerPlayer: "REGISTRARME COMO JUGADOR",
-    forgotPassword: "¿Olvidaste tu contraseña?",
+    forgotPassword: "¿OLVIDASTE TU CONTRASEÑA?",
     errors: {
       login: "Error al iniciar sesión",
       api: "Error en API",
