@@ -387,7 +387,7 @@ export default function PlayerDashboard() {
           {/* HERO */}
           {partidosActivos.length > 0 && (
             <div className="mb-10">
-              <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-8">
+              <div className="justify-between items-center rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-8">
 
                 <div className="text-yellow-500 uppercase tracking-[0.2em] text-xs mb-3">
                   {t.hero.badge}
@@ -400,7 +400,6 @@ export default function PlayerDashboard() {
                 </h1>
 
                 <div className="grid md:grid-cols-3 gap-6">
-
                   <div>
                     <p className="text-gray-400 text-sm mb-1">
                       {t.prediction.yourPrediction}
@@ -438,23 +437,17 @@ export default function PlayerDashboard() {
 
           {/* STATS */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
-
               <Trophy className="w-7 h-7 text-yellow-500 mb-4" />
-
               <div className="text-4xl font-bold text-white">
                 {stats.partidosJugados}
               </div>
-
               <div className="text-gray-500 text-sm mt-2">
                 {t.barDashboard.totalPlayers}
               </div>
-
             </div>
 
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
-
               <Star className="w-7 h-7 text-yellow-500 mb-4" />
 
               <div className="text-4xl font-bold text-green-500">
@@ -464,7 +457,6 @@ export default function PlayerDashboard() {
               <div className="text-gray-500 text-sm mt-2">
                 {t.barDashboard.hits}
               </div>
-
             </div>
 
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
@@ -478,23 +470,17 @@ export default function PlayerDashboard() {
               <div className="text-gray-500 text-sm mt-2">
                 {t.barDashboard.rating}
               </div>
-
             </div>
 
             <div className="rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-black p-6 hover:border-yellow-500 hover:scale-105 transition-all">
-
               <Trophy className="w-7 h-7 text-yellow-500 mb-4" />
-
               <div className="text-4xl font-bold text-yellow-500">
                 {t.currencyPrefix} {stats.totalGanado}
               </div>
-
               <div className="text-gray-500 text-sm mt-2">
                 {t.admin.stats.totalRevenue}
               </div>
-
             </div>
-
           </div>
           
           {/* ACTIVAS */}
@@ -505,7 +491,6 @@ export default function PlayerDashboard() {
             </h2>
 
             <div className="space-y-4">
-
               {partidosActivos.map((prediccion) => (
 
                 <Link
@@ -514,11 +499,8 @@ export default function PlayerDashboard() {
                 >
 
                   <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500 transition-all">
-
                     <div className="flex justify-between items-center">
-
                       <div>
-
                         <h3 className="text-white text-lg font-semibold">
                           {prediccion.room?.Fixture?.home_team_name}
                           {" vs "}
@@ -543,19 +525,12 @@ export default function PlayerDashboard() {
                         <div className="text-gray-500 text-sm">
                           {t.prediction.prizePool}
                         </div>
-
                       </div>
-
                     </div>
-
                   </div>
-
                 </Link>
-
               ))}
-
             </div>
-
           </div>
 
           {/* HISTORIAL */}
@@ -583,51 +558,35 @@ export default function PlayerDashboard() {
                       </h3>
 
                       <div className="mt-2 text-gray-400">
-
                         {locale === "es" ? "Resultado:" : "Resultado:"}
                         <span className="ml-2">
                           {item.resultado}
                         </span>
-
                       </div>
 
                       <div className="text-gray-400">
-
                         {locale === "es" ? "Predicción:" : "Previsão:"}
                         <span className="ml-2">
                           {item.prediccion}
                         </span>
-
                       </div>
-
                     </div>
 
                     {item.ganado ? (
-
                       <div className="bg-green-500/20 text-green-500 px-4 py-2 rounded-full font-semibold">
-
                         + {t.currencyPrefix} {Math.round(item.premio)}
-
                       </div>
 
                     ) : (
 
                       <div className="bg-red-500/20 text-red-500 px-4 py-2 rounded-full font-semibold">
-
                         {locale === "es" ? "Fallaste" : "Errou"}
-
                       </div>
-
                     )}
-
                   </div>
-
                 </div>
-
               ))}
-
             </div>
-
           </div>
 
         </div>
