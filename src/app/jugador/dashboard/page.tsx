@@ -159,24 +159,40 @@ export default function PlayerDashboard() {
         setPartidosActivos(activas);
         console.log("📊 PREDICCIONES ACTIVAS:", activas);
         console.log("📊 Cantidad de activas:", activas.length);
+        console.log("📊 Cantidad de finalizadas:", finalizadas.length);
 
         const partidosJugados = finalizadas.length;
         let aciertos = 0;
         let totalGanado = 0;
 
+        // Procesar cada predicción finalizada
         for (const pred of finalizadas) {
           try {
+            console.log(`📡 Obteniendo resultado para sala: ${pred.room_id}`);
+
             const resultResponse = await fetch(
               `${process.env.NEXT_PUBLIC_API_URL}/api/player/match-result/${pred.room_id}`,
               {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
               }
             );
+
+            // Verificar si la respuesta es JSON válido
+            const contentType = resultResponse.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              console.warn(`⚠️ Respuesta no es JSON para sala ${pred.room_id}, status: ${resultResponse.status}`);
+              continue; // Saltar esta predicción
+            }
 
             const resultData = await resultResponse.json();
 
             if (resultResponse.ok && resultData.success && resultData.data) {
               const resultado: MatchResult = resultData.data;
+
+              console.log(`✅ Resultado recibido para ${pred.room_id}:`, resultado);
 
               if (
                 pred.goals_home === resultado.score_home &&
@@ -189,17 +205,17 @@ export default function PlayerDashboard() {
                     Number(resultado.total_prize) / Number(resultado.winners_count);
                 }
               }
+            } else {
+              console.warn(`⚠️ No se pudo obtener resultado para sala ${pred.room_id}:`, resultData.message || "Sin datos");
             }
           } catch (error) {
-            console.error(
-              `Error obteniendo resultado del partido ${pred.room_id}:`,
-              error
-            );
+            console.error(`❌ Error obteniendo resultado del partido ${pred.room_id}:`, error);
+            // Continuar con la siguiente predicción en lugar de detener todo
+            continue;
           }
         }
 
-        const tasaAcierto =
-          partidosJugados > 0 ? (aciertos / partidosJugados) * 100 : 0;
+        const tasaAcierto = partidosJugados > 0 ? (aciertos / partidosJugados) * 100 : 0;
 
         setStats({
           partidosJugados,
@@ -208,16 +224,37 @@ export default function PlayerDashboard() {
           totalGanado: Math.round(totalGanado),
         });
 
+        // Construir historial
         const historialData = [];
 
         for (const pred of finalizadas.slice(0, 10)) {
           try {
+            console.log(`📡 Construyendo historial para sala: ${pred.room_id}`);
+
             const resultResponse = await fetch(
               `${process.env.NEXT_PUBLIC_API_URL}/api/player/match-result/${pred.room_id}`,
               {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
               }
             );
+
+            const contentType = resultResponse.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              // Si no hay resultado disponible, mostrar como pendiente
+              historialData.push({
+                id: pred.id,
+                partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
+                resultado: "Pendiente",
+                prediccion: `${pred.goals_home} x ${pred.goals_away}`,
+                ganado: false,
+                premio: 0,
+                fecha: pred.room?.Fixture?.match_date,
+              });
+              continue;
+            }
 
             const resultData = await resultResponse.json();
 
@@ -233,13 +270,13 @@ export default function PlayerDashboard() {
                 resultado: `${resultado.score_home} x ${resultado.score_away}`,
                 prediccion: `${pred.goals_home} x ${pred.goals_away}`,
                 ganado: acerto,
-                premio:
-                  acerto && resultado.winners_count > 0
-                    ? Number(resultado.total_prize) / Number(resultado.winners_count)
-                    : 0,
+                premio: acerto && resultado.winners_count > 0
+                  ? Number(resultado.total_prize) / Number(resultado.winners_count)
+                  : 0,
                 fecha: pred.room?.Fixture?.match_date,
               });
             } else {
+              // Si no hay resultado disponible, mostrar como pendiente
               historialData.push({
                 id: pred.id,
                 partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
@@ -251,11 +288,8 @@ export default function PlayerDashboard() {
               });
             }
           } catch (error) {
-            console.error(
-              `Error construyendo historial para ${pred.room_id}:`,
-              error
-            );
-
+            console.error(`❌ Error construyendo historial para ${pred.room_id}:`, error);
+            // Agregar entrada como pendiente en caso de error
             historialData.push({
               id: pred.id,
               partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
