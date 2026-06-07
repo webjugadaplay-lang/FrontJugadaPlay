@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Crown, Copy, Check, Clock, QrCode, CreditCard, Wallet } from "lucide-react";
+import { ArrowLeft, Crown, Copy, Check, Clock, QrCode, Beer } from "lucide-react";
 
 export default function PagoPrediccion({ params }: { params: { salaId: string } }) {
-  const [metodoPago, setMetodoPago] = useState<"pix" | "tarjeta" | "saldo">("pix");
+  const [metodoPago, setMetodoPago] = useState<"pix" | "bar">("pix");
   const [copied, setCopied] = useState(false);
   const [tiempoRestante, setTiempoRestante] = useState(300); // 5 minutos en segundos
 
@@ -49,12 +49,12 @@ export default function PagoPrediccion({ params }: { params: { salaId: string } 
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-md">
-          
+
           <div className="relative">
             <div className="absolute -inset-1 bg-yellow-500/5 rounded-2xl blur-xl"></div>
-            
+
             <div className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
-              
+
               <div className="border-b border-yellow-500/20 px-6 pt-6 pb-4">
                 <h1 className="text-xl font-light tracking-tight text-white">
                   REALIZAR <span className="text-yellow-500 font-medium">PAGO</span>
@@ -63,7 +63,7 @@ export default function PagoPrediccion({ params }: { params: { salaId: string } 
               </div>
 
               <div className="p-6 space-y-6">
-                
+
                 {/* Info de la predicción */}
                 <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
                   <div className="flex justify-between items-center">
@@ -86,11 +86,10 @@ export default function PagoPrediccion({ params }: { params: { salaId: string } 
                   <div className="space-y-2">
                     <button
                       onClick={() => setMetodoPago("pix")}
-                      className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${
-                        metodoPago === "pix"
+                      className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${metodoPago === "pix"
                           ? "border-yellow-500 bg-yellow-500/10"
                           : "border-yellow-500/20 hover:border-yellow-500/40"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <QrCode className="w-5 h-5 text-yellow-500" />
@@ -98,35 +97,19 @@ export default function PagoPrediccion({ params }: { params: { salaId: string } 
                       </div>
                       {metodoPago === "pix" && <Check className="w-4 h-4 text-yellow-500" />}
                     </button>
-                    
+
                     <button
-                      onClick={() => setMetodoPago("tarjeta")}
-                      className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${
-                        metodoPago === "tarjeta"
+                      onClick={() => setMetodoPago("bar")}
+                      className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${metodoPago === "bar"
                           ? "border-yellow-500 bg-yellow-500/10"
                           : "border-yellow-500/20 hover:border-yellow-500/40"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
-                        <CreditCard className="w-5 h-5 text-yellow-500" />
-                        <span className="text-white text-sm">Tarjeta de Crédito</span>
+                        <Beer className="w-5 h-5 text-yellow-500" />
+                        <span className="text-white text-sm">Pago en el bar</span>
                       </div>
-                      {metodoPago === "tarjeta" && <Check className="w-4 h-4 text-yellow-500" />}
-                    </button>
-                    
-                    <button
-                      onClick={() => setMetodoPago("saldo")}
-                      className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${
-                        metodoPago === "saldo"
-                          ? "border-yellow-500 bg-yellow-500/10"
-                          : "border-yellow-500/20 hover:border-yellow-500/40"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Wallet className="w-5 h-5 text-yellow-500" />
-                        <span className="text-white text-sm">Saldo JugadaPlay</span>
-                      </div>
-                      {metodoPago === "saldo" && <Check className="w-4 h-4 text-yellow-500" />}
+                      {metodoPago === "bar" && <Check className="w-4 h-4 text-yellow-500" />}
                     </button>
                   </div>
                 </div>
@@ -152,6 +135,15 @@ export default function PagoPrediccion({ params }: { params: { salaId: string } 
                   </div>
                 )}
 
+                {/* Mensaje para Pago en el bar */}
+                {metodoPago === "bar" && (
+                  <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4 text-center">
+                    <Beer className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                    <p className="text-white text-sm">Paga R$ 5,00 directamente en el bar</p>
+                    <p className="text-gray-400 text-xs mt-1">Muestra este comprobante al camarero</p>
+                  </div>
+                )}
+
                 {/* Tiempo restante */}
                 <div className="flex items-center justify-center gap-2 text-center">
                   <Clock className="w-4 h-4 text-yellow-500" />
@@ -164,7 +156,9 @@ export default function PagoPrediccion({ params }: { params: { salaId: string } 
                 {/* Botón confirmar pago */}
                 <Link href={`/jugador/en-vivo/${params.salaId}`}>
                   <button className="group relative w-full overflow-hidden bg-yellow-500 text-black py-3 rounded-lg text-sm font-medium tracking-wide hover:bg-yellow-400 transition-all">
-                    <span className="relative z-10">YA PAGUÉ, CONFIRMAR</span>
+                    <span className="relative z-10">
+                      {metodoPago === "bar" ? "PAGAR EN EL BAR" : "YA PAGUÉ, CONFIRMAR"}
+                    </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
                   </button>
                 </Link>
