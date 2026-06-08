@@ -184,11 +184,30 @@ export default function PredecirMarcador() {
       return;
     }
 
+    if (!room) {
+      setError("Datos de la sala no disponibles");
+      return;
+    }
+
     setSaving(true);
     setError("");
 
     try {
       const token = localStorage.getItem("token");
+
+      // Calcular el entry_fee a pagar (tomar el valor actual de la sala)
+      const entryFeeValue = typeof room.entry_fee === 'string' 
+        ? parseFloat(room.entry_fee) 
+        : room.entry_fee;
+
+      const payload = {
+        room_id: salaId,
+        score_home: golesLocal,
+        score_away: golesVisitante,
+        entry_fee_paid: entryFeeValue  // ✅ AÑADIR ESTE CAMPO
+      };
+
+      console.log("📤 Enviando predicción:", payload);
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/player/prediction`,
@@ -198,11 +217,7 @@ export default function PredecirMarcador() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            room_id: salaId,
-            score_home: golesLocal,
-            score_away: golesVisitante,
-          }),
+          body: JSON.stringify(payload),
         }
       );
 
