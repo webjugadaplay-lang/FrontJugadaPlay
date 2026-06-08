@@ -1,10 +1,11 @@
 //app/entrar/page.tsx
+//app/entrar/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, QrCode, Key, Camera, X } from "lucide-react";
+import { ArrowLeft, QrCode, Camera, X } from "lucide-react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
 export default function EntrarSalaPage() {
@@ -83,9 +84,10 @@ export default function EntrarSalaPage() {
       const data = await response.json();
 
       if (data.success && data.roomId) {
+        // Verificar si la sala está activa (opcional - el backend ya debería validar)
         router.push(`/jugador/prediccion/${data.roomId}`);
       } else {
-        setError("Sala no encontrada");
+        setError(data.message || "Sala no encontrada o inactiva");
       }
     } catch (err: any) {
       setError(err.message);
@@ -125,36 +127,51 @@ export default function EntrarSalaPage() {
             <div className="w-12 h-[1px] bg-yellow-500/30 mx-auto mt-3"></div>
           </div>
 
+          {/* Solo un botón para escanear QR */}
           {!modoQR && !scanning && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <button onClick={() => setModoQR(true)} className="flex flex-col items-center gap-3 p-6 bg-black/50 border border-yellow-500/20 rounded-lg hover:border-yellow-500/50">
+            <div className="mb-8">
+              <button 
+                onClick={() => setModoQR(true)} 
+                className="w-full flex items-center justify-center gap-3 p-6 bg-black/50 border border-yellow-500/20 rounded-lg hover:border-yellow-500/50 transition-all"
+              >
                 <QrCode className="w-6 h-6 text-yellow-500" />
                 <p className="text-white font-medium">Escanear QR</p>
-              </button>
-
-              <button onClick={() => setModoQR(true)} className="flex flex-col items-center gap-3 p-6 bg-black/50 border border-yellow-500/20 rounded-lg hover:border-yellow-500/50">
-                <Key className="w-6 h-6 text-yellow-500" />
-                <p className="text-white font-medium">Código manual</p>
               </button>
             </div>
           )}
 
+          {/* Modal/Sección del QR Scanner */}
           {(modoQR || scanning) && (
-            <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6">
+            <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6 mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-white font-medium">Escanear QR</h3>
-                <button onClick={() => { setScanning(false); setModoQR(false); setError(""); }} className="text-gray-400 hover:text-yellow-500">
+                <button 
+                  onClick={() => { 
+                    setScanning(false); 
+                    setModoQR(false); 
+                    setError(""); 
+                  }} 
+                  className="text-gray-400 hover:text-yellow-500 transition-colors"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {!scanning ? (
-                <button onClick={() => setScanning(true)} className="w-full py-3 border border-yellow-500/50 text-yellow-500 rounded-lg">
+                <button 
+                  onClick={() => setScanning(true)} 
+                  className="w-full py-3 border border-yellow-500/50 text-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-colors"
+                >
                   Iniciar cámara
                 </button>
               ) : (
                 <>
-                  <Scanner onScan={handleScan} onError={handleError} constraints={{ facingMode: "environment" }} scanDelay={500} />
+                  <Scanner 
+                    onScan={handleScan} 
+                    onError={handleError} 
+                    constraints={{ facingMode: "environment" }} 
+                    scanDelay={500} 
+                  />
                   <p className="text-gray-500 text-xs text-center mt-4">Coloca el QR frente a la cámara</p>
                 </>
               )}
@@ -162,19 +179,31 @@ export default function EntrarSalaPage() {
             </div>
           )}
 
-          {!modoQR && !scanning && (
-            <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6">
-              <form onSubmit={(e) => { e.preventDefault(); procesarCodigoManual(); }}>
-                <input type="text" value={codigoSala} onChange={(e) => setCodigoSala(e.target.value.toUpperCase())} placeholder="Código: ABC123" className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white mb-4" />
-                <button type="submit" disabled={loading} className="w-full py-3 bg-yellow-500 text-black font-medium rounded-lg">
-                  {loading ? "Verificando..." : "Unirme"}
-                </button>
-              </form>
-            </div>
-          )}
+          {/* Formulario de código manual - SIEMPRE visible */}
+          <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6">
+            <h3 className="text-white font-medium mb-4">Ingresar código manualmente</h3>
+            <form onSubmit={(e) => { e.preventDefault(); procesarCodigoManual(); }}>
+              <input 
+                type="text" 
+                value={codigoSala} 
+                onChange={(e) => setCodigoSala(e.target.value.toUpperCase())} 
+                placeholder="Ejemplo: ABC123" 
+                className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white mb-4 focus:outline-none focus:border-yellow-500 transition-colors" 
+              />
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full py-3 bg-yellow-500 text-black font-medium rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Verificando..." : "Unirme"}
+              </button>
+            </form>
+          </div>
 
           <div className="mt-6 text-center">
-            <Link href="/jugador/dashboard" className="text-gray-500 hover:text-yellow-500 text-sm">← Volver</Link>
+            <Link href="/jugador/dashboard" className="text-gray-500 hover:text-yellow-500 text-sm transition-colors">
+              ← Volver
+            </Link>
           </div>
         </div>
       </div>
