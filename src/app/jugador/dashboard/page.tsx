@@ -400,14 +400,14 @@ export default function PlayerDashboard() {
         <div className="container mx-auto max-w-6xl">
 
           {/* HERO - Versión simplificada */}
-          <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-6 md:p-8">
-            <div className="text-center text-yellow-500 uppercase tracking-[0.6em] text-s">
+          <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-6 md:p-8 mb-16">
+            <div className="text-center text-yellow-500 uppercase tracking-[0.6em] text-sm">
               {t.hero.badge}
             </div>
           </div>
 
-          {/* STATS */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          {/* STATS - Aumentado el margen inferior */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
               <Trophy className="w-7 h-7 text-yellow-500 mb-4" />
               <div className="text-4xl font-bold text-white">
@@ -449,8 +449,8 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* BOTÓN PARA ENTRAR A SALA */}
-          <div className="mb-8">
+          {/* BOTÓN PARA ENTRAR A SALA - Aumentado el margen inferior */}
+          <div className="mb-12">
             <Link href="/entrar" className="w-full md:w-auto block">
               <button className="bg-yellow-500 text-black font-bold px-6 md:px-8 py-3 md:py-4 rounded-xl hover:scale-105 transition-all w-full md:w-auto text-sm md:text-base">
                 {t.playerDashboard.goToRoom}
@@ -458,8 +458,8 @@ export default function PlayerDashboard() {
             </Link>
           </div>
 
-          {/* TABS */}
-          <div className="mb-8">
+          {/* TABS - Aumentado el margen inferior */}
+          <div className="mb-10">
             <div className="flex gap-2 border-b border-yellow-500/20">
               <button
                 onClick={() => setActiveTab("active")}
@@ -499,11 +499,11 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* CONTENIDO DE LAS PESTAÑAS */}
+          {/* CONTENIDO DE LAS PESTAÑAS - Aumentado el espacio entre elementos */}
           <div>
             {/* Pestaña de Predicciones Activas */}
             {activeTab === "active" && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {partidosActivos.length > 0 ? (
                   partidosActivos.map((prediccion) => (
                     <Link
@@ -559,13 +559,12 @@ export default function PlayerDashboard() {
 
             {/* Pestaña de Historial - MISMO ESTILO que Predicciones Activas */}
             {activeTab === "history" && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {historial.length > 0 ? (
                   historial.map((item) => (
                     <div
                       key={item.id}
                       className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500 hover:scale-[1.02] transition-all cursor-pointer"
-                      
                     >
                       <div className="flex justify-between items-center flex-wrap gap-4">
                         <div className="flex-1">
