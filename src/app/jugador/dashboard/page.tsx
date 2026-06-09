@@ -135,16 +135,12 @@ export default function PlayerDashboard() {
 
       const data = await response.json();
 
-      console.log("RESPUESTA /player/my-predictions:", data);
-
       if (!response.ok) {
         throw new Error(data.message || "Error al cargar predicciones");
       }
 
       if (data.success) {
         const predicciones: Prediction[] = data.data || [];
-
-        console.log("PREDICCIONES RECIBIDAS:", predicciones);
 
         const activas = predicciones.filter(
           (p: Prediction) => p.room && p.room.status === "active"
@@ -157,9 +153,6 @@ export default function PlayerDashboard() {
         );
 
         setPartidosActivos(activas);
-        console.log("📊 PREDICCIONES ACTIVAS:", activas);
-        console.log("📊 Cantidad de activas:", activas.length);
-        console.log("📊 Cantidad de finalizadas:", finalizadas.length);
 
         const partidosJugados = finalizadas.length;
         let aciertos = 0;
@@ -168,7 +161,6 @@ export default function PlayerDashboard() {
         // Procesar cada predicción finalizada
         for (const pred of finalizadas) {
           try {
-            console.log(`📡 Obteniendo resultado para sala: ${pred.room_id}`);
 
             const resultResponse = await fetch(
               `${process.env.NEXT_PUBLIC_API_URL}/api/player/match-result/${pred.room_id}`,
@@ -191,9 +183,6 @@ export default function PlayerDashboard() {
 
             if (resultResponse.ok && resultData.success && resultData.data) {
               const resultado: MatchResult = resultData.data;
-
-              console.log(`✅ Resultado recibido para ${pred.room_id}:`, resultado);
-
               if (
                 pred.goals_home === resultado.score_home &&
                 pred.goals_away === resultado.score_away
@@ -229,8 +218,6 @@ export default function PlayerDashboard() {
 
         for (const pred of finalizadas.slice(0, 10)) {
           try {
-            console.log(`📡 Construyendo historial para sala: ${pred.room_id}`);
-
             const resultResponse = await fetch(
               `${process.env.NEXT_PUBLIC_API_URL}/api/player/match-result/${pred.room_id}`,
               {
