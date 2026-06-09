@@ -409,10 +409,8 @@ export default function PlayerDashboard() {
           {partidosActivos.length > 0 && (
             <div className="mb-10">
               <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-6 md:p-8">
-                <div className="text-center">
-                  <div className="text-yellow-500 uppercase tracking-[0.2em] text-xs mb-3">
-                    {t.hero.badge}
-                  </div>
+                <div className="text-center text-yellow-500 uppercase tracking-[0.2em] text-xs mb-3">
+                  {t.hero.badge}
                 </div>
               </div>
             </div>
