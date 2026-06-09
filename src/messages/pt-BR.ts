@@ -32,6 +32,7 @@ const ptBR = {
   playerDashboard: {
     hello: "OLÁ",
     player: "JOGADOR",
+    accPredictions: "PALPITES REALIZADOS",
     activePredictions: "PREVISÕES ATIVAS",
     goToRoom: "ENTRAR NA SALA",
     history: "HISTÓRICO",

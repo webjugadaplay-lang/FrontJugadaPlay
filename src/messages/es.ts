@@ -29,6 +29,7 @@ const es = {
   playerDashboard: {
     hello: "HOLA",
     player: "JUGADOR",
+    accPredictions: "PREDICCIONES JUGADAS",
     activePredictions: "PREDICCIONES ACTIVAS",
     goToRoom: "UNIRME A SALA",
     history: "HISTORIAL",

@@ -1,4 +1,4 @@
-//src/app/jugador/dashboard/page.tsx
+// src/app/jugador/dashboard/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -74,6 +74,9 @@ export default function PlayerDashboard() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Estado para la pestaña activa
+  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
 
   const [stats, setStats] = useState({
     partidosJugados: 0,
@@ -161,7 +164,6 @@ export default function PlayerDashboard() {
         // Procesar cada predicción finalizada
         for (const pred of finalizadas) {
           try {
-
             const resultResponse = await fetch(
               `${process.env.NEXT_PUBLIC_API_URL}/api/player/match-result/${pred.room_id}`,
               {
@@ -172,11 +174,10 @@ export default function PlayerDashboard() {
               }
             );
 
-            // Verificar si la respuesta es JSON válido
             const contentType = resultResponse.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
               console.warn(`⚠️ Respuesta no es JSON para sala ${pred.room_id}, status: ${resultResponse.status}`);
-              continue; // Saltar esta predicción
+              continue;
             }
 
             const resultData = await resultResponse.json();
@@ -199,7 +200,6 @@ export default function PlayerDashboard() {
             }
           } catch (error) {
             console.error(`❌ Error obteniendo resultado del partido ${pred.room_id}:`, error);
-            // Continuar con la siguiente predicción en lugar de detener todo
             continue;
           }
         }
@@ -230,7 +230,6 @@ export default function PlayerDashboard() {
 
             const contentType = resultResponse.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-              // Si no hay resultado disponible, mostrar como pendiente
               historialData.push({
                 id: pred.id,
                 partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
@@ -263,7 +262,6 @@ export default function PlayerDashboard() {
                 fecha: pred.room?.Fixture?.match_date,
               });
             } else {
-              // Si no hay resultado disponible, mostrar como pendiente
               historialData.push({
                 id: pred.id,
                 partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
@@ -276,7 +274,6 @@ export default function PlayerDashboard() {
             }
           } catch (error) {
             console.error(`❌ Error construyendo historial para ${pred.room_id}:`, error);
-            // Agregar entrada como pendiente en caso de error
             historialData.push({
               id: pred.id,
               partido: pred.room?.name || `${pred.room?.Fixture?.home_team_name} vs ${pred.room?.Fixture?.away_team_name}`,
@@ -405,7 +402,7 @@ export default function PlayerDashboard() {
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
 
-          {/* HERO */}
+          {/* HERO - Versión simplificada */}
           {partidosActivos.length > 0 && (
             <div className="mb-10">
               <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-6 md:p-8">
@@ -415,8 +412,8 @@ export default function PlayerDashboard() {
               </div>
             </div>
           )}
-          
-          {/* STATS */}
+
+          {/* STATS - Sin cambios */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
               <Trophy className="w-7 h-7 text-yellow-500 mb-4" />
@@ -424,30 +421,25 @@ export default function PlayerDashboard() {
                 {stats.partidosJugados}
               </div>
               <div className="text-gray-500 text-sm mt-2">
-                {t.barDashboard.totalPlayers}
+                {t.playerDashboard.accPredictions}
               </div>
             </div>
 
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
               <Star className="w-7 h-7 text-yellow-500 mb-4" />
-
               <div className="text-4xl font-bold text-green-500">
                 {stats.aciertos}
               </div>
-
               <div className="text-gray-500 text-sm mt-2">
                 {t.barDashboard.hits}
               </div>
             </div>
 
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
-
               <TrendingUp className="w-7 h-7 text-yellow-500 mb-4" />
-
               <div className="text-4xl font-bold text-blue-400">
                 {stats.tasaAcierto}%
               </div>
-
               <div className="text-gray-500 text-sm mt-2">
                 {t.barDashboard.rating}
               </div>
@@ -464,120 +456,172 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* ACTIVAS */}
-          <div className="mb-12">
-
-            <Link
-              href={`/entrar`}
-              className="w-full md:w-auto block mb-8"
-            >
+          {/* BOTÓN PARA ENTRAR A SALA */}
+          <div className="mb-8">
+            <Link href="/entrar" className="w-full md:w-auto block">
               <button className="bg-yellow-500 text-black font-bold px-6 md:px-8 py-3 md:py-4 rounded-xl hover:scale-105 transition-all w-full md:w-auto text-sm md:text-base">
                 {t.playerDashboard.goToRoom}
               </button>
             </Link>
+          </div>
 
-            <h2 className="text-2xl text-white font-semibold mb-5">
-              {locale === "es" ? "Predicciones Activas" : "Previsões Ativas"}
-            </h2>
-
-            <div className="space-y-4">
-              {partidosActivos.map((prediccion) => (
-
-                <Link
-                  key={prediccion.id}
-                  href={`/jugador/en-vivo/${prediccion.room_id}`}
-                >
-
-                  <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500 transition-all">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="text-white text-lg font-semibold">
-                          {prediccion.room?.Fixture?.home_team_name}
-                          {" vs "}
-                          {prediccion.room?.Fixture?.away_team_name}
-                        </h3>
-
-                        <p className="text-gray-400 mt-2">
-                          {locale === "es" ? "Tu predicción:" : "Sua previsão:"}
-                          <span className="text-green-500 ml-2 font-bold">
-                            {prediccion.goals_home} x {prediccion.goals_away}
-                          </span>
-                        </p>
-
-                      </div>
-
-                      <div className="text-right">
-
-                        <div className="text-yellow-500 text-2xl font-bold">
-                          {t.currencyPrefix} {prediccion.room?.total_pool}
-                        </div>
-
-                        <div className="text-gray-500 text-sm">
-                          {t.prediction.prizePool}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+          {/* TABS - Nuevo sistema de pestañas */}
+          <div className="mb-6">
+            <div className="flex gap-2 border-b border-yellow-500/20">
+              <button
+                onClick={() => setActiveTab("active")}
+                className={`px-6 py-3 text-base font-semibold transition-all relative ${
+                  activeTab === "active"
+                    ? "text-yellow-500"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                {locale === "es" ? "PREDICCIONES ACTIVAS" : "PALPITES ATIVOS"}
+                {partidosActivos.length > 0 && (
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-500 rounded-full">
+                    {partidosActivos.length}
+                  </span>
+                )}
+                {activeTab === "active" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-yellow-500 rounded-full" />
+                )}
+              </button>
+              
+              <button
+                onClick={() => setActiveTab("history")}
+                className={`px-6 py-3 text-base font-semibold transition-all relative ${
+                  activeTab === "history"
+                    ? "text-yellow-500"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                {locale === "es" ? "HISTORIAL" : "HISTORICO"}
+                {historial.length > 0 && (
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full">
+                    {historial.length}
+                  </span>
+                )}
+                {activeTab === "history" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-yellow-500 rounded-full" />
+                )}
+              </button>
             </div>
           </div>
 
-
-          {/* HISTORIAL */}
+          {/* CONTENIDO DE LAS PESTAÑAS */}
           <div>
-
-            <h2 className="text-2xl text-white font-semibold mb-5">
-              {locale === "es" ? "Historial" : "Histórico"}
-            </h2>
-
-            <div className="space-y-4">
-
-              {historial.map((item) => (
-
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5"
-                >
-
-                  <div className="flex justify-between items-center">
-
-                    <div>
-
-                      <h3 className="text-white font-semibold">
-                        {item.partido}
-                      </h3>
-
-                      <div className="mt-2 text-gray-400">
-                        {locale === "es" ? "Resultado:" : "Resultado:"}
-                        <span className="ml-2">
-                          {item.resultado}
-                        </span>
+            {/* Pestaña de Predicciones Activas */}
+            {activeTab === "active" && (
+              <div className="space-y-4">
+                {partidosActivos.length > 0 ? (
+                  partidosActivos.map((prediccion) => (
+                    <Link
+                      key={prediccion.id}
+                      href={`/jugador/en-vivo/${prediccion.room_id}`}
+                    >
+                      <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500 transition-all cursor-pointer">
+                        <div className="flex justify-between items-center flex-wrap gap-4">
+                          <div className="flex-1">
+                            <h3 className="text-white text-lg font-semibold">
+                              {prediccion.room?.Fixture?.home_team_name}
+                              {" vs "}
+                              {prediccion.room?.Fixture?.away_team_name}
+                            </h3>
+                            <div className="flex flex-wrap gap-4 mt-2">
+                              <p className="text-gray-400">
+                                {locale === "es" ? "Tu predicción:" : "Sua previsão:"}
+                                <span className="text-green-500 ml-2 font-bold">
+                                  {prediccion.goals_home} x {prediccion.goals_away}
+                                </span>
+                              </p>
+                              {prediccion.room?.Fixture?.match_date && (
+                                <p className="text-gray-500 text-sm flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(prediccion.room.Fixture.match_date).toLocaleDateString()}
+                                  <Clock className="w-3 h-3 ml-2" />
+                                  {new Date(prediccion.room.Fixture.match_date).toLocaleTimeString()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-yellow-500 text-2xl font-bold">
+                              {t.currencyPrefix} {prediccion.room?.total_pool}
+                            </div>
+                            <div className="text-gray-500 text-sm">
+                              {t.prediction.prizePool}
+                            </div>
+                          </div>
+                        </div>
                       </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    {locale === "es" 
+                      ? "No tienes predicciones activas. ¡Únete a una sala!" 
+                      : "Você não tem previsões ativas. Entre em uma sala!"}
+                  </div>
+                )}
+              </div>
+            )}
 
-                      <div className="text-gray-400">
-                        {locale === "es" ? "Predicción:" : "Previsão:"}
-                        <span className="ml-2">
-                          {item.prediccion}
-                        </span>
+            {/* Pestaña de Historial */}
+            {activeTab === "history" && (
+              <div className="space-y-4">
+                {historial.length > 0 ? (
+                  historial.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500/40 transition-all"
+                    >
+                      <div className="flex justify-between items-center flex-wrap gap-4">
+                        <div className="flex-1">
+                          <h3 className="text-white font-semibold">
+                            {item.partido}
+                          </h3>
+                          <div className="flex flex-wrap gap-4 mt-2">
+                            <div className="text-gray-400">
+                              {locale === "es" ? "Resultado:" : "Resultado:"}
+                              <span className="ml-2 font-medium">
+                                {item.resultado}
+                              </span>
+                            </div>
+                            <div className="text-gray-400">
+                              {locale === "es" ? "Predicción:" : "Previsão:"}
+                              <span className="ml-2 font-medium">
+                                {item.prediccion}
+                              </span>
+                            </div>
+                            {item.fecha && (
+                              <div className="text-gray-500 text-sm flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(item.fecha).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {item.ganado ? (
+                          <div className="bg-green-500/20 text-green-500 px-4 py-2 rounded-full font-semibold whitespace-nowrap">
+                            + {t.currencyPrefix} {Math.round(item.premio)}
+                          </div>
+                        ) : (
+                          <div className="bg-red-500/20 text-red-500 px-4 py-2 rounded-full font-semibold whitespace-nowrap">
+                            {locale === "es" ? "Fallaste" : "Errou"}
+                          </div>
+                        )}
                       </div>
                     </div>
-
-                    {item.ganado ? (
-                      <div className="bg-green-500/20 text-green-500 px-4 py-2 rounded-full font-semibold">
-                        + {t.currencyPrefix} {Math.round(item.premio)}
-                      </div>
-
-                    ) : (
-
-                      <div className="bg-red-500/20 text-red-500 px-4 py-2 rounded-full font-semibold">
-                        {locale === "es" ? "Fallaste" : "Errou"}
-                      </div>
-                    )}
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    {locale === "es" 
+                      ? "No hay historial de partidos aún" 
+                      : "Não há histórico de partidas ainda"}
                   </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            )}
           </div>
 
         </div>
