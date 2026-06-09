@@ -405,6 +405,53 @@ export default function PlayerDashboard() {
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
 
+          {/* HERO */}
+          {partidosActivos.length > 0 && (
+            <div className="mb-10">
+              <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-6 md:p-8">
+
+                <div className="text-center">
+                  <div className="text-yellow-500 uppercase tracking-[0.2em] text-xs mb-3">
+                    {t.hero.badge}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
+
+                  <div className="text-center">
+                    <p className="text-gray-400 text-sm mb-1">
+                      {t.prediction.yourPrediction}
+                    </p>
+                    <p className="text-green-500 text-3xl md:text-4xl font-bold">
+                      {partidosActivos[0].goals_home} x {partidosActivos[0].goals_away}
+                    </p>
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-gray-400 text-sm mb-1">
+                      {t.prediction.prizePool}
+                    </p>
+                    <p className="text-yellow-500 text-3xl md:text-4xl font-bold">
+                      {t.currencyPrefix} {partidosActivos[0].room?.total_pool}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-center">
+                    <Link
+                      href={`/jugador/en-vivo/${partidosActivos[0].room_id}`}
+                      className="w-full md:w-auto"
+                    >
+                      <button className="bg-yellow-500 text-black font-bold px-6 md:px-8 py-3 md:py-4 rounded-xl hover:scale-105 transition-all w-full md:w-auto text-sm md:text-base">
+                        {t.barDashboard.viewRoom}
+                      </button>
+                    </Link>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* STATS */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
