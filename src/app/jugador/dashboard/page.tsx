@@ -415,7 +415,7 @@ export default function PlayerDashboard() {
               </div>
             </div>
           )}
-
+          
           {/* STATS */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
