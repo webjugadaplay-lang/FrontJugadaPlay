@@ -74,7 +74,7 @@ export default function PlayerDashboard() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
 
   const [stats, setStats] = useState({
@@ -400,15 +400,11 @@ export default function PlayerDashboard() {
         <div className="container mx-auto max-w-6xl">
 
           {/* HERO - Versión simplificada */}
-          {partidosActivos.length > 0 && (
-            <div className="mb-10">
-              <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-6 md:p-8">
-                <div className="text-center text-yellow-500 uppercase tracking-[0.6em] text-xs mb-3">
-                  {t.hero.badge}
-                </div>
-              </div>
+          <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-black to-black p-6 md:p-8">
+            <div className="text-center text-yellow-500 uppercase tracking-[0.6em] text-s">
+              {t.hero.badge}
             </div>
-          )}
+          </div>
 
           {/* STATS */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
@@ -467,11 +463,10 @@ export default function PlayerDashboard() {
             <div className="flex gap-2 border-b border-yellow-500/20">
               <button
                 onClick={() => setActiveTab("active")}
-                className={`px-6 py-3 text-base font-semibold transition-all relative ${
-                  activeTab === "active"
-                    ? "text-yellow-500"
-                    : "text-gray-400 hover:text-white"
-                }`}
+                className={`px-6 py-3 text-base font-semibold transition-all relative ${activeTab === "active"
+                  ? "text-yellow-500"
+                  : "text-gray-400 hover:text-white"
+                  }`}
               >
                 {locale === "es" ? "Predicciones Activas" : "Previsões Ativas"}
                 {partidosActivos.length > 0 && (
@@ -483,14 +478,13 @@ export default function PlayerDashboard() {
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-yellow-500 rounded-full" />
                 )}
               </button>
-              
+
               <button
                 onClick={() => setActiveTab("history")}
-                className={`px-6 py-3 text-base font-semibold transition-all relative ${
-                  activeTab === "history"
-                    ? "text-yellow-500"
-                    : "text-gray-400 hover:text-white"
-                }`}
+                className={`px-6 py-3 text-base font-semibold transition-all relative ${activeTab === "history"
+                  ? "text-yellow-500"
+                  : "text-gray-400 hover:text-white"
+                  }`}
               >
                 {locale === "es" ? "Historial" : "Histórico"}
                 {historial.length > 0 && (
@@ -505,7 +499,7 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* CONTENIDO DE LAS PESTAÑAS - AMBAS CON EL MISMO ESTILO UNIFORME */}
+          {/* CONTENIDO DE LAS PESTAÑAS */}
           <div>
             {/* Pestaña de Predicciones Activas */}
             {activeTab === "active" && (
@@ -555,8 +549,8 @@ export default function PlayerDashboard() {
                   ))
                 ) : (
                   <div className="text-center py-12 text-gray-500">
-                    {locale === "es" 
-                      ? "No tienes predicciones activas. ¡Únete a una sala!" 
+                    {locale === "es"
+                      ? "No tienes predicciones activas. ¡Únete a una sala!"
                       : "Você não tem previsões ativas. Entre em uma sala!"}
                   </div>
                 )}
@@ -570,7 +564,8 @@ export default function PlayerDashboard() {
                   historial.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500/40 hover:scale-[1.02] transition-all"
+                      className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500 hover:scale-[1.02] transition-all cursor-pointer"
+                      
                     >
                       <div className="flex justify-between items-center flex-wrap gap-4">
                         <div className="flex-1">
@@ -586,13 +581,12 @@ export default function PlayerDashboard() {
                             </div>
                             <div className="text-gray-400">
                               {locale === "es" ? "Predicción:" : "Previsão:"}
-                              <span className={`ml-2 font-bold ${
-                                item.resultado !== "Pendiente" && item.ganado 
-                                  ? "text-green-500" 
-                                  : item.resultado !== "Pendiente" && !item.ganado
+                              <span className={`ml-2 font-bold ${item.resultado !== "Pendiente" && item.ganado
+                                ? "text-green-500"
+                                : item.resultado !== "Pendiente" && !item.ganado
                                   ? "text-red-500"
                                   : "text-yellow-500"
-                              }`}>
+                                }`}>
                                 {item.prediccion}
                               </span>
                             </div>
@@ -622,8 +616,8 @@ export default function PlayerDashboard() {
                   ))
                 ) : (
                   <div className="text-center py-12 text-gray-500">
-                    {locale === "es" 
-                      ? "No hay historial de partidos aún" 
+                    {locale === "es"
+                      ? "No hay historial de partidos aún"
                       : "Não há histórico de partidas ainda"}
                   </div>
                 )}
