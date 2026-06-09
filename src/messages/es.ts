@@ -5,7 +5,7 @@ const es = {
     loading: "CARGANDO...",
   },
   header: {
-    language: "IDIOMA",
+    language: "Idioma",
   },
   hero: {
     badge: "PREDICE • GANA • CELEBRA",
