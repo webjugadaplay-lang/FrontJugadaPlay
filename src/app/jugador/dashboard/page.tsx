@@ -75,7 +75,6 @@ export default function PlayerDashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
-  // Estado para la pestaña activa
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
 
   const [stats, setStats] = useState({
@@ -161,7 +160,6 @@ export default function PlayerDashboard() {
         let aciertos = 0;
         let totalGanado = 0;
 
-        // Procesar cada predicción finalizada
         for (const pred of finalizadas) {
           try {
             const resultResponse = await fetch(
@@ -213,7 +211,6 @@ export default function PlayerDashboard() {
           totalGanado: Math.round(totalGanado),
         });
 
-        // Construir historial
         const historialData = [];
 
         for (const pred of finalizadas.slice(0, 10)) {
@@ -413,7 +410,7 @@ export default function PlayerDashboard() {
             </div>
           )}
 
-          {/* STATS - Sin cambios */}
+          {/* STATS */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
             <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-6 hover:border-yellow-500 hover:scale-105 transition-all">
               <Trophy className="w-7 h-7 text-yellow-500 mb-4" />
@@ -465,8 +462,8 @@ export default function PlayerDashboard() {
             </Link>
           </div>
 
-          {/* TABS - Nuevo sistema de pestañas */}
-          <div className="mb-6">
+          {/* TABS */}
+          <div className="mb-8">
             <div className="flex gap-2 border-b border-yellow-500/20">
               <button
                 onClick={() => setActiveTab("active")}
@@ -476,7 +473,7 @@ export default function PlayerDashboard() {
                     : "text-gray-400 hover:text-white"
                 }`}
               >
-                {locale === "es" ? "PREDICCIONES ACTIVAS" : "PALPITES ATIVOS"}
+                {locale === "es" ? "Predicciones Activas" : "Previsões Ativas"}
                 {partidosActivos.length > 0 && (
                   <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-500 rounded-full">
                     {partidosActivos.length}
@@ -495,7 +492,7 @@ export default function PlayerDashboard() {
                     : "text-gray-400 hover:text-white"
                 }`}
               >
-                {locale === "es" ? "HISTORIAL" : "HISTORICO"}
+                {locale === "es" ? "Historial" : "Histórico"}
                 {historial.length > 0 && (
                   <span className="ml-2 px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full">
                     {historial.length}
@@ -508,26 +505,26 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* CONTENIDO DE LAS PESTAÑAS */}
+          {/* CONTENIDO DE LAS PESTAÑAS - AMBAS CON EL MISMO ESTILO UNIFORME */}
           <div>
             {/* Pestaña de Predicciones Activas */}
             {activeTab === "active" && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {partidosActivos.length > 0 ? (
                   partidosActivos.map((prediccion) => (
                     <Link
                       key={prediccion.id}
                       href={`/jugador/en-vivo/${prediccion.room_id}`}
                     >
-                      <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500 transition-all cursor-pointer">
+                      <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500 hover:scale-[1.02] transition-all cursor-pointer">
                         <div className="flex justify-between items-center flex-wrap gap-4">
                           <div className="flex-1">
-                            <h3 className="text-white text-lg font-semibold">
+                            <h3 className="text-white text-lg font-semibold mb-2">
                               {prediccion.room?.Fixture?.home_team_name}
                               {" vs "}
                               {prediccion.room?.Fixture?.away_team_name}
                             </h3>
-                            <div className="flex flex-wrap gap-4 mt-2">
+                            <div className="flex flex-wrap gap-4">
                               <p className="text-gray-400">
                                 {locale === "es" ? "Tu predicción:" : "Sua previsão:"}
                                 <span className="text-green-500 ml-2 font-bold">
@@ -566,30 +563,36 @@ export default function PlayerDashboard() {
               </div>
             )}
 
-            {/* Pestaña de Historial */}
+            {/* Pestaña de Historial - MISMO ESTILO que Predicciones Activas */}
             {activeTab === "history" && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {historial.length > 0 ? (
                   historial.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500/40 transition-all"
+                      className="rounded-2xl border border-yellow-500/20 bg-black/40 p-5 hover:border-yellow-500/40 hover:scale-[1.02] transition-all"
                     >
                       <div className="flex justify-between items-center flex-wrap gap-4">
                         <div className="flex-1">
-                          <h3 className="text-white font-semibold">
+                          <h3 className="text-white text-lg font-semibold mb-2">
                             {item.partido}
                           </h3>
-                          <div className="flex flex-wrap gap-4 mt-2">
+                          <div className="flex flex-wrap gap-4">
                             <div className="text-gray-400">
                               {locale === "es" ? "Resultado:" : "Resultado:"}
-                              <span className="ml-2 font-medium">
+                              <span className="ml-2 font-medium text-white">
                                 {item.resultado}
                               </span>
                             </div>
                             <div className="text-gray-400">
                               {locale === "es" ? "Predicción:" : "Previsão:"}
-                              <span className="ml-2 font-medium">
+                              <span className={`ml-2 font-bold ${
+                                item.resultado !== "Pendiente" && item.ganado 
+                                  ? "text-green-500" 
+                                  : item.resultado !== "Pendiente" && !item.ganado
+                                  ? "text-red-500"
+                                  : "text-yellow-500"
+                              }`}>
                                 {item.prediccion}
                               </span>
                             </div>
@@ -604,6 +607,10 @@ export default function PlayerDashboard() {
                         {item.ganado ? (
                           <div className="bg-green-500/20 text-green-500 px-4 py-2 rounded-full font-semibold whitespace-nowrap">
                             + {t.currencyPrefix} {Math.round(item.premio)}
+                          </div>
+                        ) : item.resultado === "Pendiente" ? (
+                          <div className="bg-yellow-500/20 text-yellow-500 px-4 py-2 rounded-full font-semibold whitespace-nowrap">
+                            {locale === "es" ? "Pendiente" : "Pendente"}
                           </div>
                         ) : (
                           <div className="bg-red-500/20 text-red-500 px-4 py-2 rounded-full font-semibold whitespace-nowrap">
