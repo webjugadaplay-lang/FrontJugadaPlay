@@ -1,17 +1,18 @@
 // app/bar/sala/[id]/page.tsx
 "use client";
 
-import { useState, useEffect, use, useMemo, useCallback } from "react";
+import { useState, useEffect, use, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Users, Coins, Copy, Check, RefreshCw, QrCode, Clock } from "lucide-react";
+import { ArrowLeft, Users, Coins, Copy, Check, RefreshCw, QrCode, Clock, TrendingUp, Percent } from "lucide-react";
 import QRCode from "qrcode";
 import { translations, type Locale } from "@/messages";
 
-// Constantes fuera del componente
+// Constantes
 const LOCALE_STORAGE_KEY = "jugadaplay_locale";
 const DEFAULT_LOCALE: Locale = "pt-BR";
+const POLLING_INTERVAL = 3000; // Actualizar cada 3 segundos
 
 // Función para detectar idioma inicial
 function getInitialLocale(): Locale {
@@ -51,6 +52,9 @@ interface RoomData {
     name: string;
     entry_fee: number;
     total_pool: number;
+    total_collected: number;
+    bar_commission: number;
+    platform_commission: number;
     status: string;
     prediction_close_time: string;
     current_participants: number;
@@ -71,21 +75,30 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  
+  // Refs para polling
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
   
   const t = translations[locale];
 
-  // Inicializar idioma una sola vez
+  // Inicializar idioma
   useEffect(() => {
     const initialLocale = getInitialLocale();
     setLocale(initialLocale);
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
-  // Guardar idioma cuando cambie
+  // Guardar idioma
   useEffect(() => {
     localStorage.setItem(LOCALE_STORAGE_KEY, locale);
   }, [locale]);
 
-  // Datos derivados con useMemo para evitar recálculos
+  // Datos derivados con useMemo
   const codigoSala = useMemo(() => 
     roomData?.room?.code || salaId.substring(0, 6).toUpperCase(), 
     [roomData?.room?.code, salaId]
@@ -97,12 +110,14 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   );
 
   const participantCount = roomData?.participants?.length || 0;
-  const totalRecaudado = useMemo(() => 
-    participantCount * (roomData?.room?.entry_fee || 0),
-    [participantCount, roomData?.room?.entry_fee]
-  );
+  
+  // Usar datos directos de la BD en lugar de calcular
+  const totalRecaudado = roomData?.room?.total_collected || 0;
+  const comisionBar = roomData?.room?.bar_commission || 0;
+  const comisionPlatform = roomData?.room?.platform_commission || 0;
+  const pozoGanador = roomData?.room?.total_pool || 0;
 
-  // Formatear fechas una sola vez
+  // Formatear fechas
   const formattedDates = useMemo(() => {
     if (!roomData?.fixture || !roomData?.room) return null;
     
@@ -116,12 +131,13 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     };
   }, [roomData?.fixture?.match_date, roomData?.room?.prediction_close_time, locale]);
 
-  // Cargar datos
-  const fetchRoomDetails = useCallback(async () => {
+  // Cargar datos desde el backend
+  const fetchRoomDetails = useCallback(async (showRefreshIndicator = false) => {
     if (!salaId) return;
     
-    setLoading(true);
-    setError("");
+    if (showRefreshIndicator) {
+      setIsRefreshing(true);
+    }
     
     try {
       const token = localStorage.getItem("token");
@@ -131,20 +147,54 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       
       const data = await response.json();
       
-      if (response.ok && data.success) {
+      if (response.ok && data.success && isMountedRef.current) {
         setRoomData(data.data);
-      } else {
+        setLastUpdated(new Date());
+        setError("");
+      } else if (isMountedRef.current) {
         setError(data.message || "Error al cargar la sala");
       }
     } catch (error) {
       console.error("Error cargando sala:", error);
-      setError("Error al cargar los datos de la sala");
+      if (isMountedRef.current) {
+        setError("Error al cargar los datos de la sala");
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }, [salaId]);
 
-  // Generar QR solo cuando joinUrl esté disponible y no sea loading
+  // Configurar polling para actualización automática
+  useEffect(() => {
+    if (!salaId) return;
+    
+    // Carga inicial
+    fetchRoomDetails();
+    
+    // Configurar polling periódico
+    pollingIntervalRef.current = setInterval(() => {
+      if (isMountedRef.current && roomData?.room?.status === 'active') {
+        fetchRoomDetails(true);
+      } else if (roomData?.room?.status !== 'active' && pollingIntervalRef.current) {
+        // Detener polling si la sala ya no está activa
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    }, POLLING_INTERVAL);
+    
+    // Limpiar polling al desmontar
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [salaId, fetchRoomDetails, roomData?.room?.status]);
+
+  // Generar QR
   useEffect(() => {
     if (!joinUrl || joinUrl.includes("LOADING") || !salaId) return;
     
@@ -156,11 +206,6 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       if (!err) setQrCodeUrl(url);
     });
   }, [joinUrl, salaId]);
-
-  // Cargar datos al montar
-  useEffect(() => {
-    if (salaId) fetchRoomDetails();
-  }, [salaId, fetchRoomDetails]);
 
   // Handlers
   const handleCopyCode = useCallback(() => {
@@ -183,6 +228,11 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       
       if (response.ok && data.success) {
         await fetchRoomDetails();
+        // Detener polling si la sala ya no está activa
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
       } else {
         alert(data.message || "Error al cerrar predicciones");
       }
@@ -191,6 +241,10 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       alert("Error al cerrar predicciones");
     }
   }, [salaId, fetchRoomDetails]);
+
+  const handleManualRefresh = useCallback(() => {
+    fetchRoomDetails(true);
+  }, [fetchRoomDetails]);
 
   // Estados de carga y error
   if (loading) {
@@ -229,6 +283,19 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               />
             </Link>
             <div className="flex items-center gap-4">
+              {/* Indicador de actualización en vivo */}
+              {isRefreshing && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-xs text-green-500">Actualizando...</span>
+                </div>
+              )}
+              {!isRefreshing && room.status === 'active' && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                  <span className="text-xs text-yellow-500/70">En vivo</span>
+                </div>
+              )}
               <span className="text-xs text-gray-500">ID: {salaId.substring(0, 8)}</span>
               <span className="text-sm text-yellow-500 tracking-wide">SALA: {codigoSala}</span>
               <select
@@ -268,6 +335,9 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                 Entrada: R$ {room.entry_fee}
               </p>
             </div>
+            <p className="text-gray-600 text-xs mt-2">
+              Última actualización: {lastUpdated.toLocaleTimeString()}
+            </p>
           </div>
 
           {/* QR y código */}
@@ -300,9 +370,14 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                 </p>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-light text-white">R$ {room.total_pool}</div>
+                <div className="text-3xl font-bold text-yellow-500 transition-all duration-300">
+                  R$ {pozoGanador.toFixed(2)}
+                </div>
                 <div className="text-xs text-gray-500">POZO ACTUAL</div>
-                <div className="text-xs text-yellow-500/70 mt-1">{participantCount} participantes</div>
+                <div className="text-xs text-yellow-500/70 mt-1 flex items-center justify-center gap-1">
+                  <Users className="w-3 h-3" />
+                  {participantCount} participantes
+                </div>
               </div>
             </div>
           </div>
@@ -317,18 +392,19 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                     PARTICIPANTES <span className="text-yellow-500">({participantCount})</span>
                   </h3>
                   <button 
-                    onClick={fetchRoomDetails} 
-                    className="hover:bg-yellow-500/10 p-1 rounded transition-all"
+                    onClick={handleManualRefresh}
+                    disabled={isRefreshing}
+                    className="hover:bg-yellow-500/10 p-1 rounded transition-all disabled:opacity-50"
                     aria-label="Actualizar"
                   >
-                    <RefreshCw className="w-4 h-4 text-gray-500 hover:text-yellow-500 transition-colors" />
+                    <RefreshCw className={`w-4 h-4 text-gray-500 hover:text-yellow-500 transition-colors ${isRefreshing ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
               </div>
               <div className="divide-y divide-yellow-500/10 max-h-[400px] overflow-y-auto">
                 {participantCount > 0 ? (
                   participants.map((p, idx) => (
-                    <div key={p.id} className="px-6 py-3 flex justify-between items-center">
+                    <div key={p.id} className="px-6 py-3 flex justify-between items-center hover:bg-yellow-500/5 transition-colors">
                       <div className="flex items-center gap-3">
                         <span className="text-yellow-500 text-sm font-mono">#{idx + 1}</span>
                         <span className="text-white text-sm">{p.user_name}</span>
@@ -349,31 +425,64 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               </div>
             </div>
 
-            {/* Resumen del pozo */}
+            {/* Resumen financiero */}
             <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-6">
-              <h3 className="text-white font-light tracking-wide mb-4">RESUMEN</h3>
+              <h3 className="text-white font-light tracking-wide mb-4 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-yellow-500" />
+                RESUMEN FINANCIERO
+              </h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Total participantes:</span>
-                  <span className="text-white">{participantCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Total recaudado:</span>
-                  <span className="text-white">R$ {totalRecaudado.toFixed(2)}</span>
+                  <span className="text-white font-mono">{participantCount}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Valor entrada:</span>
-                  <span className="text-yellow-500">R$ {room.entry_fee}</span>
+                  <span className="text-yellow-500">R$ {room.entry_fee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-yellow-500/20">
-                  <span className="text-gray-500">Ganador único lleva:</span>
-                  <span className="text-yellow-500">R$ {(room.total_pool * 0.7).toFixed(2)}</span>
+                  <span className="text-gray-500">Total recaudado:</span>
+                  <span className="text-white font-bold">R$ {totalRecaudado.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Tu comisión (20%):</span>
-                  <span className="text-green-500">R$ {(room.total_pool * 0.2).toFixed(2)}</span>
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <Percent className="w-3 h-3" />
+                    Pozo ganador (70%):
+                  </span>
+                  <span className="text-yellow-500 font-bold">R$ {pozoGanador.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <Percent className="w-3 h-3" />
+                    Comisión bar (20%):
+                  </span>
+                  <span className="text-green-500">R$ {comisionBar.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between pb-2 border-b border-yellow-500/20">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <Percent className="w-3 h-3" />
+                    Comisión plataforma (10%):
+                  </span>
+                  <span className="text-blue-500">R$ {comisionPlatform.toFixed(2)}</span>
+                </div>
+                
+                {/* Distribución visual */}
+                <div className="pt-3">
+                  <div className="text-xs text-gray-500 mb-2">Distribución del total recaudado:</div>
+                  <div className="h-2 rounded-full overflow-hidden flex">
+                    <div className="bg-yellow-500 h-full" style={{ width: '70%' }} title="70% Pozo ganador" />
+                    <div className="bg-green-500 h-full" style={{ width: '20%' }} title="20% Comisión bar" />
+                    <div className="bg-blue-500 h-full" style={{ width: '10%' }} title="10% Comisión plataforma" />
+                  </div>
+                  <div className="flex justify-between text-[10px] mt-1">
+                    <span className="text-yellow-500">70% Pozo</span>
+                    <span className="text-green-500">20% Bar</span>
+                    <span className="text-blue-500">10% Plataforma</span>
+                  </div>
                 </div>
               </div>
+              
+              {/* Botones de acción según estado */}
               {room.status === 'active' && (
                 <button
                   onClick={handleClosePredictions}
@@ -383,14 +492,24 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                 </button>
               )}
               {room.status === 'closed' && (
-                <p className="w-full mt-6 text-center text-yellow-500/70 text-sm">
-                  Predicciones cerradas
-                </p>
+                <div className="w-full mt-6 text-center">
+                  <p className="text-yellow-500/70 text-sm">
+                    ⏰ Predicciones cerradas
+                  </p>
+                  <p className="text-gray-600 text-xs mt-2">
+                    Esperando resultado del partido
+                  </p>
+                </div>
               )}
               {room.status === 'finished' && (
-                <p className="w-full mt-6 text-center text-yellow-500/70 text-sm">
-                  Partido finalizado
-                </p>
+                <div className="w-full mt-6 text-center">
+                  <p className="text-yellow-500 text-sm">
+                    🏆 Partido finalizado
+                  </p>
+                  <p className="text-gray-600 text-xs mt-2">
+                    R$ {pozoGanador.toFixed(2)} para el ganador
+                  </p>
+                </div>
               )}
             </div>
           </div>
