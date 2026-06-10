@@ -1,5 +1,4 @@
 // app/bar/sala/[id]/page.tsx
-// app/bar/sala/[id]/page.tsx
 "use client";
 
 import { useState, useEffect, use, useMemo, useCallback } from "react";

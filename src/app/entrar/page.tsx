@@ -1,5 +1,4 @@
 //app/entrar/page.tsx
-//app/entrar/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,7 +13,6 @@ export default function EntrarSalaPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modoQR, setModoQR] = useState(false);
-  const [scanning, setScanning] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -52,7 +50,6 @@ export default function EntrarSalaPage() {
       const roomId = extractRoomIdFromUrl(scannedText);
       
       if (roomId) {
-        setScanning(false);
         setModoQR(false);
         procesarSalaId(roomId);
       } else {
@@ -63,7 +60,7 @@ export default function EntrarSalaPage() {
 
   const handleError = (error: any) => {
     console.error(error);
-    setError("Error al acceder a la cámara");
+    setError("Error al acceder a la cámara. Por favor, verifica los permisos.");
   };
 
   const procesarCodigoManual = async () => {
@@ -84,7 +81,6 @@ export default function EntrarSalaPage() {
       const data = await response.json();
 
       if (data.success && data.roomId) {
-        // Verificar si la sala está activa (opcional - el backend ya debería validar)
         router.push(`/jugador/prediccion/${data.roomId}`);
       } else {
         setError(data.message || "Sala no encontrada o inactiva");
@@ -94,6 +90,12 @@ export default function EntrarSalaPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para activar el modo QR y la cámara directamente
+  const activarQR = () => {
+    setModoQR(true);
+    setError("");
   };
 
   if (!user) {
@@ -127,27 +129,26 @@ export default function EntrarSalaPage() {
             <div className="w-12 h-[1px] bg-yellow-500/30 mx-auto mt-3"></div>
           </div>
 
-          {/* Solo un botón para escanear QR */}
-          {!modoQR && !scanning && (
+          {/* Botón para escanear QR - Ahora activa la cámara directamente */}
+          {!modoQR && (
             <div className="mb-8">
               <button 
-                onClick={() => setModoQR(true)} 
-                className="w-full flex items-center justify-center gap-3 p-6 bg-black/50 border border-yellow-500/20 rounded-lg hover:border-yellow-500/50 transition-all"
+                onClick={activarQR} 
+                className="w-full flex items-center justify-center gap-3 p-6 bg-black/50 border border-yellow-500/20 rounded-lg hover:border-yellow-500/50 transition-all group"
               >
-                <QrCode className="w-6 h-6 text-yellow-500" />
+                <QrCode className="w-6 h-6 text-yellow-500 group-hover:scale-110 transition-transform" />
                 <p className="text-white font-medium">Escanear QR</p>
               </button>
             </div>
           )}
 
-          {/* Modal/Sección del QR Scanner */}
-          {(modoQR || scanning) && (
+          {/* Sección del QR Scanner - Se muestra inmediatamente al presionar el botón */}
+          {modoQR && (
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6 mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-white font-medium">Escanear QR</h3>
                 <button 
                   onClick={() => { 
-                    setScanning(false); 
                     setModoQR(false); 
                     setError(""); 
                   }} 
@@ -157,24 +158,17 @@ export default function EntrarSalaPage() {
                 </button>
               </div>
 
-              {!scanning ? (
-                <button 
-                  onClick={() => setScanning(true)} 
-                  className="w-full py-3 border border-yellow-500/50 text-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-colors"
-                >
-                  Iniciar cámara
-                </button>
-              ) : (
-                <>
-                  <Scanner 
-                    onScan={handleScan} 
-                    onError={handleError} 
-                    constraints={{ facingMode: "environment" }} 
-                    scanDelay={500} 
-                  />
-                  <p className="text-gray-500 text-xs text-center mt-4">Coloca el QR frente a la cámara</p>
-                </>
-              )}
+              {/* El scanner se activa automáticamente al montar el componente */}
+              <Scanner 
+                onScan={handleScan} 
+                onError={handleError} 
+                constraints={{ facingMode: "environment" }} 
+                scanDelay={500} 
+              />
+              <p className="text-gray-500 text-xs text-center mt-4">
+                Coloca el QR frente a la cámara
+              </p>
+              
               {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
             </div>
           )}
