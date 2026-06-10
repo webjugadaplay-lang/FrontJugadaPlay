@@ -1,26 +1,31 @@
 // app/bar/sala/[id]/page.tsx
+// app/bar/sala/[id]/page.tsx
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Crown, Users, Coins, Trophy, Copy, Check, RefreshCw, QrCode, Clock, Calendar } from "lucide-react";
+import { ArrowLeft, Users, Coins, Copy, Check, RefreshCw, QrCode, Clock } from "lucide-react";
 import QRCode from "qrcode";
 import { translations, type Locale } from "@/messages";
 
+// Constantes fuera del componente
+const LOCALE_STORAGE_KEY = "jugadaplay_locale";
+const DEFAULT_LOCALE: Locale = "pt-BR";
+
 // Función para detectar idioma inicial
-function detectInitialLocale(): Locale {
-  if (typeof window === "undefined") return "pt-BR";
-  const savedLocale = localStorage.getItem("jugadaplay_locale");
-  if (savedLocale === "pt-BR" || savedLocale === "es") {
-    return savedLocale;
-  }
-  const browserLanguage = navigator.language || "";
-  const normalizedLanguage = browserLanguage.toLowerCase();
-  if (normalizedLanguage.startsWith("es")) return "es";
-  if (normalizedLanguage.startsWith("pt")) return "pt-BR";
-  return "pt-BR";
+function getInitialLocale(): Locale {
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
+  
+  const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
+  if (saved === "pt-BR" || saved === "es") return saved;
+  
+  const browserLang = navigator.language.toLowerCase();
+  if (browserLang.startsWith("es")) return "es";
+  if (browserLang.startsWith("pt")) return "pt-BR";
+  
+  return DEFAULT_LOCALE;
 }
 
 interface Fixture {
@@ -30,6 +35,14 @@ interface Fixture {
   match_date: string;
   venue: string;
   status: string;
+}
+
+interface Participant {
+  id: string;
+  user_id: string;
+  user_name: string;
+  total_points: number;
+  joined_at: string;
 }
 
 interface RoomData {
@@ -45,60 +58,80 @@ interface RoomData {
     max_participants: number;
   };
   fixture: Fixture | null;
-  participants: Array<{
-    id: string;
-    user_id: string;
-    user_name: string;
-    total_points: number;
-    joined_at: string;
-  }>;
+  participants: Participant[];
 }
 
-// Next.js 15 - params es una promesa
 export default function SalaActiva({ params }: { params: Promise<{ id: string }> }) {
   const { id: salaId } = use(params);
-
   const router = useRouter();
-  const [locale, setLocale] = useState<Locale>("pt-BR");
-  const [isLocaleReady, setIsLocaleReady] = useState(false);
-  const t = translations[locale];
+  
+  // Estados
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  
+  const t = translations[locale];
 
-  // Detectar idioma
+  // Inicializar idioma una sola vez
   useEffect(() => {
-    const detectedLocale = detectInitialLocale();
-    setLocale(detectedLocale);
-    setIsLocaleReady(true);
+    const initialLocale = getInitialLocale();
+    setLocale(initialLocale);
   }, []);
 
+  // Guardar idioma cuando cambie
   useEffect(() => {
-    if (!isLocaleReady) return;
-    localStorage.setItem("jugadaplay_locale", locale);
-  }, [locale, isLocaleReady]);
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  }, [locale]);
 
-  const codigoSala = roomData?.room?.code || (salaId ? salaId.substring(0, 6).toUpperCase() : "LOADING");
-  const joinUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/bar/sala/${salaId}`;
+  // Datos derivados con useMemo para evitar recálculos
+  const codigoSala = useMemo(() => 
+    roomData?.room?.code || salaId.substring(0, 6).toUpperCase(), 
+    [roomData?.room?.code, salaId]
+  );
+  
+  const joinUrl = useMemo(() => 
+    `${process.env.NEXT_PUBLIC_FRONTEND_URL}/bar/sala/${salaId}`,
+    [salaId]
+  );
 
-  // Cargar datos de la sala
-  useEffect(() => {
-    if (salaId) {
-      fetchRoomDetails();
-    }
-  }, [salaId]);
+  const participantCount = roomData?.participants?.length || 0;
+  const totalRecaudado = useMemo(() => 
+    participantCount * (roomData?.room?.entry_fee || 0),
+    [participantCount, roomData?.room?.entry_fee]
+  );
 
-  const fetchRoomDetails = async () => {
+  // Formatear fechas una sola vez
+  const formattedDates = useMemo(() => {
+    if (!roomData?.fixture || !roomData?.room) return null;
+    
+    const matchDate = new Date(roomData.fixture.match_date);
+    const closeDate = new Date(roomData.room.prediction_close_time);
+    const localeStr = locale === 'es' ? 'es-ES' : 'pt-BR';
+    
+    return {
+      match: matchDate.toLocaleString(localeStr),
+      close: closeDate.toLocaleString(localeStr)
+    };
+  }, [roomData?.fixture?.match_date, roomData?.room?.prediction_close_time, locale]);
+
+  // Cargar datos
+  const fetchRoomDetails = useCallback(async () => {
     if (!salaId) return;
+    
     setLoading(true);
+    setError("");
+    
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      
       const data = await response.json();
+      
       if (response.ok && data.success) {
         setRoomData(data.data);
       } else {
@@ -110,45 +143,47 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     } finally {
       setLoading(false);
     }
-  };
+  }, [salaId]);
 
-  // Generar QR
+  // Generar QR solo cuando joinUrl esté disponible y no sea loading
   useEffect(() => {
-    if (joinUrl && !joinUrl.includes("LOADING")) {
-      QRCode.toDataURL(joinUrl, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#EAB308',
-          light: '#000000'
-        }
-      }, (err, url) => {
-        if (err) {
-          console.error("Error generando QR:", err);
-        } else {
-          setQrCodeUrl(url);
-        }
-      });
-    }
-  }, [joinUrl]);
+    if (!joinUrl || joinUrl.includes("LOADING") || !salaId) return;
+    
+    QRCode.toDataURL(joinUrl, {
+      width: 200,
+      margin: 2,
+      color: { dark: '#EAB308', light: '#000000' }
+    }, (err, url) => {
+      if (!err) setQrCodeUrl(url);
+    });
+  }, [joinUrl, salaId]);
 
-  const handleCopyCode = () => {
+  // Cargar datos al montar
+  useEffect(() => {
+    if (salaId) fetchRoomDetails();
+  }, [salaId, fetchRoomDetails]);
+
+  // Handlers
+  const handleCopyCode = useCallback(() => {
     navigator.clipboard.writeText(codigoSala);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
+  }, [codigoSala]);
 
-  const handleClosePredictions = async () => {
+  const handleClosePredictions = useCallback(async () => {
     if (!salaId) return;
+    
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}/close`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
+      
       const data = await response.json();
+      
       if (response.ok && data.success) {
-        fetchRoomDetails();
+        await fetchRoomDetails();
       } else {
         alert(data.message || "Error al cerrar predicciones");
       }
@@ -156,9 +191,10 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       console.error("Error cerrando predicciones:", error);
       alert("Error al cerrar predicciones");
     }
-  };
+  }, [salaId, fetchRoomDetails]);
 
-  if (!isLocaleReady || loading) {
+  // Estados de carga y error
+  if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-yellow-500">{t.common.loading}</div>
@@ -175,11 +211,6 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   }
 
   const { room, fixture, participants } = roomData;
-  const matchDate = fixture ? new Date(fixture.match_date) : new Date();
-  const closeDate = new Date(room.prediction_close_time);
-
-  const fechaPartido = matchDate.toLocaleString(locale === 'es' ? 'es-ES' : 'pt-BR');
-  const cierreFecha = closeDate.toLocaleString(locale === 'es' ? 'es-ES' : 'pt-BR');
 
   return (
     <main className="min-h-screen bg-black">
@@ -201,17 +232,14 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
             <div className="flex items-center gap-4">
               <span className="text-xs text-gray-500">ID: {salaId.substring(0, 8)}</span>
               <span className="text-sm text-yellow-500 tracking-wide">SALA: {codigoSala}</span>
-              <div className="flex items-center gap-2">
-                <label className="text-gray-400 text-xs tracking-wide">{t.header.language}</label>
-                <select
-                  value={locale}
-                  onChange={(e) => setLocale(e.target.value as Locale)}
-                  className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs px-3 py-2 rounded-sm outline-none"
-                >
-                  <option value="pt-BR">PT</option>
-                  <option value="es">ES</option>
-                </select>
-              </div>
+              <select
+                value={locale}
+                onChange={(e) => setLocale(e.target.value as Locale)}
+                className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs px-3 py-2 rounded-sm outline-none"
+              >
+                <option value="pt-BR">PT</option>
+                <option value="es">ES</option>
+              </select>
             </div>
           </div>
         </div>
@@ -220,22 +248,21 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
-
           {/* Info del partido */}
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white">
               {room.name}
             </h1>
-            {fixture && (
+            {fixture && formattedDates && (
               <p className="text-gray-500 text-sm mt-2">
                 {fixture.venue && <span>{fixture.venue} | </span>}
-                {fechaPartido}
+                {formattedDates.match}
               </p>
             )}
             <div className="flex justify-center gap-4 mt-2">
               <p className="text-yellow-500/70 text-xs flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                Cierre: {cierreFecha}
+                Cierre: {formattedDates?.close}
               </p>
               <p className="text-yellow-500 text-xs flex items-center gap-1">
                 <Coins className="w-3 h-3" />
@@ -249,6 +276,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="w-32 h-32 bg-black rounded-xl flex items-center justify-center border border-yellow-500/30 overflow-hidden">
                 {qrCodeUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={qrCodeUrl} alt="QR Code" className="w-full h-full object-contain" />
                 ) : (
                   <div className="w-24 h-24 bg-gradient-to-br from-yellow-500/20 to-transparent rounded-lg flex items-center justify-center">
@@ -263,6 +291,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                   <button
                     onClick={handleCopyCode}
                     className="p-1 hover:bg-yellow-500/10 rounded transition-all"
+                    aria-label="Copiar código"
                   >
                     {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-yellow-500" />}
                   </button>
@@ -274,7 +303,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               <div className="text-center">
                 <div className="text-2xl font-light text-white">R$ {room.total_pool}</div>
                 <div className="text-xs text-gray-500">POZO ACTUAL</div>
-                <div className="text-xs text-yellow-500/70 mt-1">{participants.length} participantes</div>
+                <div className="text-xs text-yellow-500/70 mt-1">{participantCount} participantes</div>
               </div>
             </div>
           </div>
@@ -286,15 +315,19 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               <div className="border-b border-yellow-500/20 px-6 py-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-white font-light tracking-wide">
-                    PARTICIPANTES <span className="text-yellow-500">({participants.length})</span>
+                    PARTICIPANTES <span className="text-yellow-500">({participantCount})</span>
                   </h3>
-                  <button onClick={fetchRoomDetails} className="hover:bg-yellow-500/10 p-1 rounded transition-all">
+                  <button 
+                    onClick={fetchRoomDetails} 
+                    className="hover:bg-yellow-500/10 p-1 rounded transition-all"
+                    aria-label="Actualizar"
+                  >
                     <RefreshCw className="w-4 h-4 text-gray-500 hover:text-yellow-500 transition-colors" />
                   </button>
                 </div>
               </div>
               <div className="divide-y divide-yellow-500/10 max-h-[400px] overflow-y-auto">
-                {participants.length > 0 ? (
+                {participantCount > 0 ? (
                   participants.map((p, idx) => (
                     <div key={p.id} className="px-6 py-3 flex justify-between items-center">
                       <div className="flex items-center gap-3">
@@ -303,7 +336,9 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-yellow-500 font-mono text-sm">{p.total_points} pts</span>
-                        <span className="text-gray-500 text-xs">{new Date(p.joined_at).toLocaleDateString()}</span>
+                        <span className="text-gray-500 text-xs">
+                          {new Date(p.joined_at).toLocaleDateString(locale === 'es' ? 'es-ES' : 'pt-BR')}
+                        </span>
                       </div>
                     </div>
                   ))
@@ -321,11 +356,11 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Total participantes:</span>
-                  <span className="text-white">{participants.length}</span>
+                  <span className="text-white">{participantCount}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Total recaudado:</span>
-                  <span className="text-white">R$ {(participants.length * room.entry_fee).toFixed(2)}</span>
+                  <span className="text-white">R$ {totalRecaudado.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Valor entrada:</span>
