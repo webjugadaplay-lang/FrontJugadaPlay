@@ -55,6 +55,8 @@ interface RoomData {
     prediction_close_time: string;
     current_participants: number;
     max_participants: number;
+    total_collected: number;
+    bar_commission: number;
   };
   fixture: Fixture | null;
   participants: Participant[];
@@ -356,11 +358,11 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Total participantes:</span>
-                  <span className="text-white">{participantCount}</span>
+                  <span className="text-white">{room.current_participants}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Total recaudado:</span>
-                  <span className="text-white">R$ {}</span>
+                  <span className="text-white">R$ {room.total_collected}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Valor entrada:</span>
@@ -372,7 +374,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Tu comisión (20%):</span>
-                  <span className="text-green-500">R$ {}</span>
+                  <span className="text-green-500">R$ {room.bar_commission}</span>
                 </div>
               </div>
               {room.status === 'active' && (
