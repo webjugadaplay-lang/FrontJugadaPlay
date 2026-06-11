@@ -129,7 +129,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${salaId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
