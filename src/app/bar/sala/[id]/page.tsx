@@ -70,9 +70,11 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   
   const t = translations[locale];
 
@@ -118,11 +120,11 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     };
   }, [roomData?.fixture?.match_date, roomData?.room?.prediction_close_time, locale]);
 
-  // Cargar datos
-  const fetchRoomDetails = useCallback(async () => {
+  // Función para cargar los detalles de la sala
+  const fetchRoomDetails = useCallback(async (showRefreshIndicator = false) => {
     if (!salaId) return;
     
-    setLoading(true);
+    if (showRefreshIndicator) setRefreshing(true);
     setError("");
     
     try {
@@ -132,10 +134,11 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       });
       
       const data = await response.json();
-      console.log("los datos traidos de room son:",data)
+      console.log("los datos traidos de room son:", data)
       
       if (response.ok && data.success) {
         setRoomData(data.data);
+        setLastUpdate(new Date());
       } else {
         setError(data.message || "Error al cargar la sala");
       }
@@ -143,11 +146,31 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       console.error("Error cargando sala:", error);
       setError("Error al cargar los datos de la sala");
     } finally {
+      if (showRefreshIndicator) setRefreshing(false);
       setLoading(false);
     }
   }, [salaId]);
 
-  // Generar QR solo cuando joinUrl esté disponible y no sea loading
+  // 🔥 POLLING: Actualización automática cada 10 segundos (más frecuente para sala activa)
+  useEffect(() => {
+    if (!salaId) return;
+    
+    // Cargar datos iniciales
+    fetchRoomDetails(false);
+    
+    // Configurar polling cada 10 segundos para la sala (más frecuente que el dashboard)
+    const intervalId = setInterval(() => {
+      // Solo actualizar automáticamente si la sala está activa o cerrada
+      if (roomData?.room?.status === 'active' || roomData?.room?.status === 'closed') {
+        fetchRoomDetails(false);
+      }
+    }, 10000); // 10 segundos - más rápido porque es una sala activa
+
+    // Limpiar intervalo al desmontar
+    return () => clearInterval(intervalId);
+  }, [salaId, fetchRoomDetails, roomData?.room?.status]);
+
+  // Generar QR solo cuando joinUrl esté disponible
   useEffect(() => {
     if (!joinUrl || joinUrl.includes("LOADING") || !salaId) return;
     
@@ -159,11 +182,6 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       if (!err) setQrCodeUrl(url);
     });
   }, [joinUrl, salaId]);
-
-  // Cargar datos al montar
-  useEffect(() => {
-    if (salaId) fetchRoomDetails();
-  }, [salaId, fetchRoomDetails]);
 
   // Handlers
   const handleCopyCode = useCallback(() => {
@@ -185,7 +203,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       const data = await response.json();
       
       if (response.ok && data.success) {
-        await fetchRoomDetails();
+        await fetchRoomDetails(true); // Recargar con indicador
       } else {
         alert(data.message || "Error al cerrar predicciones");
       }
@@ -194,6 +212,11 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       alert("Error al cerrar predicciones");
     }
   }, [salaId, fetchRoomDetails]);
+
+  // Actualización manual con botón
+  const handleManualRefresh = useCallback(() => {
+    fetchRoomDetails(true);
+  }, [fetchRoomDetails]);
 
   // Estados de carga y error
   if (loading) {
@@ -232,8 +255,26 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               />
             </Link>
             <div className="flex items-center gap-4">
+              {/* Indicador de actualización automática */}
+              <div className="hidden md:flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-gray-500">Auto cada 10s</span>
+              </div>
+              
               <span className="text-xs text-gray-500">ID: {salaId.substring(0, 8)}</span>
               <span className="text-sm text-yellow-500 tracking-wide">SALA: {codigoSala}</span>
+              
+              {/* Botón de actualización manual */}
+              <button 
+                onClick={handleManualRefresh} 
+                disabled={refreshing}
+                className="hover:bg-yellow-500/10 p-1.5 rounded transition-all disabled:opacity-50"
+                aria-label="Actualizar"
+                title="Actualizar manualmente"
+              >
+                <RefreshCw className={`w-4 h-4 text-gray-500 hover:text-yellow-500 transition-colors ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+              
               <select
                 value={locale}
                 onChange={(e) => setLocale(e.target.value as Locale)}
@@ -250,6 +291,13 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
+          {/* Indicador de última actualización (sutil) */}
+          <div className="text-right mb-2">
+            <span className="text-xs text-gray-600">
+              Actualizado: {lastUpdate.toLocaleTimeString()}
+            </span>
+          </div>
+
           {/* Info del partido */}
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white">
@@ -319,13 +367,19 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                   <h3 className="text-white font-light tracking-wide">
                     PARTICIPANTES <span className="text-yellow-500">({participantCount})</span>
                   </h3>
-                  <button 
-                    onClick={fetchRoomDetails} 
-                    className="hover:bg-yellow-500/10 p-1 rounded transition-all"
-                    aria-label="Actualizar"
-                  >
-                    <RefreshCw className="w-4 h-4 text-gray-500 hover:text-yellow-500 transition-colors" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {refreshing && (
+                      <span className="text-xs text-gray-500 animate-pulse">Actualizando...</span>
+                    )}
+                    <button 
+                      onClick={handleManualRefresh} 
+                      disabled={refreshing}
+                      className="hover:bg-yellow-500/10 p-1 rounded transition-all disabled:opacity-50"
+                      aria-label="Actualizar"
+                    >
+                      <RefreshCw className={`w-4 h-4 text-gray-500 hover:text-yellow-500 transition-colors ${refreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="divide-y divide-yellow-500/10 max-h-[400px] overflow-y-auto">
