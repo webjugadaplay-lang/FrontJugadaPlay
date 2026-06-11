@@ -102,7 +102,7 @@ export default function PredecirMarcador() {
       if (data.success && data.data) {
         console.log(`📦 Encontradas ${data.data.length} predicciones previas`);
         setExistingPredictions(data.data);
-        
+
         // Obtener la predicción más reciente
         if (data.data.length > 0) {
           const mostRecent = data.data[0]; // Ya vienen ordenadas por createdAt DESC
@@ -196,15 +196,15 @@ export default function PredecirMarcador() {
       const token = localStorage.getItem("token");
 
       // Calcular el entry_fee a pagar (tomar el valor actual de la sala)
-      const entryFeeValue = typeof room.entry_fee === 'string' 
-        ? parseFloat(room.entry_fee) 
+      const entryFeeValue = typeof room.entry_fee === 'string'
+        ? parseFloat(room.entry_fee)
         : room.entry_fee;
 
       const payload = {
         room_id: salaId,
         score_home: golesLocal,
         score_away: golesVisitante,
-        entry_fee_paid: entryFeeValue  // ✅ AÑADIR ESTE CAMPO
+        entry_fee_paid: entryFeeValue
       };
 
       console.log("📤 Enviando predicción:", payload);
@@ -227,17 +227,10 @@ export default function PredecirMarcador() {
         throw new Error(data.message || "Error al guardar");
       }
 
-      // Recargar las predicciones para mostrar la nueva
-      await fetchExistingPredictions();
+      // ✅ MODIFICACIÓN AQUÍ: Siempre redirigir a pago sin importar si hay predicciones previas
+      console.log("✅ Predicción guardada, redirigiendo a pago");
+      router.push(`/jugador/pago/${salaId}`);
 
-      // Si es la primera predicción (no había ninguna antes), redirigir a pago
-      if (existingPredictions.length === 0) {
-        router.push(`/jugador/pago/${salaId}`);
-      } else {
-        // Si ya tenía predicciones, mostrar mensaje de éxito y quedarse
-        alert("¡Predicción guardada exitosamente!");
-        setSaving(false);
-      }
     } catch (err: any) {
       setError(err.message);
       setSaving(false);
