@@ -96,7 +96,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   );
   
   const joinUrl = useMemo(() => 
-    `${process.env.NEXT_PUBLIC_FRONTEND_URL}/bar/sala/${salaId}`,
+    `${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/bar/room/${salaId}`,
     [salaId]
   );
 
