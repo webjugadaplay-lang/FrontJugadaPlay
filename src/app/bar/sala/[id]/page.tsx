@@ -130,6 +130,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       });
       
       const data = await response.json();
+      console.log("los datos traidos de room son:",data)
       
       if (response.ok && data.success) {
         setRoomData(data.data);
@@ -359,7 +360,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Total recaudado:</span>
-                  <span className="text-white">R$ {totalRecaudado.toFixed(2)}</span>
+                  <span className="text-white">R$ {}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Valor entrada:</span>
@@ -367,11 +368,11 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-yellow-500/20">
                   <span className="text-gray-500">Ganador único lleva:</span>
-                  <span className="text-yellow-500">R$ {(room.total_pool * 0.7).toFixed(2)}</span>
+                  <span className="text-yellow-500">R$ {room.total_pool}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Tu comisión (20%):</span>
-                  <span className="text-green-500">R$ {(room.total_pool * 0.2).toFixed(2)}</span>
+                  <span className="text-green-500">R$ {}</span>
                 </div>
               </div>
               {room.status === 'active' && (
