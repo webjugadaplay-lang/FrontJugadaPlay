@@ -365,7 +365,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               <div className="border-b border-yellow-500/20 px-6 py-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-white font-light tracking-wide">
-                    PARTICIPANTES <span className="text-yellow-400">({participantCount})</span>
+                    PARTICIPANTES <span className="text-yellow-500">({participantCount})</span>
                   </h3>
                   <div className="flex items-center gap-2">
                     {refreshing && (
