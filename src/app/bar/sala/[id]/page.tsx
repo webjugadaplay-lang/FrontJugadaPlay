@@ -134,6 +134,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       });
       
       const data = await response.json();
+      console.log("end point de donde se traen los datos", `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`)
       console.log("los datos traidos de room son:", data)
       
       if (response.ok && data.success) {
