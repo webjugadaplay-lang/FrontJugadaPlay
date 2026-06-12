@@ -40,6 +40,7 @@ interface Participant {
   id: string;
   user_id: string;
   user_name: string;
+  user_nickname: string;
   total_points: number;
   joined_at: string;
 }
@@ -389,7 +390,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                     <div key={p.id} className="px-6 py-3 flex justify-between items-center">
                       <div className="flex items-center gap-3">
                         <span className="text-yellow-500 text-sm font-mono">#{idx + 1}</span>
-                        <span className="text-white text-sm">{p.user_name}</span>
+                        <span className="text-white text-sm">{p.user_nickname}</span>
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-yellow-500 font-mono text-sm">{p.total_points} pts</span>
