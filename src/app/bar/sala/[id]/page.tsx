@@ -16,14 +16,14 @@ const DEFAULT_LOCALE: Locale = "pt-BR";
 // Función para detectar idioma inicial
 function getInitialLocale(): Locale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;
-  
+
   const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
   if (saved === "pt-BR" || saved === "es") return saved;
-  
+
   const browserLang = navigator.language.toLowerCase();
   if (browserLang.startsWith("es")) return "es";
   if (browserLang.startsWith("pt")) return "pt-BR";
-  
+
   return DEFAULT_LOCALE;
 }
 
@@ -41,6 +41,8 @@ interface Participant {
   user_id: string;
   user_name: string;
   user_nickname: string;
+  goals_home: number;
+  goals_away: number;
   total_points: number;
   joined_at: string;
 }
@@ -66,7 +68,7 @@ interface RoomData {
 export default function SalaActiva({ params }: { params: Promise<{ id: string }> }) {
   const { id: salaId } = use(params);
   const router = useRouter();
-  
+
   // Estados
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [roomData, setRoomData] = useState<RoomData | null>(null);
@@ -76,7 +78,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  
+
   const t = translations[locale];
 
   // Inicializar idioma una sola vez
@@ -91,18 +93,18 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   }, [locale]);
 
   // Datos derivados con useMemo para evitar recálculos
-  const codigoSala = useMemo(() => 
-    roomData?.room?.code || salaId.substring(0, 6).toUpperCase(), 
+  const codigoSala = useMemo(() =>
+    roomData?.room?.code || salaId.substring(0, 6).toUpperCase(),
     [roomData?.room?.code, salaId]
   );
-  
-  const joinUrl = useMemo(() => 
+
+  const joinUrl = useMemo(() =>
     `${process.env.NEXT_PUBLIC_FRONTEND_URL}/bar/sala/${salaId}`,
     [salaId]
   );
 
   const participantCount = roomData?.participants?.length || 0;
-  const totalRecaudado = useMemo(() => 
+  const totalRecaudado = useMemo(() =>
     participantCount * (roomData?.room?.entry_fee || 0),
     [participantCount, roomData?.room?.entry_fee]
   );
@@ -110,11 +112,11 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   // Formatear fechas una sola vez
   const formattedDates = useMemo(() => {
     if (!roomData?.fixture || !roomData?.room) return null;
-    
+
     const matchDate = new Date(roomData.fixture.match_date);
     const closeDate = new Date(roomData.room.prediction_close_time);
     const localeStr = locale === 'es' ? 'es-ES' : 'pt-BR';
-    
+
     return {
       match: matchDate.toLocaleString(localeStr),
       close: closeDate.toLocaleString(localeStr)
@@ -124,20 +126,20 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   // Función para cargar los detalles de la sala
   const fetchRoomDetails = useCallback(async (showRefreshIndicator = false) => {
     if (!salaId) return;
-    
+
     if (showRefreshIndicator) setRefreshing(true);
     setError("");
-    
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       const data = await response.json();
       console.log("end point de donde se traen los datos", `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`)
       console.log("los datos traidos de room son:", data)
-      
+
       if (response.ok && data.success) {
         setRoomData(data.data);
         setLastUpdate(new Date());
@@ -156,10 +158,10 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   // 🔥 POLLING: Actualización automática cada 10 segundos (más frecuente para sala activa)
   useEffect(() => {
     if (!salaId) return;
-    
+
     // Cargar datos iniciales
     fetchRoomDetails(false);
-    
+
     // Configurar polling cada 10 segundos para la sala (más frecuente que el dashboard)
     const intervalId = setInterval(() => {
       // Solo actualizar automáticamente si la sala está activa o cerrada
@@ -175,7 +177,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   // Generar QR solo cuando joinUrl esté disponible
   useEffect(() => {
     if (!joinUrl || joinUrl.includes("LOADING") || !salaId) return;
-    
+
     QRCode.toDataURL(joinUrl, {
       width: 200,
       margin: 2,
@@ -194,16 +196,16 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
 
   const handleClosePredictions = useCallback(async () => {
     if (!salaId) return;
-    
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}/close`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok && data.success) {
         await fetchRoomDetails(true); // Recargar con indicador
       } else {
@@ -262,13 +264,13 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-xs text-gray-500">Auto cada 10s</span>
               </div>
-              
+
               <span className="text-xs text-gray-500">ID: {salaId.substring(0, 8)}</span>
               <span className="text-sm text-yellow-500 tracking-wide">SALA: {codigoSala}</span>
-              
+
               {/* Botón de actualización manual */}
-              <button 
-                onClick={handleManualRefresh} 
+              <button
+                onClick={handleManualRefresh}
                 disabled={refreshing}
                 className="hover:bg-yellow-500/10 p-1.5 rounded transition-all disabled:opacity-50"
                 aria-label="Actualizar"
@@ -276,7 +278,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               >
                 <RefreshCw className={`w-4 h-4 text-gray-500 hover:text-yellow-500 transition-colors ${refreshing ? 'animate-spin' : ''}`} />
               </button>
-              
+
               <select
                 value={locale}
                 onChange={(e) => setLocale(e.target.value as Locale)}
@@ -373,8 +375,8 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                     {refreshing && (
                       <span className="text-xs text-gray-500 animate-pulse">Actualizando...</span>
                     )}
-                    <button 
-                      onClick={handleManualRefresh} 
+                    <button
+                      onClick={handleManualRefresh}
                       disabled={refreshing}
                       className="hover:bg-yellow-500/10 p-1 rounded transition-all disabled:opacity-50"
                       aria-label="Actualizar"
@@ -391,12 +393,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                       <div className="flex items-center gap-3">
                         <span className="text-yellow-500 text-sm font-mono">#{idx + 1}</span>
                         <span className="text-white text-sm">{p.user_nickname}</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-yellow-500 font-mono text-sm">{p.total_points} pts</span>
-                        <span className="text-gray-500 text-xs">
-                          {new Date(p.joined_at).toLocaleDateString(locale === 'es' ? 'es-ES' : 'pt-BR')}
-                        </span>
+                        <span className="text-yellow-500 font-mono text-sm">{p.goals_home} x {p.goals_away}</span>
                       </div>
                     </div>
                   ))
