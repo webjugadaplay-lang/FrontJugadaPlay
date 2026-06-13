@@ -66,9 +66,10 @@ export default function EnVivo() {
   const socketRef = useRef<Socket | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const previousScoresRef = useRef<{ home: number; away: number } | null>(null);
+  const isPollingActiveRef = useRef(true); // Controlar si el polling debe estar activo
 
   // 🔥 Función para obtener datos actualizados (polling)
-  const fetchLiveData = async (showLoadingIndicator = false) => {
+  const fetchLiveData = async (showLoadingIndicator = false, isAutoRefresh = false) => {
     if (!salaId || salaId === 'undefined' || salaId === 'null') {
       console.error("❌ salaId inválido:", salaId);
       return;
@@ -82,6 +83,8 @@ export default function EnVivo() {
       }
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/api/player/live-room/${salaId}?_t=${Date.now()}`;
+      
+      console.log(`🔄 ${isAutoRefresh ? 'Auto-refresh' : 'Manual refresh'} - Fetching data...`);
       
       const response = await fetch(url, {
         headers: {
@@ -108,9 +111,11 @@ export default function EnVivo() {
         const newAway = data.data.current_score_away;
 
         if (newHome > oldHome) {
+          console.log(`🎯 Gol LOCAL! ${oldHome} -> ${newHome}`);
           setShowScoreAnimation({ home: true, away: false });
           setTimeout(() => setShowScoreAnimation({ home: false, away: false }), 1000);
         } else if (newAway > oldAway) {
+          console.log(`🎯 Gol VISITANTE! ${oldAway} -> ${newAway}`);
           setShowScoreAnimation({ home: false, away: true });
           setTimeout(() => setShowScoreAnimation({ home: false, away: false }), 1000);
         }
@@ -124,11 +129,17 @@ export default function EnVivo() {
       setLastUpdate(new Date());
       setError("");
 
+      console.log(`✅ Datos actualizados - Marcador: ${data.data.current_score_home} x ${data.data.current_score_away}`);
+
     } catch (err: any) {
       console.error("❌ Error cargando sala en vivo:", err);
-      if (!showLoadingIndicator) {
+      if (!isAutoRefresh) {
         // Solo mostrar error si no es una actualización automática
         setError(err.message || "Error al cargar la sala en vivo");
+      }
+    } finally {
+      if (showLoadingIndicator) {
+        setLoading(false);
       }
     }
   };
@@ -137,28 +148,30 @@ export default function EnVivo() {
   const startPolling = (intervalSeconds: number = 5) => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
     }
 
     console.log(`🔄 Iniciando polling automático cada ${intervalSeconds} segundos`);
-    
-    // Ejecutar inmediatamente
-    fetchLiveData(false);
+    isPollingActiveRef.current = true;
     
     // Configurar intervalo
     pollingIntervalRef.current = setInterval(() => {
-      fetchLiveData(false);
+      if (isPollingActiveRef.current && !isRefreshing) {
+        fetchLiveData(false, true);
+      }
     }, intervalSeconds * 1000);
   };
 
   const stopPolling = () => {
+    console.log("⏹️ Deteniendo polling automático");
+    isPollingActiveRef.current = false;
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
-      console.log("⏹️ Polling automático detenido");
     }
   };
 
-  // 🔥 CONFIGURAR WEBSOCKET - Solo para conexión y presencia
+  // 🔥 CONFIGURAR WEBSOCKET - Escuchar eventos del servidor
   useEffect(() => {
     if (!salaId) return;
 
@@ -204,6 +217,31 @@ export default function EnVivo() {
       setIsConnected(false);
     });
 
+    // 🔥 Escuchar actualizaciones del marcador desde el servidor
+    socket.on('score-update', (data: { home: number; away: number; salaId: string }) => {
+      console.log(`⚽ ACTUALIZACIÓN EN TIEMPO REAL - Marcador: ${data.home} x ${data.away}`);
+      if (data.salaId === salaId) {
+        // Forzar una actualización inmediata
+        fetchLiveData(false, true);
+      }
+    });
+
+    // 🔥 Escuchar actualizaciones de ranking
+    socket.on('ranking-update', (data: { salaId: string }) => {
+      console.log(`📊 Actualización de ranking recibida`);
+      if (data.salaId === salaId) {
+        fetchLiveData(false, true);
+      }
+    });
+
+    // 🔥 Escuchar cualquier otro evento de actualización
+    socket.on('live-room-update', (data: { salaId: string }) => {
+      console.log(`🔄 Actualización de sala en vivo recibida`);
+      if (data.salaId === salaId) {
+        fetchLiveData(false, true);
+      }
+    });
+
     return () => {
       if (socketRef.current) {
         socketRef.current.emit('leave-live-room', salaId);
@@ -216,11 +254,10 @@ export default function EnVivo() {
   useEffect(() => {
     const initializeData = async () => {
       setLoading(true);
-      await fetchLiveData(true);
-      setLoading(false);
+      await fetchLiveData(true, false);
       
-      // Iniciar polling automático cada 5 segundos
-      const pollingInterval = Number(process.env.NEXT_PUBLIC_POLLING_INTERVAL) || 5;
+      // Iniciar polling automático cada 3 segundos (más frecuente)
+      const pollingInterval = Number(process.env.NEXT_PUBLIC_POLLING_INTERVAL) || 3;
       startPolling(pollingInterval);
     };
 
@@ -235,7 +272,8 @@ export default function EnVivo() {
   // Refrescar manualmente (fuerza una actualización inmediata)
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    await fetchLiveData(true);
+    console.log("🔄 Refresco manual solicitado");
+    await fetchLiveData(true, false);
     setIsRefreshing(false);
   };
 
@@ -330,7 +368,7 @@ export default function EnVivo() {
               {/* Indicador EN VIVO con polling */}
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs font-bold text-green-500">ACTUALIZACIÓN AUTOMÁTICA</span>
+                <span className="text-xs font-bold text-green-500">EN VIVO</span>
               </div>
             </div>
           </div>
@@ -344,8 +382,10 @@ export default function EnVivo() {
           {/* Info de última actualización */}
           <div className="flex justify-between items-center text-xs mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-              <span className="text-green-500">Actualización automática cada 5 segundos</span>
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-green-500">
+                {isConnected ? "WebSocket conectado" : "Usando polling cada 3 segundos"}
+              </span>
             </div>
             <span className="text-gray-600">
               Última actualización: {lastUpdate.toLocaleTimeString()}
@@ -478,7 +518,7 @@ export default function EnVivo() {
               <h3 className="text-white text-sm font-light tracking-wide flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-yellow-500" />
                 RANKING EN VIVO
-                <span className="text-xs text-green-500 ml-2">(Actualización automática cada 5s)</span>
+                <span className="text-xs text-green-500 ml-2">(Actualización cada 3 segundos)</span>
               </h3>
             </div>
 
