@@ -23,7 +23,9 @@ import {
 interface LiveRoomData {
   id: string;
   team_home: string;
+  home_team_logo: string;
   team_away: string;
+  away_team_logo: string;
   match_date: string;
   status: string;
   total_pool: number | string;
@@ -94,8 +96,8 @@ export default function EnVivo() {
       });
 
       const data = await response.json();
-      console.log('los datos son',data);
-      
+      console.log('los datos son', data);
+
 
       if (!response.ok) {
         throw new Error(data.message || "Error al cargar la sala en vivo");
@@ -399,7 +401,15 @@ export default function EnVivo() {
             <div className="grid grid-cols-3 items-center text-center gap-4">
               {/* Equipo local */}
               <div className="flex flex-col items-center">
-                <p className="text-white text-xl md:text-2xl font-light mb-2">
+                <div className="relative mb-3">
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full blur-md opacity-50"></div>
+                  <img
+                    src={liveData.home_team_logo}
+                    alt={liveData.team_home}
+                    className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
+                  />
+                </div>
+                <p className="text-white text-lg md:text-xl font-medium mb-2 truncate max-w-[150px]">
                   {liveData.team_home}
                 </p>
                 <span className={`text-yellow-500 text-5xl md:text-7xl font-bold leading-none transition-all duration-300 ${showScoreAnimation.home ? 'scale-150 text-green-500' : ''
@@ -410,13 +420,22 @@ export default function EnVivo() {
 
               {/* VS */}
               <div className="flex flex-col items-center justify-center">
-                <p className="text-gray-500 text-lg md:text-2xl font-light">VS</p>
-                <span className="mt-2 text-gray-600 text-sm">-</span>
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-yellow-500/20 to-transparent flex items-center justify-center border border-yellow-500/30">
+                  <p className="text-yellow-500 text-xl md:text-2xl font-black">VS</p>
+                </div>
               </div>
 
               {/* Equipo visitante */}
               <div className="flex flex-col items-center">
-                <p className="text-white text-xl md:text-2xl font-light mb-2">
+                <div className="relative mb-3">
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full blur-md opacity-50"></div>
+                  <img
+                    src={liveData.away_team_logo}
+                    alt={liveData.team_away}
+                    className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
+                  />
+                </div>
+                <p className="text-white text-lg md:text-xl font-medium mb-2 truncate max-w-[150px]">
                   {liveData.team_away}
                 </p>
                 <span className={`text-yellow-500 text-5xl md:text-7xl font-bold leading-none transition-all duration-300 ${showScoreAnimation.away ? 'scale-150 text-green-500' : ''
@@ -562,9 +581,9 @@ export default function EnVivo() {
                       </span>
                       {item.status && (
                         <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
-                            item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
-                              item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
-                                'bg-red-500/20 text-red-400'
+                          item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
+                            item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-red-500/20 text-red-400'
                           }`}>
                           {item.status}
                         </span>
