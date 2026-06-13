@@ -134,6 +134,10 @@ export default function EnVivo() {
       setError("");
 
       console.log(`✅ Datos actualizados - Marcador: ${data.data.current_score_home} x ${data.data.current_score_away}`);
+      // En tu fetchLiveData, después de obtener los datos
+      console.log('📊 Datos completos del backend:', data.data);
+      console.log('📊 userPrediction:', data.data.userPrediction);
+      console.log('📊 Tipo de userPrediction:', typeof data.data.userPrediction);
 
     } catch (err: any) {
       console.error("❌ Error cargando sala en vivo:", err);
@@ -326,6 +330,7 @@ export default function EnVivo() {
   const userPosition = liveData.ranking?.findIndex(r => r.isUser) ?? -1;
   const posicionActual = userPosition >= 0 ? userPosition + 1 : "-";
 
+
   return (
     <main className="min-h-screen bg-black">
       {/* Header */}
@@ -344,20 +349,6 @@ export default function EnVivo() {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Indicador de conexión WebSocket */}
-              <div className="flex items-center gap-2">
-                {isConnected ? (
-                  <>
-                    <Wifi className="w-4 h-4 text-green-500" />
-                    <span className="text-xs text-green-500 hidden sm:inline">Tiempo real</span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="w-4 h-4 text-red-500 animate-pulse" />
-                    <span className="text-xs text-red-500 hidden sm:inline">Reconectando...</span>
-                  </>
-                )}
-              </div>
 
               {/* Botón refresh manual */}
               <button
@@ -382,19 +373,6 @@ export default function EnVivo() {
       {/* Contenido principal */}
       <div className="pt-24 pb-20 px-6">
         <div className="container mx-auto max-w-2xl">
-
-          {/* Info de última actualización */}
-          <div className="flex justify-between items-center text-xs mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-green-500">
-                {isConnected ? "WebSocket conectado" : "Usando polling cada 3 segundos"}
-              </span>
-            </div>
-            <span className="text-gray-600">
-              Última actualización: {lastUpdate.toLocaleTimeString()}
-            </span>
-          </div>
 
           {/* Marcador con animación */}
           <div className="bg-gradient-to-br from-black to-gray-900 border border-yellow-500/20 rounded-2xl p-6 md:p-8 mb-6 shadow-2xl">
@@ -474,20 +452,6 @@ export default function EnVivo() {
                 </p>
               </div>
 
-              {/* Posición actual */}
-              <div className="text-center">
-                <p className="text-gray-400 text-xs tracking-wide uppercase mb-1">
-                  POSICIÓN ACTUAL
-                </p>
-                <p className="text-3xl font-light text-white">
-                  {posicionActual}
-                  {typeof posicionActual === "number" ? "°" : ""}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  de {totalJugadores} jugadores
-                </p>
-              </div>
-
               {/* Premio potencial */}
               <div className="text-center md:text-right">
                 <p className="text-gray-400 text-xs tracking-wide uppercase mb-1">
@@ -496,37 +460,6 @@ export default function EnVivo() {
                 <p className="text-2xl font-bold text-yellow-500">
                   R$ {pozoActual.toFixed(2)}
                 </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Estadísticas de la sala */}
-          <div className="bg-black/30 border border-yellow-500/20 rounded-2xl p-6 mb-6">
-            <h3 className="text-white text-sm font-light tracking-wide mb-4 flex items-center gap-2">
-              <Target className="w-4 h-4 text-yellow-500" />
-              ESTADO DEL RANKING
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="flex justify-between items-center md:block">
-                <span className="text-gray-400">Marcador actual:</span>
-                <span className="text-white font-bold md:mt-1 block">
-                  {liveData.current_score_home} - {liveData.current_score_away}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center md:block">
-                <span className="text-gray-400">Valor entrada:</span>
-                <span className="text-yellow-500 font-bold md:mt-1 block">
-                  R$ {Number(liveData.entry_fee).toFixed(2)}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center md:block">
-                <span className="text-gray-400">Jugadores:</span>
-                <span className="text-white font-bold md:mt-1 block">
-                  {totalJugadores}
-                </span>
               </div>
             </div>
           </div>
