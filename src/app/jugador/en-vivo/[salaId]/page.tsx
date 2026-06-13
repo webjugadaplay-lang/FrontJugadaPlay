@@ -62,7 +62,7 @@ export default function EnVivo() {
   const [isConnected, setIsConnected] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showScoreAnimation, setShowScoreAnimation] = useState<{ home: boolean; away: boolean }>({ home: false, away: false });
-  
+
   const socketRef = useRef<Socket | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const previousScoresRef = useRef<{ home: number; away: number } | null>(null);
@@ -83,9 +83,9 @@ export default function EnVivo() {
       }
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/api/player/live-room/${salaId}?_t=${Date.now()}`;
-      
+
       console.log(`🔄 ${isAutoRefresh ? 'Auto-refresh' : 'Manual refresh'} - Fetching data...`);
-      
+
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -94,6 +94,8 @@ export default function EnVivo() {
       });
 
       const data = await response.json();
+      console.log('los datos son',data);
+      
 
       if (!response.ok) {
         throw new Error(data.message || "Error al cargar la sala en vivo");
@@ -153,7 +155,7 @@ export default function EnVivo() {
 
     console.log(`🔄 Iniciando polling automático cada ${intervalSeconds} segundos`);
     isPollingActiveRef.current = true;
-    
+
     // Configurar intervalo
     pollingIntervalRef.current = setInterval(() => {
       if (isPollingActiveRef.current && !isRefreshing) {
@@ -255,7 +257,7 @@ export default function EnVivo() {
     const initializeData = async () => {
       setLoading(true);
       await fetchLiveData(true, false);
-      
+
       // Iniciar polling automático cada 3 segundos (más frecuente)
       const pollingInterval = Number(process.env.NEXT_PUBLIC_POLLING_INTERVAL) || 3;
       startPolling(pollingInterval);
@@ -338,7 +340,7 @@ export default function EnVivo() {
                 className="h-10 md:h-12 lg:h-14 w-auto object-contain"
               />
             </div>
-            
+
             <div className="flex items-center gap-4">
               {/* Indicador de conexión WebSocket */}
               <div className="flex items-center gap-2">
@@ -354,7 +356,7 @@ export default function EnVivo() {
                   </>
                 )}
               </div>
-              
+
               {/* Botón refresh manual */}
               <button
                 onClick={handleManualRefresh}
@@ -364,7 +366,7 @@ export default function EnVivo() {
               >
                 <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
-              
+
               {/* Indicador EN VIVO con polling */}
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -378,7 +380,7 @@ export default function EnVivo() {
       {/* Contenido principal */}
       <div className="pt-24 pb-20 px-6">
         <div className="container mx-auto max-w-2xl">
-          
+
           {/* Info de última actualización */}
           <div className="flex justify-between items-center text-xs mb-4">
             <div className="flex items-center gap-2">
@@ -400,9 +402,8 @@ export default function EnVivo() {
                 <p className="text-white text-xl md:text-2xl font-light mb-2">
                   {liveData.team_home}
                 </p>
-                <span className={`text-yellow-500 text-5xl md:text-7xl font-bold leading-none transition-all duration-300 ${
-                  showScoreAnimation.home ? 'scale-150 text-green-500' : ''
-                }`}>
+                <span className={`text-yellow-500 text-5xl md:text-7xl font-bold leading-none transition-all duration-300 ${showScoreAnimation.home ? 'scale-150 text-green-500' : ''
+                  }`}>
                   {liveData.current_score_home}
                 </span>
               </div>
@@ -418,9 +419,8 @@ export default function EnVivo() {
                 <p className="text-white text-xl md:text-2xl font-light mb-2">
                   {liveData.team_away}
                 </p>
-                <span className={`text-yellow-500 text-5xl md:text-7xl font-bold leading-none transition-all duration-300 ${
-                  showScoreAnimation.away ? 'scale-150 text-green-500' : ''
-                }`}>
+                <span className={`text-yellow-500 text-5xl md:text-7xl font-bold leading-none transition-all duration-300 ${showScoreAnimation.away ? 'scale-150 text-green-500' : ''
+                  }`}>
                   {liveData.current_score_away}
                 </span>
               </div>
@@ -527,9 +527,8 @@ export default function EnVivo() {
                 liveData.ranking.map((item, idx) => (
                   <div
                     key={item.userId}
-                    className={`px-6 py-3 flex justify-between items-center transition-all duration-300 ${
-                      item.isUser ? "bg-yellow-500/5 border-l-2 border-yellow-500" : "hover:bg-white/5"
-                    }`}
+                    className={`px-6 py-3 flex justify-between items-center transition-all duration-300 ${item.isUser ? "bg-yellow-500/5 border-l-2 border-yellow-500" : "hover:bg-white/5"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       {/* Posición con medalla para top 3 */}
@@ -562,12 +561,11 @@ export default function EnVivo() {
                         {item.prediction}
                       </span>
                       {item.status && (
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
-                          item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
-                          item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
+                        <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
+                            item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
+                              item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
+                                'bg-red-500/20 text-red-400'
+                          }`}>
                           {item.status}
                         </span>
                       )}
