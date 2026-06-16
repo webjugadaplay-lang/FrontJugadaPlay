@@ -53,6 +53,7 @@ const es = {
     registerBar: "REGISTRAR MI BAR",
     registerPlayer: "REGISTRARME COMO JUGADOR",
     forgotPassword: "¿OLVIDASTE TU CONTRASEÑA?",
+    register: "REGISTRAR MI BAR",
     errors: {
       login: "ERROR AL INICIAR SESIÓN",
       api: "ERROR EN API",

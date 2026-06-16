@@ -1,7 +1,7 @@
-//jugador/prediccion/[salaId]
+// app/jugador/prediccion/[salaId]/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -70,6 +70,7 @@ export default function PredecirMarcador() {
   const [room, setRoom] = useState<Room | null>(null);
   const [existingPredictions, setExistingPredictions] = useState<Prediction[]>([]);
   const [lastPrediction, setLastPrediction] = useState<Prediction | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const t = translations[locale];
 
@@ -88,6 +89,16 @@ export default function PredecirMarcador() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // 🔥 NUEVA FUNCIÓN: Guardar la URL de retorno y redirigir al login
+  const redirectToLogin = useCallback(() => {
+    // Guardar la URL actual para redirigir después del login
+    const currentUrl = `/jugador/prediccion/${salaId}`;
+    localStorage.setItem("redirectAfterLogin", currentUrl);
+
+    setIsRedirecting(true);
+    router.push("/login");
+  }, [salaId, router]);
+
   // Función para cargar las predicciones existentes
   const fetchExistingPredictions = async () => {
     try {
@@ -103,9 +114,8 @@ export default function PredecirMarcador() {
         console.log(`📦 Encontradas ${data.data.length} predicciones previas`);
         setExistingPredictions(data.data);
 
-        // Obtener la predicción más reciente
         if (data.data.length > 0) {
-          const mostRecent = data.data[0]; // Ya vienen ordenadas por createdAt DESC
+          const mostRecent = data.data[0];
           setLastPrediction(mostRecent);
           setGolesLocal(mostRecent.score_home);
           setGolesVisitante(mostRecent.score_away);
@@ -128,6 +138,7 @@ export default function PredecirMarcador() {
     }
   };
 
+  // 🔥 FUNCIÓN PRINCIPAL MODIFICADA con manejo de autenticación
   useEffect(() => {
     if (!salaId) {
       setError(t.prediction.invalidId);
@@ -140,22 +151,33 @@ export default function PredecirMarcador() {
         const token = localStorage.getItem("token");
         const userData = localStorage.getItem("user");
 
+        // 🔥 Si no hay token o usuario, redirigir al login
         if (!token || !userData) {
-          router.push("/login");
+          redirectToLogin();
           return;
         }
 
         const user = JSON.parse(userData);
         if (user.role !== "player") {
-          router.push("/login");
+          redirectToLogin();
           return;
         }
 
+        // 🔥 Verificar que el token aún sea válido (opcional)
         // Cargar datos de la sala
         const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`;
         const roomResponse = await fetch(roomUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
+
+        // 🔥 Si el token expiró o es inválido, redirigir al login
+        if (roomResponse.status === 401 || roomResponse.status === 403) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          redirectToLogin();
+          return;
+        }
+
         const roomData = await roomResponse.json();
 
         if (!roomResponse.ok || !roomData.success) {
@@ -176,7 +198,7 @@ export default function PredecirMarcador() {
     };
 
     fetchData();
-  }, [salaId, router, t]);
+  }, [salaId, router, t, redirectToLogin]);
 
   const handleSubmit = async () => {
     if (!salaId) {
@@ -189,13 +211,17 @@ export default function PredecirMarcador() {
       return;
     }
 
+    // 🔥 Verificar autenticación antes de enviar
+    const token = localStorage.getItem("token");
+    if (!token) {
+      redirectToLogin();
+      return;
+    }
+
     setSaving(true);
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
-
-      // Calcular el entry_fee a pagar (tomar el valor actual de la sala)
       const entryFeeValue = typeof room.entry_fee === 'string'
         ? parseFloat(room.entry_fee)
         : room.entry_fee;
@@ -221,13 +247,20 @@ export default function PredecirMarcador() {
         }
       );
 
+      // 🔥 Si el token expiró, redirigir al login
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        redirectToLogin();
+        return;
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message || "Error al guardar");
       }
 
-      // ✅ MODIFICACIÓN AQUÍ: Siempre redirigir a pago sin importar si hay predicciones previas
       console.log("✅ Predicción guardada, redirigiendo a pago");
       router.push(`/jugador/pago/${salaId}`);
 
@@ -237,6 +270,18 @@ export default function PredecirMarcador() {
     }
   };
 
+  // 🔥 Mostrar estado de redirección
+  if (isRedirecting) {
+    return (
+      <main className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mx-auto mb-4" />
+          <p className="text-yellow-500">Redirigiendo al login...</p>
+        </div>
+      </main>
+    );
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -245,6 +290,7 @@ export default function PredecirMarcador() {
     );
   }
 
+  // 🔥 Si hay error y no es de autenticación, mostrar mensaje con opción de reintentar
   if (error || !room) {
     return (
       <main className="min-h-screen bg-black">
@@ -263,11 +309,27 @@ export default function PredecirMarcador() {
           </div>
         </header>
         <div className="min-h-screen flex items-center justify-center pt-20">
-          <div className="text-center">
+          <div className="text-center max-w-md px-4">
             <p className="text-red-500 mb-4">{error || t.prediction.notFound}</p>
-            <Link href="/entrar" className="text-yellow-500 hover:text-yellow-400 transition-colors">
-              {t.prediction.back}
-            </Link>
+            <div className="flex flex-col gap-3 items-center">
+              <Link href="/entrar" className="text-yellow-500 hover:text-yellow-400 transition-colors">
+                {t.prediction.back}
+              </Link>
+              <button
+                onClick={() => {
+                  // 🔥 Intentar recargar o redirigir al login
+                  const token = localStorage.getItem("token");
+                  if (!token) {
+                    redirectToLogin();
+                  } else {
+                    window.location.reload();
+                  }
+                }}
+                className="text-sm text-gray-400 hover:text-yellow-500 transition-colors"
+              >
+                {!localStorage.getItem("token") ? "Iniciar sesión" : "Reintentar"}
+              </button>
+            </div>
           </div>
         </div>
       </main>
@@ -280,7 +342,7 @@ export default function PredecirMarcador() {
 
   return (
     <main className="min-h-screen bg-black">
-      {/* Header */}
+      {/* Header - igual */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20" : "bg-transparent"}`}>
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
@@ -313,7 +375,7 @@ export default function PredecirMarcador() {
         </div>
       </header>
 
-      {/* Contenido principal */}
+      {/* Contenido principal - igual */}
       <div className="pt-28 pb-20 px-4 md:px-6">
         <div className="container mx-auto max-w-4xl">
 

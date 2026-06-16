@@ -56,6 +56,7 @@ const ptBR = {
     registerBar: "REGISTRAR MEU BAR",
     registerPlayer: "REGISTRAR COMO JOGADOR",
     forgotPassword: "ESQUECEU SUA SENHA?",
+    register: "REGISTRAR MEU BAR",
     errors: {
       login: "ERRO AO INICIAR SESSÃO",
       api: "ERRO NA API",

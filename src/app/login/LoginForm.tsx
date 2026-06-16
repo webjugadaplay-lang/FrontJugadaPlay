@@ -1,3 +1,4 @@
+// app/login/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,16 +15,48 @@ export default function LoginForm({ locale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
-  // Cambiamos el tipo para incluir "owner" pero la UI muestra "bar"
   const [tipoUsuario, setTipoUsuario] = useState<"player" | "owner" | "admin">("player");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const t = translations[locale];
 
+  // Verificar si hay una URL de retorno al cargar la página
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const redirectUrl = localStorage.getItem("redirectAfterLogin");
+    
+    if (token && redirectUrl) {
+      localStorage.removeItem("redirectAfterLogin");
+      setIsRedirecting(true);
+      router.push(redirectUrl);
+      return;
+    }
+
+    if (token) {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          if (user.role === "admin") {
+            router.push("/admin/dashboard");
+          } else if (user.role === "owner" || user.role === "bar") {
+            router.push("/bar/dashboard");
+          } else {
+            router.push("/jugador/dashboard");
+          }
+        } catch (e) {
+          router.push("/dashboard");
+        }
+      }
+    }
+  }, [router]);
+
+  // Verificar código pendiente del QR
   useEffect(() => {
     const code = searchParams?.get("code");
     if (code) {
@@ -54,7 +87,7 @@ export default function LoginForm({ locale }: Props) {
         body: JSON.stringify({
           email,
           password,
-          role: tipoUsuario, // Ahora envía "player", "owner" o "admin"
+          role: tipoUsuario,
         }),
       });
 
@@ -67,18 +100,42 @@ export default function LoginForm({ locale }: Props) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
+      // Verificar si hay un código pendiente de sala (QR)
       const pendingCode = sessionStorage.getItem("pendingRoomCode");
       if (pendingCode) {
         sessionStorage.removeItem("pendingRoomCode");
+        try {
+          const token = localStorage.getItem("token");
+          const roomResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${pendingCode}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const roomData = await roomResponse.json();
+          
+          if (roomData.success && roomData.roomId) {
+            router.push(`/jugador/prediccion/${roomData.roomId}`);
+            return;
+          }
+        } catch (err) {
+          console.error("Error al buscar sala por código:", err);
+        }
         router.push(`/entrar?code=${pendingCode}`);
+        return;
+      }
+
+      // Verificar si hay una URL de retorno (desde predicción)
+      const redirectUrl = localStorage.getItem("redirectAfterLogin");
+      if (redirectUrl) {
+        localStorage.removeItem("redirectAfterLogin");
+        router.push(redirectUrl);
         return;
       }
 
       // Redirigir según el rol del usuario
       if (data.user.role === "admin") {
         router.push("/admin/dashboard");
-      } else if (data.user.role === "owner") {
-        router.push("/bar/dashboard"); // Los owners ven el dashboard de bares
+      } else if (data.user.role === "owner" || data.user.role === "bar") {
+        router.push("/bar/dashboard");
       } else {
         router.push("/jugador/dashboard");
       }
@@ -88,6 +145,17 @@ export default function LoginForm({ locale }: Props) {
       setLoading(false);
     }
   };
+
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-yellow-500">Redirigiendo...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto max-w-md">
@@ -147,41 +215,39 @@ export default function LoginForm({ locale }: Props) {
               </button>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-xs text-yellow-500 tracking-wider">
-                {t.login.email}
-              </label>
+            <div>
+              <label className="block text-gray-400 text-sm mb-2">{t.login.email}</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
+                  className="w-full bg-black/50 border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
                   placeholder={t.login.emailPlaceholder}
-                  className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
+                  required
+                  disabled={loading}
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-xs text-yellow-500 tracking-wider">
-                {t.login.password}
-              </label>
+            <div>
+              <label className="block text-gray-400 text-sm mb-2">{t.login.password}</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-black/50 border border-yellow-500/30 rounded-lg pl-10 pr-12 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
+                  placeholder="********"
                   required
-                  placeholder="••••••••"
-                  className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-12 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-yellow-500"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-yellow-500 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -189,48 +255,36 @@ export default function LoginForm({ locale }: Props) {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-500 text-sm text-center">
-                {error}
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                <p className="text-red-400 text-sm text-center">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full overflow-hidden bg-yellow-500 text-black py-3 rounded-lg text-sm font-medium tracking-wide hover:bg-yellow-400 transition-all disabled:opacity-50"
+              className="w-full py-3 bg-yellow-500 text-black font-medium rounded-lg hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="relative z-10">
-                {loading ? t.login.submitting : t.login.submit}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                  {t.login.submitting}
+                </span>
+              ) : (
+                t.login.submit
+              )}
             </button>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-yellow-500/20"></div>
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-black px-4 text-gray-600">{t.login.noAccount}</span>
-              </div>
+            <div className="text-center text-sm text-gray-500">
+              {t.login.noAccount}{" "}
+              <Link href="/register" className="text-yellow-500 hover:text-yellow-400 transition-colors">
+                {t.login.register}
+              </Link>
             </div>
 
-            <div className="space-y-2">
-              <Link href="/bar/registro">
-                <button
-                  type="button"
-                  className="w-full border border-yellow-500/30 text-yellow-500 py-3 rounded-lg text-sm font-medium hover:border-yellow-500/50 hover:bg-yellow-500/10 transition-all mb-4"
-                >
-                  Registrar mi Bar
-                </button>
-              </Link>
-
-              <Link href="/jugador/registro">
-                <button
-                  type="button"
-                  className="w-full border border-gray-700 text-gray-400 py-3 rounded-lg text-sm hover:border-yellow-500/30 hover:text-yellow-500 transition-all"
-                >
-                  {t.login.registerPlayer}
-                </button>
+            <div className="text-center">
+              <Link href="/forgot-password" className="text-xs text-gray-600 hover:text-yellow-500 transition-colors">
+                {t.login.forgotPassword || "¿Olvidaste tu contraseña?"}
               </Link>
             </div>
           </div>
