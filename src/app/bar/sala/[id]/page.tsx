@@ -1,11 +1,23 @@
 // app/bar/sala/[id]/page.tsx
+// app/bar/sala/[id]/page.tsx
 "use client";
 
 import { useState, useEffect, use, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Users, Coins, Copy, Check, RefreshCw, QrCode, Clock } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Users, 
+  Coins, 
+  Copy, 
+  Check, 
+  RefreshCw, 
+  QrCode, 
+  Clock,
+  Share2,
+  Download
+} from "lucide-react";
 import QRCode from "qrcode";
 import { translations, type Locale } from "@/messages";
 
@@ -78,6 +90,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [shareFeedback, setShareFeedback] = useState<string>("");
 
   const t = translations[locale];
 
@@ -98,8 +111,9 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     [roomData?.room?.code, salaId]
   );
 
-  const joinUrl = useMemo(() =>
-    `${process.env.NEXT_PUBLIC_FRONTEND_URL}/bar/sala/${salaId}`,
+  // 🔥 CAMBIADO: La URL para compartir ahora apunta a la predicción
+  const shareUrl = useMemo(() =>
+    `${process.env.NEXT_PUBLIC_FRONTEND_URL}/jugador/prediccion/${salaId}`,
     [salaId]
   );
 
@@ -174,18 +188,18 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     return () => clearInterval(intervalId);
   }, [salaId, fetchRoomDetails, roomData?.room?.status]);
 
-  // Generar QR solo cuando joinUrl esté disponible
+  // 🔥 CAMBIADO: Generar QR con la URL de predicción en lugar de la URL del bar
   useEffect(() => {
-    if (!joinUrl || joinUrl.includes("LOADING") || !salaId) return;
+    if (!shareUrl || shareUrl.includes("LOADING") || !salaId) return;
 
-    QRCode.toDataURL(joinUrl, {
+    QRCode.toDataURL(shareUrl, {
       width: 200,
       margin: 2,
       color: { dark: '#EAB308', light: '#000000' }
     }, (err, url) => {
       if (!err) setQrCodeUrl(url);
     });
-  }, [joinUrl, salaId]);
+  }, [shareUrl, salaId]);
 
   // Handlers
   const handleCopyCode = useCallback(() => {
@@ -193,6 +207,43 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [codigoSala]);
+
+  // 🔥 NUEVO: Función para compartir la URL de predicción
+  const handleShare = useCallback(async () => {
+    try {
+      // Verificar si el navegador soporta Web Share API
+      if (navigator.share) {
+        await navigator.share({
+          title: `¡Únete a la sala ${roomData?.room?.name || 'de apuestas'}!`,
+          text: `Código: ${codigoSala} - Predice el marcador y gana R$ ${roomData?.room?.total_pool || 0}`,
+          url: shareUrl,
+        });
+      } else {
+        // Fallback: copiar URL al portapapeles
+        await navigator.clipboard.writeText(shareUrl);
+        setShareFeedback("¡URL copiada al portapapeles!");
+        setTimeout(() => setShareFeedback(""), 3000);
+      }
+    } catch (error) {
+      console.error('Error al compartir:', error);
+      // Si el usuario cancela el share, no hacemos nada
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      setShareFeedback("Error al compartir. Copia el código manualmente.");
+      setTimeout(() => setShareFeedback(""), 3000);
+    }
+  }, [shareUrl, codigoSala, roomData]);
+
+  // 🔥 NUEVO: Función para descargar el QR
+  const handleDownloadQR = useCallback(() => {
+    if (!qrCodeUrl) return;
+    
+    const link = document.createElement('a');
+    link.download = `qr-sala-${codigoSala}.png`;
+    link.href = qrCodeUrl;
+    link.click();
+  }, [qrCodeUrl, codigoSala]);
 
   const handleClosePredictions = useCallback(async () => {
     if (!salaId) return;
@@ -325,7 +376,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
             </div>
           </div>
 
-          {/* QR y código */}
+          {/* 🔥 QR y código - MODIFICADO con botones de compartir y descargar */}
           <div className="bg-black/50 border border-yellow-500/20 rounded-2xl p-6 mb-8">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="w-32 h-32 bg-black rounded-xl flex items-center justify-center border border-yellow-500/30 overflow-hidden">
@@ -338,7 +389,8 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                   </div>
                 )}
               </div>
-              <div className="text-center md:text-left">
+              
+              <div className="text-center md:text-left flex-1">
                 <div className="flex items-center gap-2 justify-center md:justify-start">
                   <span className="text-gray-400 text-sm">Código de acceso:</span>
                   <span className="text-2xl font-mono text-yellow-500 tracking-wider">{codigoSala}</span>
@@ -353,7 +405,30 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                 <p className="text-gray-500 text-xs mt-2">
                   Escanea el QR o comparte el código para que los jugadores se unan
                 </p>
+                {/* Feedback de compartir */}
+                {shareFeedback && (
+                  <p className="text-green-500 text-xs mt-1">{shareFeedback}</p>
+                )}
               </div>
+
+              {/* 🔥 NUEVO: Botones de acción */}
+              <div className="flex flex-col gap-2 w-full md:w-auto">
+                <button
+                  onClick={handleShare}
+                  className="flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black px-6 py-2 rounded-lg font-medium transition-all text-sm"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Compartir
+                </button>
+                <button
+                  onClick={handleDownloadQR}
+                  className="flex items-center justify-center gap-2 border border-yellow-500/30 hover:border-yellow-500/50 text-yellow-500 px-6 py-2 rounded-lg font-medium transition-all text-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar QR
+                </button>
+              </div>
+
               <div className="text-center">
                 <div className="text-2xl font-light text-white">R$ {room.total_pool}</div>
                 <div className="text-xs text-gray-500">POZO ACTUAL</div>
