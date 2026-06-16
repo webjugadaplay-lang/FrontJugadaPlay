@@ -75,7 +75,7 @@ export default function EntrarSalaPage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/find-by-code?code=${codigoSala.trim()}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigoSala.trim()}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await response.json();

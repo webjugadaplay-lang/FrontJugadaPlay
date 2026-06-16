@@ -152,7 +152,7 @@ export default function PredecirMarcador() {
         }
 
         // Cargar datos de la sala
-        const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${salaId}`;
+        const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`;
         const roomResponse = await fetch(roomUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
