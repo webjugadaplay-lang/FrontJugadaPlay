@@ -22,7 +22,9 @@ interface Room {
   id: string;
   name: string;
   team_home: string;
+  home_team_logo: string;
   team_away: string;
+  away_team_logo: string;
   match_date: string;
   prediction_close_time: string;
   entry_fee: number | string;
@@ -189,7 +191,9 @@ export default function PredecirMarcador() {
           id: roomFromApi.id,
           name: roomFromApi.name,
           team_home: fixtureFromApi?.home_team || 'Equipo Local',
+          home_team_logo: fixtureFromApi?.home_team_logo || '',
           team_away: fixtureFromApi?.away_team || 'Equipo Visitante',
+          away_team_logo: fixtureFromApi?.away_team_logo || '',
           match_date: fixtureFromApi?.match_date || roomFromApi.match_date,
           prediction_close_time: roomFromApi.prediction_close_time,
           entry_fee: roomFromApi.entry_fee,
@@ -425,6 +429,11 @@ export default function PredecirMarcador() {
               <div className="text-center">
                 <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_home}</h2>
                 <div className="flex justify-center items-center gap-4 text-white">
+                  <img
+                    src={room.home_team_logo || '/default-logo.png'}
+                    alt={room.team_home}
+                    className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
+                  />
                   <button
                     onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
                     disabled={isMatchClosed || isMatchFinished}
@@ -454,6 +463,11 @@ export default function PredecirMarcador() {
               <div className="text-center">
                 <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_away}</h2>
                 <div className="flex justify-center items-center gap-4 text-white">
+                  <img
+                    src={room.away_team_logo || '/default-logo.png'}
+                    alt={room.team_away}
+                    className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
+                  />
                   <button
                     onClick={() => setGolesVisitante(Math.max(0, golesVisitante - 1))}
                     disabled={isMatchClosed || isMatchFinished}
