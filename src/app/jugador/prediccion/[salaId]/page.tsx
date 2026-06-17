@@ -189,7 +189,7 @@ export default function PredecirMarcador() {
           throw new Error(roomData.message || t.prediction.notFound);
         }
 
-        setRoom(roomData.data);
+        setRoom(roomData.data.room);
 
         // Cargar predicciones existentes
         await fetchExistingPredictions();
