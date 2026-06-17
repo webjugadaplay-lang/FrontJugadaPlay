@@ -435,32 +435,32 @@ export default function PredecirMarcador() {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
                 />
-                <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_home}</h2>
-                <div className="flex justify-center items-center gap-2 text-white">
+                <h2 className="text-white text-sm md:text-xl font-medium mb-3 truncate max-w-[120px] md:max-w-[200px]">
+                  {room.team_home}
+                </h2>
+                <div className="flex justify-center items-center gap-2 md:gap-4 text-white">
                   <button
                     onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
                     disabled={isMatchClosed || isMatchFinished}
-                    className="w-10 h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Minus className="w-5 h-5 text-yellow-500" />
+                    <Minus className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
                   </button>
-
-                  <span className="text-5xl md:text-6xl font-bold text-white w-20 text-center">{golesLocal}</span>
-
+                  <span className="text-4xl md:text-6xl font-bold text-white w-14 md:w-20 text-center">{golesLocal}</span>
                   <button
                     onClick={() => setGolesLocal(golesLocal + 1)}
                     disabled={isMatchClosed || isMatchFinished}
-                    className="w-10 h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Plus className="w-5 h-5 text-yellow-500" />
+                    <Plus className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
                   </button>
                 </div>
               </div>
 
               {/* VS - Columna central */}
               <div className="flex flex-col items-center justify-center">
-                <div className="w-16 h-16 rounded-full border-2 border-yellow-500/30 flex items-center justify-center mx-auto">
-                  <span className="text-yellow-500 text-xl font-bold">{t.prediction.vs}</span>
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-yellow-500/30 flex items-center justify-center mx-auto">
+                  <span className="text-yellow-500 text-base md:text-xl font-bold">{t.prediction.vs}</span>
                 </div>
               </div>
 
@@ -474,22 +474,24 @@ export default function PredecirMarcador() {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
                 />
-                <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_away}</h2>
-                <div className="flex justify-center items-center gap-4 text-white">
+                <h2 className="text-white text-sm md:text-xl font-medium mb-3 truncate max-w-[120px] md:max-w-[200px]">
+                  {room.team_away}
+                </h2>
+                <div className="flex justify-center items-center gap-2 md:gap-4 text-white">
                   <button
                     onClick={() => setGolesVisitante(Math.max(0, golesVisitante - 1))}
                     disabled={isMatchClosed || isMatchFinished}
-                    className="w-10 h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Minus className="w-5 h-5 text-yellow-500" />
+                    <Minus className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
                   </button>
-                  <span className="text-5xl md:text-6xl font-bold text-white w-20 text-center">{golesVisitante}</span>
+                  <span className="text-4xl md:text-6xl font-bold text-white w-14 md:w-20 text-center">{golesVisitante}</span>
                   <button
                     onClick={() => setGolesVisitante(golesVisitante + 1)}
                     disabled={isMatchClosed || isMatchFinished}
-                    className="w-10 h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-yellow-500/30 flex items-center justify-center hover:bg-yellow-500/10 hover:border-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Plus className="w-5 h-5 text-yellow-500" />
+                    <Plus className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
                   </button>
                 </div>
               </div>
