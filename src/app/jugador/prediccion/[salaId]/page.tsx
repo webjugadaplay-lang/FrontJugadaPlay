@@ -436,7 +436,7 @@ export default function PredecirMarcador() {
                   }}
                 />
                 <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_home}</h2>
-                <div className="flex justify-center items-center gap-4 text-white">
+                <div className="flex justify-center items-center gap-2 text-white">
                   <button
                     onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
                     disabled={isMatchClosed || isMatchFinished}
@@ -444,7 +444,9 @@ export default function PredecirMarcador() {
                   >
                     <Minus className="w-5 h-5 text-yellow-500" />
                   </button>
+
                   <span className="text-5xl md:text-6xl font-bold text-white w-20 text-center">{golesLocal}</span>
+
                   <button
                     onClick={() => setGolesLocal(golesLocal + 1)}
                     disabled={isMatchClosed || isMatchFinished}
