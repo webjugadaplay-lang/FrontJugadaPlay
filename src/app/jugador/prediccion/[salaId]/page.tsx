@@ -99,7 +99,7 @@ export default function PredecirMarcador() {
     router.push("/login");
   }, [salaId, router]);
 
-    // Función para cargar las predicciones existentes
+  // Función para cargar las predicciones existentes
   const fetchExistingPredictions = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -170,10 +170,12 @@ export default function PredecirMarcador() {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        console.log('los datos traidos de ',roomUrl);
+
+
+        console.log('los datos traidos de ', roomUrl);
         console.log(roomResponse);
-        
-        
+
+
 
         // 🔥 Si el token expiró o es inválido, redirigir al login
         if (roomResponse.status === 401 || roomResponse.status === 403) {
@@ -183,7 +185,10 @@ export default function PredecirMarcador() {
           return;
         }
 
+        // Después de obtener la respuesta
         const roomData = await roomResponse.json();
+        console.log('📦 DATOS REALES DEL BACKEND:', roomData);
+        console.log('🔍 Estructura:', JSON.stringify(roomData, null, 2));
 
         if (!roomResponse.ok || !roomData.success) {
           throw new Error(roomData.message || t.prediction.notFound);
