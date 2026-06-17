@@ -426,11 +426,14 @@ export default function PredecirMarcador() {
             {/* Equipos y marcador */}
             <div className="grid grid-cols-3 gap-4 items-center mb-8">
               {/* Local */}
-              <div className="text-center">
+              <div className="flex flex-col items-center text-center">
                 <img
                   src={room.home_team_logo || '/default-logo.png'}
                   alt={room.team_home}
-                  className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
+                  className="w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl mb-3"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
                 <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_home}</h2>
                 <div className="flex justify-center items-center gap-4 text-white">
@@ -452,19 +455,22 @@ export default function PredecirMarcador() {
                 </div>
               </div>
 
-              {/* VS */}
-              <div className="text-center">
+              {/* VS - Columna central */}
+              <div className="flex flex-col items-center justify-center">
                 <div className="w-16 h-16 rounded-full border-2 border-yellow-500/30 flex items-center justify-center mx-auto">
                   <span className="text-yellow-500 text-xl font-bold">{t.prediction.vs}</span>
                 </div>
               </div>
 
               {/* Visitante */}
-              <div className="text-center">
+              <div className="flex flex-col items-center text-center">
                 <img
                   src={room.away_team_logo || '/default-logo.png'}
                   alt={room.team_away}
-                  className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
+                  className="w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl mb-3"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
                 <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_away}</h2>
                 <div className="flex justify-center items-center gap-4 text-white">
