@@ -151,7 +151,6 @@ export default function PredecirMarcador() {
         const token = localStorage.getItem("token");
         const userData = localStorage.getItem("user");
 
-        // 🔥 Si no hay token o usuario, redirigir al login
         if (!token || !userData) {
           redirectToLogin();
           return;
@@ -163,21 +162,11 @@ export default function PredecirMarcador() {
           return;
         }
 
-        // 🔥 Verificar que el token aún sea válido (opcional)
-        // Cargar datos de la sala
         const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`;
         const roomResponse = await fetch(roomUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-
-
-        console.log('los datos traidos de ', roomUrl);
-        console.log(roomResponse);
-
-
-
-        // 🔥 Si el token expiró o es inválido, redirigir al login
         if (roomResponse.status === 401 || roomResponse.status === 403) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
@@ -185,16 +174,36 @@ export default function PredecirMarcador() {
           return;
         }
 
-        // Después de obtener la respuesta
         const roomData = await roomResponse.json();
         console.log('📦 DATOS REALES DEL BACKEND:', roomData);
-        console.log('🔍 Estructura:', JSON.stringify(roomData, null, 2));
 
         if (!roomResponse.ok || !roomData.success) {
           throw new Error(roomData.message || t.prediction.notFound);
         }
 
-        setRoom(roomData.data.room);
+        // 🔥 COMBINAR datos de room y fixture
+        const roomFromApi = roomData.data.room;
+        const fixtureFromApi = roomData.data.fixture;
+
+        const combinedRoom: Room = {
+          id: roomFromApi.id,
+          name: roomFromApi.name,
+          team_home: fixtureFromApi?.home_team || 'Equipo Local',
+          team_away: fixtureFromApi?.away_team || 'Equipo Visitante',
+          match_date: fixtureFromApi?.match_date || roomFromApi.match_date,
+          prediction_close_time: roomFromApi.prediction_close_time,
+          entry_fee: roomFromApi.entry_fee,
+          total_pool: roomFromApi.total_pool,
+          status: roomFromApi.status,
+          room_code: roomFromApi.code,
+          bar: {
+            name: 'Bar',
+            bar_name: 'Bar'
+          }
+        };
+
+        console.log('🏠 Sala combinada:', combinedRoom);
+        setRoom(combinedRoom);
 
         // Cargar predicciones existentes
         await fetchExistingPredictions();
