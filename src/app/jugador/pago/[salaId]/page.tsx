@@ -3,9 +3,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ArrowLeft, Crown, Copy, Check, Clock, QrCode, Beer } from "lucide-react";
 
-export default function PagoPrediccion({ params }: { params: { salaId: string } }) {
+export default function PagoPrediccion() {
+  const params = useParams();
+  const salaId = params?.salaId as string;
+
   const [metodoPago, setMetodoPago] = useState<"pix" | "bar">("pix");
   const [copied, setCopied] = useState(false);
   const [tiempoRestante, setTiempoRestante] = useState(300); // 5 minutos en segundos
@@ -37,7 +41,7 @@ export default function PagoPrediccion({ params }: { params: { salaId: string } 
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
-            <Link href={`/jugador/prediccion/${params.salaId}`} className="flex items-center space-x-3 group">
+            <Link href={`/jugador/prediccion/${salaId}`} className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
               <Crown className="w-5 h-5 text-yellow-500" strokeWidth={1.5} />
             </Link>
@@ -153,8 +157,8 @@ export default function PagoPrediccion({ params }: { params: { salaId: string } 
                   </span>
                 </div>
 
-                {/* Botón confirmar pago */}
-                <Link href={`/jugador/en-vivo/${params.salaId}`}>
+                {/* Botón confirmar pago - CORREGIDO */}
+                <Link href={`/jugador/en-vivo/${salaId}`}>
                   <button className="group relative w-full overflow-hidden bg-yellow-500 text-black py-3 rounded-lg text-sm font-medium tracking-wide hover:bg-yellow-400 transition-all">
                     <span className="relative z-10">
                       {metodoPago === "bar" ? "PAGAR EN EL BAR" : "YA PAGUÉ, CONFIRMAR"}
