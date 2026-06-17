@@ -99,7 +99,7 @@ export default function PredecirMarcador() {
     router.push("/login");
   }, [salaId, router]);
 
-  // Función para cargar las predicciones existentes
+    // Función para cargar las predicciones existentes
   const fetchExistingPredictions = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -169,6 +169,11 @@ export default function PredecirMarcador() {
         const roomResponse = await fetch(roomUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
+
+        console.log('los datos traidos de ',roomUrl);
+        console.log(roomResponse);
+        
+        
 
         // 🔥 Si el token expiró o es inválido, redirigir al login
         if (roomResponse.status === 401 || roomResponse.status === 403) {
