@@ -427,13 +427,13 @@ export default function PredecirMarcador() {
             <div className="grid grid-cols-3 gap-4 items-center mb-8">
               {/* Local */}
               <div className="text-center">
+                <img
+                  src={room.home_team_logo || '/default-logo.png'}
+                  alt={room.team_home}
+                  className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
+                />
                 <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_home}</h2>
                 <div className="flex justify-center items-center gap-4 text-white">
-                  <img
-                    src={room.home_team_logo || '/default-logo.png'}
-                    alt={room.team_home}
-                    className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
-                  />
                   <button
                     onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
                     disabled={isMatchClosed || isMatchFinished}
@@ -461,13 +461,13 @@ export default function PredecirMarcador() {
 
               {/* Visitante */}
               <div className="text-center">
+                <img
+                  src={room.away_team_logo || '/default-logo.png'}
+                  alt={room.team_away}
+                  className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
+                />
                 <h2 className="text-white text-xl md:text-2xl font-medium mb-4">{room.team_away}</h2>
                 <div className="flex justify-center items-center gap-4 text-white">
-                  <img
-                    src={room.away_team_logo || '/default-logo.png'}
-                    alt={room.team_away}
-                    className="relative w-16 h-16 md:w-24 md:h-24 object-contain rounded-full bg-black/50 p-2 border-2 border-yellow-500 shadow-xl"
-                  />
                   <button
                     onClick={() => setGolesVisitante(Math.max(0, golesVisitante - 1))}
                     disabled={isMatchClosed || isMatchFinished}
