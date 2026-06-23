@@ -274,17 +274,10 @@ export default function LoginForm({ locale }: Props) {
 
             <div className="text-center">
               <Link
-                href="/register"
+                href="/jugador/registro"
                 className="inline-block w-full py-2.5 px-4 border border-yellow-500/30 text-yellow-500 font-medium rounded-lg hover:bg-yellow-500/10 hover:border-yellow-500 transition-all duration-200"
               >
-                {t.login.noAccount} {t.login.register}
-              </Link>
-            </div>
-
-            <div className="text-center text-sm text-gray-500">
-              {t.login.noAccount}{" "}
-              <Link href="/register" className="text-yellow-500 hover:text-yellow-400 transition-colors">
-                {t.login.register}
+                {t.login.noAccount}
               </Link>
             </div>
 
