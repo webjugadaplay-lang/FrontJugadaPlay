@@ -74,7 +74,7 @@ export default function CrearSalaContent() {
   // Estado del formulario
   const [barId, setBarId] = useState<string>("");
   const [tipoSala, setTipoSala] = useState<"practice" | "paid">("paid");
-  const [valorPrediccion, setValorPrediccion] = useState("5");
+  const [valorPrediccion, setValorPrediccion] = useState("10");
   const [cierrePredictions, setCierrePredictions] = useState("15min");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -598,34 +598,6 @@ export default function CrearSalaContent() {
                       max="50"
                       className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-yellow-500/60"
                     />
-                  </div>
-                )}
-
-                {/* RESUMEN DEL POZO */}
-                {tipoSala === "paid" && (
-                  <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Zap className="w-4 h-4 text-yellow-500" />
-                      <h3 className="text-white text-sm font-medium">{t.createRoom.prizeSummary}</h3>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">{t.createRoom.totalCollected}</span>
-                        <span className="text-white font-medium">R$ {pozo.total}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">{t.createRoom.prizes70}</span>
-                        <span className="text-yellow-500 font-medium">R$ {pozo.premios}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">{t.createRoom.yourCommission20}</span>
-                        <span className="text-green-500 font-medium">R$ {pozo.bar}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">{t.createRoom.platform10}</span>
-                        <span className="text-gray-500">R$ {pozo.plataforma}</span>
-                      </div>
-                    </div>
                   </div>
                 )}
 
