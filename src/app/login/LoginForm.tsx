@@ -29,7 +29,7 @@ export default function LoginForm({ locale }: Props) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const redirectUrl = localStorage.getItem("redirectAfterLogin");
-    
+
     if (token && redirectUrl) {
       localStorage.removeItem("redirectAfterLogin");
       setIsRedirecting(true);
@@ -68,10 +68,10 @@ export default function LoginForm({ locale }: Props) {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -111,7 +111,7 @@ export default function LoginForm({ locale }: Props) {
             { headers: { Authorization: `Bearer ${token}` } }
           );
           const roomData = await roomResponse.json();
-          
+
           if (roomData.success && roomData.roomId) {
             router.push(`/jugador/prediccion/${roomData.roomId}`);
             return;
@@ -178,11 +178,10 @@ export default function LoginForm({ locale }: Props) {
               <button
                 type="button"
                 onClick={() => setTipoUsuario("player")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
-                  tipoUsuario === "player"
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${tipoUsuario === "player"
                     ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
                     : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
-                } ${isMobile ? "justify-center" : ""}`}
+                  } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <User className="w-4 h-4" />}
                 <span className="text-sm text-center">{t.login.roles.player}</span>
@@ -191,11 +190,10 @@ export default function LoginForm({ locale }: Props) {
               <button
                 type="button"
                 onClick={() => setTipoUsuario("owner")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
-                  tipoUsuario === "owner"
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${tipoUsuario === "owner"
                     ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
                     : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
-                } ${isMobile ? "justify-center" : ""}`}
+                  } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <Building2 className="w-4 h-4" />}
                 <span className="text-sm text-center">{t.login.roles.bar}</span>
@@ -204,11 +202,10 @@ export default function LoginForm({ locale }: Props) {
               <button
                 type="button"
                 onClick={() => setTipoUsuario("admin")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
-                  tipoUsuario === "admin"
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${tipoUsuario === "admin"
                     ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
                     : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
-                } ${isMobile ? "justify-center" : ""}`}
+                  } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <Shield className="w-4 h-4" />}
                 <span className="text-sm text-center">{t.login.roles.admin}</span>
@@ -274,6 +271,15 @@ export default function LoginForm({ locale }: Props) {
                 t.login.submit
               )}
             </button>
+
+            <div className="text-center">
+              <Link
+                href="/register"
+                className="inline-block w-full py-2.5 px-4 border border-yellow-500/30 text-yellow-500 font-medium rounded-lg hover:bg-yellow-500/10 hover:border-yellow-500 transition-all duration-200"
+              >
+                {t.login.noAccount} {t.login.register}
+              </Link>
+            </div>
 
             <div className="text-center text-sm text-gray-500">
               {t.login.noAccount}{" "}
