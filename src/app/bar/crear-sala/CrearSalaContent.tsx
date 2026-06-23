@@ -93,6 +93,35 @@ export default function CrearSalaContent() {
   const [loadingSeasons, setLoadingSeasons] = useState(false);
   const [loadingFixtures, setLoadingFixtures] = useState(false);
 
+  // ============ NUEVA FUNCIÓN DE UTILIDAD PARA FILTRAR PARTIDOS FUTUROS ============
+  /**
+   * Filtra los partidos para mostrar solo aquellos que son futuros
+   * y los ordena por fecha (del más cercano al más lejano)
+   */
+  const filterFutureFixtures = (fixturesList: Fixture[]): Fixture[] => {
+    const now = new Date();
+    
+    // Paso 1: Filtrar solo partidos futuros
+    const futureFixtures = fixturesList.filter((fixture) => {
+      const matchDate = new Date(fixture.match_date);
+      return matchDate > now;
+    });
+    
+    // Paso 2: Ordenar por fecha (más cercano primero)
+    const sortedFixtures = futureFixtures.sort((a, b) => {
+      const dateA = new Date(a.match_date).getTime();
+      const dateB = new Date(b.match_date).getTime();
+      return dateA - dateB; // Orden ascendente (más cercano primero)
+    });
+    
+    // Paso 3: (OPCIONAL) Limitar a máximo 50 partidos para no sobrecargar el select
+    // Si quieres limitar, descomenta la siguiente línea:
+    // return sortedFixtures.slice(0, 50);
+    
+    return sortedFixtures;
+  };
+  // ============ FIN NUEVA FUNCIÓN ============
+
   // Detectar idioma al inicio
   useEffect(() => {
     const detectedLocale = detectInitialLocale();
@@ -239,6 +268,7 @@ export default function CrearSalaContent() {
     fetchFixtures(selectedLeagueId, selectedSeason);
   }, [selectedLeagueId, selectedSeason]);
 
+  // ============ FUNCIÓN MODIFICADA CON FILTRO DE PARTIDOS FUTUROS ============
   const fetchFixtures = async (leagueId: string, season: string) => {
     setLoadingFixtures(true);
     setError("");
@@ -261,7 +291,20 @@ export default function CrearSalaContent() {
       const data = await handleApiResponse(response);
 
       if (data.success) {
-        setFixtures(data.data);
+        // ============ APLICAR FILTRO DE PARTIDOS FUTUROS ============
+        const futureFixtures = filterFutureFixtures(data.data);
+        
+        // Log para debug (puedes eliminar esto en producción)
+        console.log(`Total partidos recibidos: ${data.data.length}`);
+        console.log(`Partidos futuros disponibles: ${futureFixtures.length}`);
+        // ============ FIN DEL FILTRO ============
+        
+        setFixtures(futureFixtures);
+        
+        // Si no hay partidos futuros, mostrar un mensaje amigable
+        if (futureFixtures.length === 0) {
+          setError("No hay partidos futuros disponibles para esta liga y temporada");
+        }
       } else {
         setError(data.message || "Error al cargar los partidos");
       }
@@ -272,6 +315,7 @@ export default function CrearSalaContent() {
       setLoadingFixtures(false);
     }
   };
+  // ============ FIN FUNCIÓN MODIFICADA ============
 
   // Cuando se selecciona un fixture, guardarlo
   useEffect(() => {
@@ -308,7 +352,7 @@ export default function CrearSalaContent() {
         },
         body: JSON.stringify({
           barId: barId,
-          fixture_id: selectedFixture.id,  // ← Enviar el ID del fixture
+          fixture_id: selectedFixture.id,
           entry_fee: tipoSala === "paid" ? parseFloat(valorPrediccion) : 0,
           prediction_close_minutes: cierrePredictions === "15min" ? 15 : 0
         }),
@@ -464,7 +508,7 @@ export default function CrearSalaContent() {
                   </div>
                 )}
 
-                {/* SELECTOR DE PARTIDO */}
+                {/* SELECTOR DE PARTIDO - MODIFICADO PARA MOSTRAR SOLO PARTIDOS FUTUROS */}
                 {selectedLeagueId && selectedSeason && (
                   <div className="space-y-2">
                     <label className="block text-xs text-yellow-500 tracking-wider flex items-center gap-2">
@@ -490,12 +534,19 @@ export default function CrearSalaContent() {
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50 pointer-events-none" />
                     </div>
                     {loadingFixtures && <p className="text-gray-500 text-xs">{t.common.loading}</p>}
+                    
+                    {/* ============ MENSAJES MEJORADOS PARA CUANDO NO HAY PARTIDOS ============ */}
                     {!loadingFixtures && fixtures.length === 0 && selectedLeagueId && selectedSeason && (
                       <div className="flex items-center gap-2 text-yellow-500/70 text-xs bg-yellow-500/5 p-2 rounded">
-                        <AlertCircle className="w-3 h-3" />
-                        <span>{t.createRoom.noMatches}</span>
+                        <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                        <span>
+                          {error && error.includes("No hay partidos futuros") 
+                            ? "No hay partidos futuros disponibles para esta liga y temporada" 
+                            : t.createRoom.noMatches || "No hay partidos disponibles"}
+                        </span>
                       </div>
                     )}
+                    {/* ============ FIN MENSAJES MEJORADOS ============ */}
                   </div>
                 )}
 
@@ -601,7 +652,7 @@ export default function CrearSalaContent() {
                   </div>
                 )}
 
-                {error && (
+                {error && !error.includes("No hay partidos futuros") && (
                   <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                     <p className="text-red-500 text-sm text-center">{error}</p>
                   </div>
@@ -615,7 +666,7 @@ export default function CrearSalaContent() {
                   </Link>
                   <button
                     onClick={handleCreateRoom}
-                    disabled={loading || !selectedFixture}
+                    disabled={loading || !selectedFixture || fixtures.length === 0}
                     className="group relative flex-1 overflow-hidden bg-yellow-500 text-black py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-400 transition-all"
                   >
                     <span className="relative z-10">{loading ? t.common.loading : t.createRoom.createButton}</span>
