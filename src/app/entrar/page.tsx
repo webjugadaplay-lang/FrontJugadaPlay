@@ -14,23 +14,28 @@ export default function EntrarSalaPage() {
   const [error, setError] = useState("");
   const [modoQR, setModoQR] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [verificando, setVerificando] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
 
     if (!token || !userData) {
-      router.push("/login");
+      // No hay usuario autenticado, pero no redirigimos aún
+      setVerificando(false);
+      setUser(null);
       return;
     }
 
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== "player") {
-      router.push("/login");
-      return;
+    try {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+    } catch (error) {
+      console.error("Error al parsear usuario:", error);
+      setUser(null);
+    } finally {
+      setVerificando(false);
     }
-
-    setUser(parsedUser);
   }, [router]);
 
   const extractRoomIdFromUrl = (url: string): string | null => {
@@ -39,9 +44,36 @@ export default function EntrarSalaPage() {
     return match ? match[1] : null;
   };
 
-  const procesarSalaId = (roomId: string) => {
-    console.log("✅ Redirigiendo a:", `/jugador/prediccion/${roomId}`);
-    router.push(`/jugador/prediccion/${roomId}`);
+  const procesarSalaId = async (roomId: string) => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
+    // Caso 1: No hay usuario autenticado
+    if (!token || !userData) {
+      // Guardamos el roomId para después del login
+      localStorage.setItem("redirectAfterLogin", `/jugador/prediccion/${roomId}`);
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(userData);
+      
+      // Caso 2: Usuario autenticado pero NO es player
+      if (parsedUser.role !== "player") {
+        // Guardamos el roomId para después del registro
+        localStorage.setItem("redirectAfterRegistration", `/jugador/prediccion/${roomId}`);
+        router.push("/register-player");
+        return;
+      }
+      
+      // Caso 3: Usuario autenticado y es player → Ir directamente
+      router.push(`/jugador/prediccion/${roomId}`);
+    } catch (error) {
+      console.error("Error al procesar usuario:", error);
+      localStorage.setItem("redirectAfterLogin", `/jugador/prediccion/${roomId}`);
+      router.push("/login");
+    }
   };
 
   const handleScan = (detectedCodes: any[]) => {
@@ -74,6 +106,16 @@ export default function EntrarSalaPage() {
 
     try {
       const token = localStorage.getItem("token");
+      
+      // Verificar si el usuario está autenticado
+      if (!token) {
+        // Guardar el código para después del login
+        sessionStorage.setItem("pendingRoomCode", codigoSala.trim());
+        localStorage.setItem("redirectAfterLogin", `/entrar`);
+        router.push("/login");
+        return;
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${codigoSala.trim()}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -81,7 +123,7 @@ export default function EntrarSalaPage() {
       const data = await response.json();
 
       if (data.success && data.roomId) {
-        router.push(`/jugador/prediccion/${data.roomId}`);
+        await procesarSalaId(data.roomId);
       } else {
         setError(data.message || "Sala no encontrada o inactiva");
       }
@@ -92,13 +134,13 @@ export default function EntrarSalaPage() {
     }
   };
 
-  // Función para activar el modo QR y la cámara directamente
   const activarQR = () => {
     setModoQR(true);
     setError("");
   };
 
-  if (!user) {
+  // Mostrar loading mientras verificamos
+  if (verificando) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-yellow-500">Verificando...</div>
@@ -111,11 +153,13 @@ export default function EntrarSalaPage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
-            <Link href="/jugador/dashboard" className="flex items-center gap-3 group">
+            <Link href={user?.role === "player" ? "/jugador/dashboard" : "/"} className="flex items-center gap-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
               <img src="/logo-jugadaplay.svg" alt="Jugada Play" className="h-10 md:h-12 lg:h-14 w-auto object-contain" />
             </Link>
-            <span className="text-yellow-500 text-sm">Hola, {user?.name}</span>
+            {user && (
+              <span className="text-yellow-500 text-sm">Hola, {user.name}</span>
+            )}
           </div>
         </div>
       </header>
@@ -129,7 +173,6 @@ export default function EntrarSalaPage() {
             <div className="w-12 h-[1px] bg-yellow-500/30 mx-auto mt-3"></div>
           </div>
 
-          {/* Botón para escanear QR - Ahora activa la cámara directamente */}
           {!modoQR && (
             <div className="mb-8">
               <button 
@@ -142,7 +185,6 @@ export default function EntrarSalaPage() {
             </div>
           )}
 
-          {/* Sección del QR Scanner - Se muestra inmediatamente al presionar el botón */}
           {modoQR && (
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6 mb-8">
               <div className="flex justify-between items-center mb-4">
@@ -158,7 +200,6 @@ export default function EntrarSalaPage() {
                 </button>
               </div>
 
-              {/* El scanner se activa automáticamente al montar el componente */}
               <Scanner 
                 onScan={handleScan} 
                 onError={handleError} 
@@ -173,7 +214,6 @@ export default function EntrarSalaPage() {
             </div>
           )}
 
-          {/* Formulario de código manual - SIEMPRE visible */}
           <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6">
             <h3 className="text-white font-medium mb-4">Ingresar código manualmente</h3>
             <form onSubmit={(e) => { e.preventDefault(); procesarCodigoManual(); }}>
@@ -195,7 +235,7 @@ export default function EntrarSalaPage() {
           </div>
 
           <div className="mt-6 text-center">
-            <Link href="/jugador/dashboard" className="text-gray-500 hover:text-yellow-500 text-sm transition-colors">
+            <Link href={user?.role === "player" ? "/jugador/dashboard" : "/"} className="text-gray-500 hover:text-yellow-500 text-sm transition-colors">
               ← Volver
             </Link>
           </div>

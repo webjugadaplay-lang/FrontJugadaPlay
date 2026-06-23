@@ -29,7 +29,17 @@ export default function LoginForm({ locale }: Props) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const redirectUrl = localStorage.getItem("redirectAfterLogin");
+    const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
 
+    // Prioridad 1: Redirección después de registro
+    if (token && redirectAfterRegistration) {
+      localStorage.removeItem("redirectAfterRegistration");
+      setIsRedirecting(true);
+      router.push(redirectAfterRegistration);
+      return;
+    }
+
+    // Prioridad 2: Redirección después de login
     if (token && redirectUrl) {
       localStorage.removeItem("redirectAfterLogin");
       setIsRedirecting(true);
@@ -37,6 +47,7 @@ export default function LoginForm({ locale }: Props) {
       return;
     }
 
+    // Prioridad 3: Redirección normal por rol
     if (token) {
       const userData = localStorage.getItem("user");
       if (userData) {
@@ -179,8 +190,8 @@ export default function LoginForm({ locale }: Props) {
                 type="button"
                 onClick={() => setTipoUsuario("player")}
                 className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${tipoUsuario === "player"
-                    ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
-                    : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
+                  ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
+                  : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
                   } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <User className="w-4 h-4" />}
@@ -191,8 +202,8 @@ export default function LoginForm({ locale }: Props) {
                 type="button"
                 onClick={() => setTipoUsuario("owner")}
                 className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${tipoUsuario === "owner"
-                    ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
-                    : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
+                  ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
+                  : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
                   } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <Building2 className="w-4 h-4" />}
@@ -203,8 +214,8 @@ export default function LoginForm({ locale }: Props) {
                 type="button"
                 onClick={() => setTipoUsuario("admin")}
                 className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${tipoUsuario === "admin"
-                    ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
-                    : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
+                  ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
+                  : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
                   } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <Shield className="w-4 h-4" />}

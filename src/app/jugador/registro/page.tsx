@@ -11,7 +11,7 @@ import {
   User, Phone, CheckCircle, Award, ChevronDown, IdCard
 } from "lucide-react";
 
-// Configuración de países
+// Configuración de países (sin cambios)
 const countries = [
   {
     code: "BR",
@@ -45,7 +45,7 @@ const countries = [
   }
 ];
 
-// Función para formatear teléfono (SOLO para mostrar en pantalla)
+// Funciones de formato (sin cambios)
 const formatPhoneForDisplay = (value: string, country: typeof countries[0]): string => {
   const numbers = value.replace(/\D/g, '');
   if (!numbers) return '';
@@ -65,20 +65,14 @@ const formatPhoneForDisplay = (value: string, country: typeof countries[0]): str
   return formatted;
 };
 
-// Función para formatear cédula colombiana con puntos (SOLO para mostrar en pantalla)
 const formatColombianIdForDisplay = (value: string): string => {
-  // Solo números
   const numbers = value.replace(/\D/g, '');
   if (!numbers) return '';
-
-  // Formato con puntos: 1.234.567 o 12.345.678 o 123.456.789
   return numbers.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 };
 
-// Función para formatear documento (SOLO para mostrar en pantalla)
 const formatDocumentForDisplay = (value: string, country: typeof countries[0]): string => {
   if (country.code === "BR") {
-    // Formato CPF para pantalla: 000.000.000-00
     const numbers = value.replace(/\D/g, '');
     if (!numbers) return '';
 
@@ -96,21 +90,17 @@ const formatDocumentForDisplay = (value: string, country: typeof countries[0]): 
     }
     return formatted;
   } else if (country.code === "CO") {
-    // Colombia: números con puntos de miles para pantalla
     return formatColombianIdForDisplay(value);
   } else if (country.code === "MX") {
-    // México: mayúsculas, sin espacios
     return value.toUpperCase().replace(/\s/g, '');
   }
   return value;
 };
 
-// Función para limpiar SOLO números (para enviar al backend)
 const cleanToNumbers = (value: string): string => {
   return value.replace(/\D/g, '');
 };
 
-// Función para capitalizar nombres
 const capitalizeName = (value: string): string => {
   return value.replace(/\b\w/g, (char) => char.toUpperCase());
 };
@@ -126,7 +116,6 @@ export default function RegistroJugador() {
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -157,6 +146,34 @@ export default function RegistroJugador() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // 🔥 NUEVO: Verificar si hay una redirección pendiente al cargar la página
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
+    
+    // Si ya está autenticado y hay redirección pendiente
+    if (token && redirectAfterRegistration) {
+      localStorage.removeItem("redirectAfterRegistration");
+      router.push(redirectAfterRegistration);
+      return;
+    }
+
+    // Si ya está autenticado pero no hay redirección pendiente
+    if (token) {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          if (user.role === "player") {
+            router.push("/jugador/dashboard");
+          }
+        } catch (e) {
+          // Si hay error, continuar con el registro
+        }
+      }
+    }
+  }, [router]);
 
   const t = translations[locale];
 
@@ -224,6 +241,7 @@ export default function RegistroJugador() {
     return true;
   };
 
+  // 🔥 MODIFICADO: Manejar redirección después del registro exitoso
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -237,7 +255,6 @@ export default function RegistroJugador() {
       return;
     }
 
-    // LIMPIEZA DE DATOS PARA ENVIAR AL BACKEND
     const cleanPhone = cleanToNumbers(formData.telefone);
 
     if (cleanPhone.length === 0) {
@@ -261,8 +278,8 @@ export default function RegistroJugador() {
         email: formData.email,
         password: formData.password,
         role: "player",
-        name: formData.nombre,        // ← nombre real
-        nickname: formData.nickname,  // ← nickname para el ranking
+        name: formData.nombre,
+        nickname: formData.nickname,
         phone: cleanPhone,
         phoneCountry: selectedCountry.dialCode,
         documentType: selectedCountry.documentName,
@@ -285,10 +302,21 @@ export default function RegistroJugador() {
         throw new Error(data.message || t.register.registerError);
       }
 
+      // Guardar token y usuario
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      router.push("/jugador/dashboard");
+      // 🔥 VERIFICAR si hay una redirección pendiente
+      const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
+      
+      if (redirectAfterRegistration) {
+        // Limpiar el item y redirigir
+        localStorage.removeItem("redirectAfterRegistration");
+        router.push(redirectAfterRegistration);
+      } else {
+        // Redirigir al dashboard normal
+        router.push("/jugador/dashboard");
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -311,11 +339,11 @@ export default function RegistroJugador() {
           <div className="flex items-center justify-between h-20 gap-4">
             <Link href="/" className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-                <img
-                  src="/logo-jugadaplay.svg"
-                  alt="Jugada Play"
-                  className="h-10 md:h-12 lg:h-14 w-auto object-contain"
-                />
+              <img
+                src="/logo-jugadaplay.svg"
+                alt="Jugada Play"
+                className="h-10 md:h-12 lg:h-14 w-auto object-contain"
+              />
             </Link>
 
             <div className="flex items-center gap-2">
@@ -379,7 +407,7 @@ export default function RegistroJugador() {
                   </div>
                 </div>
 
-                {/* Nickname - NUEVO CAMPO */}
+                {/* Nickname */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">Nickname *</label>
                   <div className="relative">
