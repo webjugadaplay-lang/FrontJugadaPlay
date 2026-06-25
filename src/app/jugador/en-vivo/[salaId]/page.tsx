@@ -84,7 +84,7 @@ export default function EnVivo() {
         return;
       }
 
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/player/live-room/${salaId}?_t=${Date.now()}`;
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/player/live-room/${salaId}?_t=${Date.now()}`;
 
       console.log(`🔄 ${isAutoRefresh ? 'Auto-refresh' : 'Manual refresh'} - Fetching data...`);
 
