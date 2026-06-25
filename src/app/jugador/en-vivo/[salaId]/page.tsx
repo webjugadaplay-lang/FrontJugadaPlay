@@ -10,13 +10,10 @@ import {
   Crown,
   Trophy,
   Users,
-  Target,
   TrendingUp,
   Clock,
   Loader2,
   AlertCircle,
-  Wifi,
-  WifiOff,
   RefreshCw
 } from "lucide-react";
 
@@ -50,6 +47,10 @@ interface LiveRoomData {
     emoji?: string;
     status?: string;
   }>;
+  totalPlayers?: number;
+  matchStatus?: string;
+  winners_count?: number;
+  total_prize?: number;
 }
 
 export default function EnVivo() {
@@ -68,9 +69,8 @@ export default function EnVivo() {
   const socketRef = useRef<Socket | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const previousScoresRef = useRef<{ home: number; away: number } | null>(null);
-  const isPollingActiveRef = useRef(true); // Controlar si el polling debe estar activo
+  const isPollingActiveRef = useRef(true);
 
-  // 🔥 Función para obtener datos actualizados (polling)
   const fetchLiveData = async (showLoadingIndicator = false, isAutoRefresh = false) => {
     if (!salaId || salaId === 'undefined' || salaId === 'null') {
       console.error("❌ salaId inválido:", salaId);
@@ -96,8 +96,7 @@ export default function EnVivo() {
       });
 
       const data = await response.json();
-      console.log('los datos son live-room', data);
-
+      console.log('📦 Respuesta completa:', data);
 
       if (!response.ok) {
         throw new Error(data.message || "Error al cargar la sala en vivo");
@@ -107,12 +106,14 @@ export default function EnVivo() {
         throw new Error("No se pudo cargar la información en vivo");
       }
 
+      const roomData = data.data;
+
       // Detectar cambios en el marcador para animación
       if (previousScoresRef.current) {
         const oldHome = previousScoresRef.current.home;
         const oldAway = previousScoresRef.current.away;
-        const newHome = data.data.current_score_home;
-        const newAway = data.data.current_score_away;
+        const newHome = roomData.current_score_home;
+        const newAway = roomData.current_score_away;
 
         if (newHome > oldHome) {
           console.log(`🎯 Gol LOCAL! ${oldHome} -> ${newHome}`);
@@ -125,24 +126,21 @@ export default function EnVivo() {
         }
       }
 
-      setLiveData(data.data);
+      setLiveData(roomData);
       previousScoresRef.current = {
-        home: data.data.current_score_home,
-        away: data.data.current_score_away
+        home: roomData.current_score_home,
+        away: roomData.current_score_away
       };
       setLastUpdate(new Date());
       setError("");
 
-      console.log(`✅ Datos actualizados - Marcador: ${data.data.current_score_home} x ${data.data.current_score_away}`);
-      // En tu fetchLiveData, después de obtener los datos
-      console.log('📊 Datos completos del backend:', data.data);
-      console.log('📊 userPrediction:', data.data.userPrediction);
-      console.log('📊 Tipo de userPrediction:', typeof data.data.userPrediction);
+      console.log(`✅ Datos actualizados - Marcador: ${roomData.current_score_home} x ${roomData.current_score_away}`);
+      console.log('📊 userPrediction:', roomData.userPrediction);
+      console.log('📊 ranking:', roomData.ranking?.length || 0, 'jugadores');
 
     } catch (err: any) {
       console.error("❌ Error cargando sala en vivo:", err);
       if (!isAutoRefresh) {
-        // Solo mostrar error si no es una actualización automática
         setError(err.message || "Error al cargar la sala en vivo");
       }
     } finally {
@@ -152,7 +150,6 @@ export default function EnVivo() {
     }
   };
 
-  // 🔥 Configurar polling automático
   const startPolling = (intervalSeconds: number = 5) => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
@@ -162,7 +159,6 @@ export default function EnVivo() {
     console.log(`🔄 Iniciando polling automático cada ${intervalSeconds} segundos`);
     isPollingActiveRef.current = true;
 
-    // Configurar intervalo
     pollingIntervalRef.current = setInterval(() => {
       if (isPollingActiveRef.current && !isRefreshing) {
         fetchLiveData(false, true);
@@ -179,7 +175,6 @@ export default function EnVivo() {
     }
   };
 
-  // 🔥 CONFIGURAR WEBSOCKET - Escuchar eventos del servidor
   useEffect(() => {
     if (!salaId) return;
 
@@ -225,16 +220,13 @@ export default function EnVivo() {
       setIsConnected(false);
     });
 
-    // 🔥 Escuchar actualizaciones del marcador desde el servidor
     socket.on('score-update', (data: { home: number; away: number; salaId: string }) => {
       console.log(`⚽ ACTUALIZACIÓN EN TIEMPO REAL - Marcador: ${data.home} x ${data.away}`);
       if (data.salaId === salaId) {
-        // Forzar una actualización inmediata
         fetchLiveData(false, true);
       }
     });
 
-    // 🔥 Escuchar actualizaciones de ranking
     socket.on('ranking-update', (data: { salaId: string }) => {
       console.log(`📊 Actualización de ranking recibida`);
       if (data.salaId === salaId) {
@@ -242,7 +234,6 @@ export default function EnVivo() {
       }
     });
 
-    // 🔥 Escuchar cualquier otro evento de actualización
     socket.on('live-room-update', (data: { salaId: string }) => {
       console.log(`🔄 Actualización de sala en vivo recibida`);
       if (data.salaId === salaId) {
@@ -258,26 +249,21 @@ export default function EnVivo() {
     };
   }, [salaId, router]);
 
-  // 🔥 Iniciar polling al cargar el componente
   useEffect(() => {
     const initializeData = async () => {
       setLoading(true);
       await fetchLiveData(true, false);
-
-      // Iniciar polling automático cada 3 segundos (más frecuente)
       const pollingInterval = Number(process.env.NEXT_PUBLIC_POLLING_INTERVAL) || 3;
       startPolling(pollingInterval);
     };
 
     initializeData();
 
-    // Limpiar polling al desmontar
     return () => {
       stopPolling();
     };
   }, [salaId]);
 
-  // Refrescar manualmente (fuerza una actualización inmediata)
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     console.log("🔄 Refresco manual solicitado");
@@ -285,7 +271,6 @@ export default function EnVivo() {
     setIsRefreshing(false);
   };
 
-  // Mostrar loading
   if (loading) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -297,7 +282,6 @@ export default function EnVivo() {
     );
   }
 
-  // Mostrar error
   if (error || !liveData) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center px-4">
@@ -330,10 +314,8 @@ export default function EnVivo() {
   const userPosition = liveData.ranking?.findIndex(r => r.isUser) ?? -1;
   const posicionActual = userPosition >= 0 ? userPosition + 1 : "-";
 
-
   return (
     <main className="min-h-screen bg-black">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20">
@@ -349,8 +331,6 @@ export default function EnVivo() {
             </div>
 
             <div className="flex items-center gap-4">
-
-              {/* Botón refresh manual */}
               <button
                 onClick={handleManualRefresh}
                 disabled={isRefreshing}
@@ -360,7 +340,6 @@ export default function EnVivo() {
                 <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
 
-              {/* Indicador EN VIVO con polling */}
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span className="text-xs font-bold text-green-500">EN VIVO</span>
@@ -370,14 +349,11 @@ export default function EnVivo() {
         </div>
       </header>
 
-      {/* Contenido principal */}
       <div className="pt-24 pb-20 px-6">
         <div className="container mx-auto max-w-2xl">
 
-          {/* Marcador con animación */}
           <div className="bg-gradient-to-br from-black to-gray-900 border border-yellow-500/20 rounded-2xl p-6 md:p-8 mb-6 shadow-2xl">
             <div className="grid grid-cols-3 items-center text-center gap-4">
-              {/* Equipo local */}
               <div className="flex flex-col items-center">
                 <div className="relative mb-3">
                   <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full blur-md opacity-50"></div>
@@ -396,14 +372,12 @@ export default function EnVivo() {
                 </span>
               </div>
 
-              {/* VS */}
               <div className="flex flex-col items-center justify-center">
                 <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-yellow-500/20 to-transparent flex items-center justify-center border border-yellow-500/30">
                   <p className="text-yellow-500 text-xl md:text-2xl font-black">VS</p>
                 </div>
               </div>
 
-              {/* Equipo visitante */}
               <div className="flex flex-col items-center">
                 <div className="relative mb-3">
                   <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full blur-md opacity-50"></div>
@@ -423,7 +397,6 @@ export default function EnVivo() {
               </div>
             </div>
 
-            {/* Fecha del partido */}
             <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-yellow-500/10">
               <Clock className="w-4 h-4 text-yellow-500" />
               <span className="text-gray-400 text-sm">
@@ -439,10 +412,8 @@ export default function EnVivo() {
             </div>
           </div>
 
-          {/* Tarjeta de predicción del usuario */}
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 mb-6 backdrop-blur-sm">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Tu predicción */}
               <div className="text-center md:text-left">
                 <p className="text-gray-400 text-xs tracking-wide uppercase mb-1">
                   TU PREDICCIÓN
@@ -451,8 +422,6 @@ export default function EnVivo() {
                   {prediccionUsuario}
                 </p>
               </div>
-
-              {/* Premio potencial */}
               <div className="text-center md:text-right">
                 <p className="text-gray-400 text-xs tracking-wide uppercase mb-1">
                   PREMIO POTENCIAL
@@ -464,13 +433,15 @@ export default function EnVivo() {
             </div>
           </div>
 
-          {/* Ranking de jugadores */}
           <div className="bg-black/30 border border-yellow-500/20 rounded-2xl overflow-hidden">
             <div className="border-b border-yellow-500/20 px-6 py-4">
               <h3 className="text-white text-sm font-light tracking-wide flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-yellow-500" />
                 RANKING EN VIVO
                 <span className="text-xs text-green-500 ml-2">(Actualización cada 3 segundos)</span>
+                <span className="text-xs text-gray-500 ml-auto">
+                  {liveData.ranking?.length || 0} jugadores
+                </span>
               </h3>
             </div>
 
@@ -478,19 +449,18 @@ export default function EnVivo() {
               {liveData.ranking && liveData.ranking.length > 0 ? (
                 liveData.ranking.map((item, idx) => (
                   <div
-                    key={item.userId}
+                    key={item.userId || idx}
                     className={`px-6 py-3 flex justify-between items-center transition-all duration-300 ${item.isUser ? "bg-yellow-500/5 border-l-2 border-yellow-500" : "hover:bg-white/5"
                       }`}
                   >
                     <div className="flex items-center gap-3">
-                      {/* Posición con medalla para top 3 */}
-                      <div className="w-10">
+                      <div className="w-10 text-center">
                         {item.position === 1 ? (
-                          <Crown className="w-5 h-5 text-yellow-500" />
+                          <Crown className="w-5 h-5 text-yellow-500 inline" />
                         ) : item.position === 2 ? (
-                          <Trophy className="w-5 h-5 text-gray-400" />
+                          <Trophy className="w-5 h-5 text-gray-400 inline" />
                         ) : item.position === 3 ? (
-                          <Trophy className="w-5 h-5 text-amber-600" />
+                          <Trophy className="w-5 h-5 text-amber-600 inline" />
                         ) : (
                           <span className="text-sm font-mono text-gray-500">
                             {item.position || idx + 1}°
@@ -498,19 +468,17 @@ export default function EnVivo() {
                         )}
                       </div>
 
-                      {/* Avatar y nombre */}
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{item.emoji || '⚽'}</span>
                         <span className={`text-sm font-medium ${item.isUser ? "text-yellow-500" : "text-white"}`}>
-                          {item.isUser ? "TÚ" : item.name}
+                          {item.isUser ? "TÚ" : item.name || 'Anónimo'}
                         </span>
                       </div>
                     </div>
 
-                    {/* Predicción y estado */}
                     <div className="flex items-center gap-4">
                       <span className="text-gray-300 text-sm font-mono">
-                        {item.prediction}
+                        {item.prediction || '-- x --'}
                       </span>
                       {item.status && (
                         <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
@@ -532,6 +500,17 @@ export default function EnVivo() {
               )}
             </div>
           </div>
+
+          {liveData.status === 'finished' && liveData.winners_count !== undefined && (
+            <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-2xl text-center">
+              <p className="text-green-400 font-medium">
+                🏆 Partido Finalizado - {liveData.winners_count} ganador(es)
+              </p>
+              <p className="text-green-300 text-sm">
+                Premio: R$ {liveData.total_prize || 0}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </main>
