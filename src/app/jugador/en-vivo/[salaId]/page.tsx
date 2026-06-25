@@ -455,15 +455,14 @@ export default function EnVivo() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 text-center">
-                        {item.position === 1 ? (
-                          <Crown className="w-5 h-5 text-yellow-500 inline" />
-                        ) : item.position === 2 ? (
-                          <Trophy className="w-5 h-5 text-gray-400 inline" />
-                        ) : item.position === 3 ? (
-                          <Trophy className="w-5 h-5 text-amber-600 inline" />
-                        ) : (
-                          <span className="text-sm font-mono text-gray-500">
-                            {item.position || idx + 1}°
+                        {item.status && (
+                          <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
+                              item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
+                                item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
+                                    'bg-gray-500/20 text-gray-400'
+                            }`}>
+                            {item.status}
                           </span>
                         )}
                       </div>
