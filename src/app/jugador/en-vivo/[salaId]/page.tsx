@@ -441,14 +441,15 @@ export default function EnVivo() {
                 RANKING EN VIVO
                 <span className="text-xs text-green-500 ml-2">(Actualización cada 3 segundos)</span>
                 <span className="text-xs text-gray-500 ml-auto">
-                  {liveData.ranking?.length || 0} jugadores
+                  Top 5 de {liveData.ranking?.length || 0} jugadores
                 </span>
               </h3>
             </div>
 
             <div className="divide-y divide-yellow-500/10 max-h-[400px] overflow-y-auto">
               {liveData.ranking && liveData.ranking.length > 0 ? (
-                liveData.ranking.map((item, idx) => (
+                // ✅ SOLO LOS PRIMEROS 5
+                liveData.ranking.slice(0, 5).map((item, idx) => (
                   <div
                     key={item.userId || idx}
                     className={`px-6 py-3 flex justify-between items-center transition-all duration-300 ${item.isUser ? "bg-yellow-500/5 border-l-2 border-yellow-500" : "hover:bg-white/5"
@@ -480,7 +481,7 @@ export default function EnVivo() {
                       </div>
                     </div>
 
-                    {/* Predicción y estado - SOLO AQUÍ */}
+                    {/* Predicción y estado */}
                     <div className="flex items-center gap-4">
                       <span className="text-gray-300 text-sm font-mono">
                         {item.prediction || '-- x --'}
@@ -505,6 +506,15 @@ export default function EnVivo() {
                 </div>
               )}
             </div>
+
+            {/* ✅ Mostrar si hay más de 5 jugadores */}
+            {liveData.ranking && liveData.ranking.length > 5 && (
+              <div className="px-6 py-3 text-center border-t border-yellow-500/10">
+                <span className="text-xs text-gray-500">
+                  Y {liveData.ranking.length - 5} jugador(es) más...
+                </span>
+              </div>
+            )}
           </div>
 
           {liveData.status === 'finished' && liveData.winners_count !== undefined && (
