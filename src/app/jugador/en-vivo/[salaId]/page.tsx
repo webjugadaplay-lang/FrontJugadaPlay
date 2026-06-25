@@ -96,7 +96,7 @@ export default function EnVivo() {
       });
 
       const data = await response.json();
-      console.log('los datos son', data);
+      console.log('los datos son live-room', data);
 
 
       if (!response.ok) {
