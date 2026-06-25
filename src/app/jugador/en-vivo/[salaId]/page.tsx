@@ -433,6 +433,7 @@ export default function EnVivo() {
             </div>
           </div>
 
+          {/* Ranking de jugadores */}
           <div className="bg-black/30 border border-yellow-500/20 rounded-2xl overflow-hidden">
             <div className="border-b border-yellow-500/20 px-6 py-4">
               <h3 className="text-white text-sm font-light tracking-wide flex items-center gap-2">
@@ -454,36 +455,42 @@ export default function EnVivo() {
                       }`}
                   >
                     <div className="flex items-center gap-3">
+                      {/* Posición con medalla para top 3 */}
                       <div className="w-10 text-center">
-                        {item.status && (
-                          <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
-                              item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
-                                item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
-                                  item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
-                                    'bg-gray-500/20 text-gray-400'
-                            }`}>
-                            {item.status}
+                        {item.position === 1 ? (
+                          <Crown className="w-5 h-5 text-yellow-500 inline" />
+                        ) : item.position === 2 ? (
+                          <Trophy className="w-5 h-5 text-gray-400 inline" />
+                        ) : item.position === 3 ? (
+                          <Trophy className="w-5 h-5 text-amber-600 inline" />
+                        ) : (
+                          <span className="text-sm font-mono text-gray-500">
+                            {item.position || idx + 1}°
                           </span>
                         )}
                       </div>
 
+                      {/* Avatar y nombre */}
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{item.emoji || '⚽'}</span>
-                        <span className={`text-sm font-medium ${item.isUser ? "text-yellow-500" : "text-white"}`}>
+                        <span className={`text-sm font-medium ${item.isUser ? "text-yellow-500" : "text-white"
+                          }`}>
                           {item.isUser ? "TÚ" : item.name || 'Anónimo'}
                         </span>
                       </div>
                     </div>
 
+                    {/* Predicción y estado - SOLO AQUÍ */}
                     <div className="flex items-center gap-4">
                       <span className="text-gray-300 text-sm font-mono">
                         {item.prediction || '-- x --'}
                       </span>
                       {item.status && (
                         <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
-                          item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
-                            item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
-                              'bg-red-500/20 text-red-400'
+                            item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
+                              item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
+                                item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
+                                  'bg-gray-500/20 text-gray-400'
                           }`}>
                           {item.status}
                         </span>
