@@ -1046,9 +1046,70 @@ export default function AdminDashboard() {
           {/* TAB CONTENT - GESTIÓN DE LIGAS */}
           {activeTab === "ligas" && (
             <div className="space-y-6">
-              {/* Panel de filtros - se mantiene igual */}
+              {/* Panel de filtros */}
               <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-5">
-                {/* ... tu código de filtros existente ... */}
+                <h3 className="text-white font-medium mb-4">Filtrar ligas disponibles</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-1">País</label>
+                    <select
+                      value={leagueFilters.country}
+                      onChange={(e) => setLeagueFilters({ ...leagueFilters, country: e.target.value })}
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
+                    >
+                      <option value="">Todos los países</option>
+                      {getUniqueCountries().map(country => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-1">Temporada</label>
+                    <select
+                      value={leagueFilters.season}
+                      onChange={(e) => setLeagueFilters({ ...leagueFilters, season: e.target.value })}
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
+                    >
+                      <option value="">Todas</option>
+                      <option value="2025">2025</option>
+                      <option value="2026">2026</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-1">Buscar liga</label>
+                    <input
+                      type="text"
+                      placeholder="Nombre de la liga..."
+                      value={leagueFilters.search}
+                      onChange={(e) => setLeagueFilters({ ...leagueFilters, search: e.target.value })}
+                      className="w-full bg-black border border-yellow-500/30 rounded-lg px-3 py-2 text-white text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Checkbox para mostrar solo ligas sincronizadas */}
+                <div className="flex items-center gap-3 mt-4 pt-4 border-t border-yellow-500/20">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showOnlySynced}
+                      onChange={(e) => setShowOnlySynced(e.target.checked)}
+                      className="w-4 h-4 rounded border-yellow-500/30 bg-black text-yellow-500 focus:ring-yellow-500 focus:ring-offset-0"
+                    />
+                    <span className="text-sm text-gray-300">
+                      Mostrar solo ligas sincronizadas
+                    </span>
+                  </label>
+
+                  {showOnlySynced && syncedLeagues.length === 0 && (
+                    <span className="text-xs text-yellow-500">
+                      (No hay ligas sincronizadas aún)
+                    </span>
+                  )}
+                </div>
               </div>
 
               {loadingLeagues ? (
