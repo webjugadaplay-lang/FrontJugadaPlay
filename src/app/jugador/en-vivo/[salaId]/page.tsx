@@ -525,7 +525,7 @@ export default function EnVivo() {
                         if (!userInTop5 && userData) {
                           return (
                             <div className="px-6 py-3 bg-yellow-500/5 border-l-2 border-yellow-500">
-                              <div className="grid grid-cols-5 gap-2 items-center">
+                              <div className="grid grid-cols-4 gap-2 items-center">
                                 {/* Columna 1: Posición */}
                                 <div className="flex justify-center w-10">
                                   <span className="text-sm font-mono text-yellow-500">
@@ -539,7 +539,7 @@ export default function EnVivo() {
                                 </div>
 
                                 {/* Columna 3: Nombre */}
-                                <div className="flex-1 text-left">
+                                <div className="flex-1 justify-center w-20">
                                   <span className="text-sm font-medium text-yellow-500">
                                     TÚ
                                   </span>
@@ -552,19 +552,6 @@ export default function EnVivo() {
                                   </span>
                                 </div>
 
-                                {/* Columna 5: Estado */}
-                                <div className="flex justify-center w-24">
-                                  {userData.status && (
-                                    <span className={`text-xs px-2 py-1 rounded-full ${userData.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
-                                        userData.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
-                                          userData.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
-                                            userData.status === 'Imposible' ? 'bg-red-500/20 text-red-400' :
-                                              'bg-gray-500/20 text-gray-400'
-                                      }`}>
-                                      {userData.status}
-                                    </span>
-                                  )}
-                                </div>
                               </div>
                             </div>
                           );
