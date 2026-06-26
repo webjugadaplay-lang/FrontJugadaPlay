@@ -448,57 +448,132 @@ export default function EnVivo() {
 
             <div className="divide-y divide-yellow-500/10 max-h-[400px] overflow-y-auto">
               {liveData.ranking && liveData.ranking.length > 0 ? (
-                // ✅ SOLO LOS PRIMEROS 5
-                liveData.ranking.slice(0, 5).map((item, idx) => (
-                  <div
-                    key={item.userId || idx}
-                    className={`px-6 py-3 flex justify-between items-center transition-all duration-300 ${item.isUser ? "bg-yellow-500/5 border-l-2 border-yellow-500" : "hover:bg-white/5"
-                      }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Posición con medalla para top 3 */}
-                      <div className="w-10 text-center">
-                        {item.position === 1 ? (
-                          <Crown className="w-5 h-5 text-yellow-500 inline" />
-                        ) : item.position === 2 ? (
-                          <Trophy className="w-5 h-5 text-gray-400 inline" />
-                        ) : item.position === 3 ? (
-                          <Trophy className="w-5 h-5 text-amber-600 inline" />
-                        ) : (
-                          <span className="text-sm font-mono text-gray-500">
-                            {item.position || idx + 1}°
+                <>
+                  {/* Mostrar Top 5 */}
+                  {liveData.ranking.slice(0, 5).map((item, idx) => (
+                    <div
+                      key={item.userId || idx}
+                      className={`px-6 py-3 transition-all duration-300 ${item.isUser ? "bg-yellow-500/5 border-l-2 border-yellow-500" : "hover:bg-white/5"
+                        }`}
+                    >
+                      <div className="grid grid-cols-5 gap-2 items-center">
+                        {/* Columna 1: Posición con ícono */}
+                        <div className="flex justify-center w-10">
+                          {item.position === 1 ? (
+                            <Crown className="w-5 h-5 text-yellow-500" />
+                          ) : item.position === 2 ? (
+                            <Trophy className="w-5 h-5 text-gray-400" />
+                          ) : item.position === 3 ? (
+                            <Trophy className="w-5 h-5 text-amber-600" />
+                          ) : (
+                            <span className="text-sm font-mono text-gray-500">
+                              {item.position || idx + 1}°
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Columna 2: Emoji */}
+                        <div className="flex justify-center w-10">
+                          <span className="text-xl">{item.emoji || '⚽'}</span>
+                        </div>
+
+                        {/* Columna 3: Nombre */}
+                        <div className="flex-1 text-left">
+                          <span className={`text-sm font-medium ${item.isUser ? "text-yellow-500" : "text-white"
+                            }`}>
+                            {item.isUser ? "TÚ" : item.name || 'Anónimo'}
                           </span>
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Avatar y nombre */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{item.emoji || '⚽'}</span>
-                        <span className={`text-sm font-medium ${item.isUser ? "text-yellow-500" : "text-white"
-                          }`}>
-                          {item.isUser ? "TÚ" : item.name || 'Anónimo'}
-                        </span>
+                        {/* Columna 4: Predicción */}
+                        <div className="flex justify-center w-20">
+                          <span className="text-gray-300 text-sm font-mono">
+                            {item.prediction || '-- x --'}
+                          </span>
+                        </div>
+
+                        {/* Columna 5: Estado */}
+                        <div className="flex justify-center w-24">
+                          {item.status && (
+                            <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
+                                item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
+                                  item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
+                                      'bg-gray-500/20 text-gray-400'
+                              }`}>
+                              {item.status}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  ))}
 
-                    {/* Predicción y estado */}
-                    <div className="flex items-center gap-4">
-                      <span className="text-gray-300 text-sm font-mono">
-                        {item.prediction || '-- x --'}
-                      </span>
-                      {item.status && (
-                        <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
-                            item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
-                              item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
-                                item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
-                                  'bg-gray-500/20 text-gray-400'
-                          }`}>
-                          {item.status}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))
+                  {/* Si hay más de 5 jugadores */}
+                  {liveData.ranking.length > 5 && (
+                    <>
+                      {/* Separador */}
+                      <div className="px-6 py-2 text-center border-y border-yellow-500/10">
+                        <span className="text-xs text-gray-500">⋯</span>
+                      </div>
+
+                      {/* Mostrar al usuario si no está en el Top 5 */}
+                      {(() => {
+                        const userInTop5 = liveData.ranking.slice(0, 5).some(r => r.isUser);
+                        const userData = liveData.ranking.find(r => r.isUser);
+
+                        if (!userInTop5 && userData) {
+                          return (
+                            <div className="px-6 py-3 bg-yellow-500/5 border-l-2 border-yellow-500">
+                              <div className="grid grid-cols-5 gap-2 items-center">
+                                {/* Columna 1: Posición */}
+                                <div className="flex justify-center w-10">
+                                  <span className="text-sm font-mono text-yellow-500">
+                                    {userData.position}°
+                                  </span>
+                                </div>
+
+                                {/* Columna 2: Emoji */}
+                                <div className="flex justify-center w-10">
+                                  <span className="text-xl">{userData.emoji || '⚽'}</span>
+                                </div>
+
+                                {/* Columna 3: Nombre */}
+                                <div className="flex-1 text-left">
+                                  <span className="text-sm font-medium text-yellow-500">
+                                    TÚ
+                                  </span>
+                                </div>
+
+                                {/* Columna 4: Predicción */}
+                                <div className="flex justify-center w-20">
+                                  <span className="text-gray-300 text-sm font-mono">
+                                    {userData.prediction || '-- x --'}
+                                  </span>
+                                </div>
+
+                                {/* Columna 5: Estado */}
+                                <div className="flex justify-center w-24">
+                                  {userData.status && (
+                                    <span className={`text-xs px-2 py-1 rounded-full ${userData.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
+                                        userData.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
+                                          userData.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
+                                            userData.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
+                                              'bg-gray-500/20 text-gray-400'
+                                      }`}>
+                                      {userData.status}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </>
+                  )}
+                </>
               ) : (
                 <div className="px-6 py-12 text-center text-gray-500 text-sm">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -506,15 +581,6 @@ export default function EnVivo() {
                 </div>
               )}
             </div>
-
-            {/* ✅ Mostrar si hay más de 5 jugadores */}
-            {liveData.ranking && liveData.ranking.length > 5 && (
-              <div className="px-6 py-3 text-center border-t border-yellow-500/10">
-                <span className="text-xs text-gray-500">
-                  Y {liveData.ranking.length - 5} jugador(es) más...
-                </span>
-              </div>
-            )}
           </div>
 
           {liveData.status === 'finished' && liveData.winners_count !== undefined && (
