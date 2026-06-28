@@ -1,5 +1,4 @@
 // app/jugador/registro/page.tsx
-// app/jugador/registro/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -328,6 +327,25 @@ export default function RegistroJugador() {
                     {t.register?.of || "de"} JugadaPlay
                   </span>
                 </label>
+
+                {/* Botón de registro */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`group relative w-full py-3 rounded-lg text-sm font-medium tracking-wide transition-all overflow-hidden ${!loading && aceptarTerminos
+                    ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
+                    : "bg-gray-900 text-gray-600 cursor-not-allowed"
+                    }`}
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    {loading ? t.register.registeringPlayer : t.register.registerPlayerButton}
+                  </span>
+                  {!loading && aceptarTerminos && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
+                  )}
+                </button>
+
               </div>
             </form>
           </div>
