@@ -114,20 +114,14 @@ export default function RegistroJugador() {
     setLoading(true);
 
     try {
-      // Crear email a partir del teléfono (para evitar el campo email)
-      const email = `${formData.telefone}@jugadaplay.com`;
-
+      // ✅ Enviar SOLO los campos que el usuario llena
       const requestBody = {
-        email: email,
-        password: formData.password,
-        role: "player",
         name: formData.nombre.trim(),
         nickname: formData.nickname.trim() || formData.nombre.trim(),
         phone: formData.telefone,
-        phoneCountry: "+57", // Por defecto Colombia, ajustable
-        documentType: "Teléfono",
-        documentNumber: formData.telefone,
-        country: "CO", // Por defecto Colombia, ajustable
+        password: formData.password,
+        role: "player",
+        // ❌ Eliminar email, phoneCountry, documentType, documentNumber, country
       };
 
       console.log("=== DATOS ENVIADOS AL BACKEND ===");
@@ -164,7 +158,6 @@ export default function RegistroJugador() {
       setLoading(false);
     }
   };
-
   if (!isLocaleReady) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
