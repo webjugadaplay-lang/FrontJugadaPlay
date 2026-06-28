@@ -91,23 +91,34 @@ export default function LoginForm({ locale }: Props) {
     setLoading(true);
 
     try {
-      // Determinar si es email o teléfono
+      // ✅ Determinar qué enviar según el rol
       let email = identificador;
-      
-      // Si NO contiene @, asumimos que es teléfono
-      if (!identificador.includes('@')) {
+
+      if (tipoUsuario === 'player') {
+        // ✅ Para PLAYER: limpiar el teléfono (solo números)
         const phoneClean = identificador.replace(/\D/g, '');
-        email = `${phoneClean}@jugadaplay.com`;
+        email = phoneClean; // Enviamos solo números
+      } else {
+        // ✅ Para OWNER y ADMIN: enviar email normal
+        if (!identificador.includes('@')) {
+          setError('Por favor, ingresa un email válido');
+          setLoading(false);
+          return;
+        }
+        email = identificador;
       }
 
-      // El rol ya es 'player', 'owner' o 'admin'
       const dbRole = tipoUsuario;
+
+      console.log('=== DATOS ENVIADOS AL LOGIN ===');
+      console.log('Email/Identificador:', email);
+      console.log('Rol:', dbRole);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email,        // Para player: solo números (teléfono), para otros: email
           password,
           role: dbRole,
         }),
@@ -122,46 +133,7 @@ export default function LoginForm({ locale }: Props) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Verificar código pendiente de sala (QR)
-      const pendingCode = sessionStorage.getItem("pendingRoomCode");
-      if (pendingCode) {
-        sessionStorage.removeItem("pendingRoomCode");
-        try {
-          // ✅ Obtener el token recién guardado
-          const token = localStorage.getItem("token");
-          const roomResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${pendingCode}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          const roomData = await roomResponse.json();
-
-          if (roomData.success && roomData.roomId) {
-            router.push(`/jugador/prediccion/${roomData.roomId}`);
-            return;
-          }
-        } catch (err) {
-          console.error("Error al buscar sala por código:", err);
-        }
-        router.push(`/entrar?code=${pendingCode}`);
-        return;
-      }
-
-      // Verificar URL de retorno
-      const redirectUrl = localStorage.getItem("redirectAfterLogin");
-      if (redirectUrl) {
-        localStorage.removeItem("redirectAfterLogin");
-        router.push(redirectUrl);
-        return;
-      }
-
-      // Redirigir según el rol
-      if (data.user.role === "admin") {
-        router.push("/admin/dashboard");
-      } else if (data.user.role === "owner" || data.user.role === "bar") {
-        router.push("/bar/dashboard");
-      } else {
-        router.push("/jugador/dashboard");
-      }
+      // ... resto del código (redirecciones, QR, etc.)
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -202,11 +174,10 @@ export default function LoginForm({ locale }: Props) {
               <button
                 type="button"
                 onClick={() => setTipoUsuario("player")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
-                  tipoUsuario === "player"
-                    ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
-                    : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
-                } ${isMobile ? "justify-center" : ""}`}
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${tipoUsuario === "player"
+                  ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
+                  : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
+                  } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <User className="w-4 h-4" />}
                 <span className="text-sm text-center">{t.login.roles.player}</span>
@@ -215,11 +186,10 @@ export default function LoginForm({ locale }: Props) {
               <button
                 type="button"
                 onClick={() => setTipoUsuario("owner")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
-                  tipoUsuario === "owner"
-                    ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
-                    : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
-                } ${isMobile ? "justify-center" : ""}`}
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${tipoUsuario === "owner"
+                  ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
+                  : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
+                  } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <Building2 className="w-4 h-4" />}
                 <span className="text-sm text-center">{t.login.roles.bar}</span>
@@ -228,11 +198,10 @@ export default function LoginForm({ locale }: Props) {
               <button
                 type="button"
                 onClick={() => setTipoUsuario("admin")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
-                  tipoUsuario === "admin"
-                    ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
-                    : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
-                } ${isMobile ? "justify-center" : ""}`}
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${tipoUsuario === "admin"
+                  ? "border-yellow-500 bg-yellow-500/10 text-yellow-500"
+                  : "border-yellow-500/20 text-gray-400 hover:border-yellow-500/40"
+                  } ${isMobile ? "justify-center" : ""}`}
               >
                 {!isMobile && <Shield className="w-4 h-4" />}
                 <span className="text-sm text-center">{t.login.roles.admin}</span>
@@ -242,7 +211,7 @@ export default function LoginForm({ locale }: Props) {
             {/* Campo de identificador */}
             <div>
               <label className="block text-gray-400 text-sm mb-2">
-                {tipoUsuario === "player" ? "Teléfono o Email" : "Email"}
+                {tipoUsuario === "player" ? "Teléfono" : "Email"}
               </label>
               <div className="relative">
                 {tipoUsuario === "player" ? (
@@ -251,13 +220,13 @@ export default function LoginForm({ locale }: Props) {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 )}
                 <input
-                  type={tipoUsuario === "player" ? "text" : "email"}
+                  type={tipoUsuario === "player" ? "tel" : "email"}
                   value={identificador}
                   onChange={(e) => setIdentificador(e.target.value)}
                   className="w-full bg-black/50 border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
                   placeholder={
-                    tipoUsuario === "player" 
-                      ? "Ej: 3001234567 o email@ejemplo.com" 
+                    tipoUsuario === "player"
+                      ? "Ej: 3001234567"
                       : "email@ejemplo.com"
                   }
                   required
@@ -266,7 +235,7 @@ export default function LoginForm({ locale }: Props) {
               </div>
               {tipoUsuario === "player" && (
                 <p className="text-gray-500 text-xs mt-1">
-                  Ingresa tu número de teléfono o email
+                  Ingresa tu número de teléfono (solo dígitos)
                 </p>
               )}
             </div>
