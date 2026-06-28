@@ -1,4 +1,4 @@
-// /messages/pt-BR.ts
+// messages/pt-BR.ts
 const ptBR = {
   common: {
     language: "IDIOMA",
@@ -73,6 +73,7 @@ const ptBR = {
     alreadyHaveAccount: "JÁ TEM UMA CONTA?",
     login: "INICIAR SESSÃO",
 
+    // ===== SEÇÃO BAR (Dono) =====
     bar: "BAR",
     barSubtitle: "JUNTE-SE AO JUGADAPLAY E OFEREÇA UMA EXPERIÊNCIA ESPORTIVA ÚNICA NO SEU BAR",
     barInfo: "INFORMAÇÕES DO BAR",
@@ -97,10 +98,14 @@ const ptBR = {
     registering: "REGISTRANDO...",
     registerButton: "REGISTRAR MEU BAR",
 
+    // ===== SEÇÃO JOGADOR (Player) =====
     player: "JOGADOR",
     playerSubtitle: "PREVEJA, GANHE E DIVIRTA-SE NO SEU BAR FAVORITO",
     fullName: "NOME COMPLETO *",
+    // ✅ Usamos nickName (con N mayúscula) en lugar de nickname
     nickName: "COMO VOCÊ QUER APARECER NO RANKING",
+    // ✅ Para o placeholder do nickname, usamos uma propriedade nova
+    nickNamePlaceholder: "EX: OREI",
     email: "EMAIL *",
     phone: "TELEFONE",
     password: "SENHA *",

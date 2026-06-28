@@ -1,109 +1,16 @@
 // app/jugador/registro/page.tsx
+// app/jugador/registro/page.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { translations, type Locale } from "@/messages";
 import { detectInitialLocale } from "@/lib/i18n";
 import {
-  ArrowLeft, Mail, Lock, Eye, EyeOff,
-  User, Phone, CheckCircle, Award, ChevronDown, IdCard
+  ArrowLeft, Lock, Eye, EyeOff,
+  User, Award, Phone, CheckCircle
 } from "lucide-react";
-
-// Configuración de países (sin cambios)
-const countries = [
-  {
-    code: "BR",
-    name: "Brasil",
-    dialCode: "+55",
-    phoneMask: "(##) #####-####",
-    phonePlaceholder: "(11) 91234-5678",
-    documentName: "CPF",
-    documentPlaceholder: "000.000.000-00",
-    documentLength: 11
-  },
-  {
-    code: "CO",
-    name: "Colombia",
-    dialCode: "+57",
-    phoneMask: "(###) ###-####",
-    phonePlaceholder: "(300) 123-4567",
-    documentName: "Cédula",
-    documentPlaceholder: "1.234.567",
-    documentLength: 10
-  },
-  {
-    code: "MX",
-    name: "México",
-    dialCode: "+52",
-    phoneMask: "(##) ####-####",
-    phonePlaceholder: "(55) 1234-5678",
-    documentName: "CURP / INE",
-    documentPlaceholder: "ABC123456XYZABC12",
-    documentLength: 18
-  }
-];
-
-// Funciones de formato (sin cambios)
-const formatPhoneForDisplay = (value: string, country: typeof countries[0]): string => {
-  const numbers = value.replace(/\D/g, '');
-  if (!numbers) return '';
-
-  let formatted = '';
-  let numberIndex = 0;
-
-  for (let i = 0; i < country.phoneMask.length && numberIndex < numbers.length; i++) {
-    if (country.phoneMask[i] === '#') {
-      formatted += numbers[numberIndex];
-      numberIndex++;
-    } else {
-      formatted += country.phoneMask[i];
-    }
-  }
-
-  return formatted;
-};
-
-const formatColombianIdForDisplay = (value: string): string => {
-  const numbers = value.replace(/\D/g, '');
-  if (!numbers) return '';
-  return numbers.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-};
-
-const formatDocumentForDisplay = (value: string, country: typeof countries[0]): string => {
-  if (country.code === "BR") {
-    const numbers = value.replace(/\D/g, '');
-    if (!numbers) return '';
-
-    let formatted = '';
-    let numberIndex = 0;
-    const mask = "000.000.000-00";
-
-    for (let i = 0; i < mask.length && numberIndex < numbers.length; i++) {
-      if (mask[i] === '0') {
-        formatted += numbers[numberIndex];
-        numberIndex++;
-      } else {
-        formatted += mask[i];
-      }
-    }
-    return formatted;
-  } else if (country.code === "CO") {
-    return formatColombianIdForDisplay(value);
-  } else if (country.code === "MX") {
-    return value.toUpperCase().replace(/\s/g, '');
-  }
-  return value;
-};
-
-const cleanToNumbers = (value: string): string => {
-  return value.replace(/\D/g, '');
-};
-
-const capitalizeName = (value: string): string => {
-  return value.replace(/\b\w/g, (char) => char.toUpperCase());
-};
 
 export default function RegistroJugador() {
   const router = useRouter();
@@ -113,15 +20,10 @@ export default function RegistroJugador() {
   const [aceptarTerminos, setAceptarTerminos] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState(countries[0]);
-  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
     nombre: "",
     nickname: "",
-    email: "",
-    documento: "",
     telefone: "",
     password: "",
   });
@@ -137,21 +39,12 @@ export default function RegistroJugador() {
     localStorage.setItem("jugadaplay_locale", locale);
   }, [locale, isLocaleReady]);
 
+  // Verificar redirección pendiente
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowCountryDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // 🔥 NUEVO: Verificar si hay una redirección pendiente al cargar la página
-  useEffect(() => {
+    // ✅ Obtener el token dentro del useEffect
     const token = localStorage.getItem("token");
     const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
-    
+
     // Si ya está autenticado y hay redirección pendiente
     if (token && redirectAfterRegistration) {
       localStorage.removeItem("redirectAfterRegistration");
@@ -181,110 +74,61 @@ export default function RegistroJugador() {
     const { name, value } = e.target;
 
     if (name === 'telefone') {
-      const formatted = formatPhoneForDisplay(value, selectedCountry);
-      setFormData({ ...formData, [name]: formatted });
-    } else if (name === 'documento') {
-      const formatted = formatDocumentForDisplay(value, selectedCountry);
-      setFormData({ ...formData, [name]: formatted });
+      // Solo permitir números
+      const numbers = value.replace(/\D/g, '');
+      // Limitar a 10-11 dígitos (como ejemplo, ajustable)
+      if (numbers.length <= 11) {
+        setFormData({ ...formData, [name]: numbers });
+      }
     } else if (name === 'nombre') {
-      const capitalized = capitalizeName(value);
+      const capitalized = value.replace(/\b\w/g, (char) => char.toUpperCase());
       setFormData({ ...formData, [name]: capitalized });
     } else {
       setFormData({ ...formData, [name]: value });
     }
   };
 
-  const handleCountryChange = (country: typeof countries[0]) => {
-    setSelectedCountry(country);
-    setShowCountryDropdown(false);
-
-    if (formData.telefone) {
-      const cleanPhone = cleanToNumbers(formData.telefone);
-      const reformatted = formatPhoneForDisplay(cleanPhone, country);
-      setFormData(prev => ({ ...prev, telefone: reformatted }));
-    }
-
-    if (formData.documento) {
-      const reformatted = formatDocumentForDisplay(formData.documento, country);
-      setFormData(prev => ({ ...prev, documento: reformatted }));
-    }
-  };
-
-  const validateDocument = (): boolean => {
-    if (!formData.documento) {
-      setError(`Por favor, ingrese su ${selectedCountry.documentName}`);
-      return false;
-    }
-
-    if (selectedCountry.code === "BR") {
-      const cleanDoc = cleanToNumbers(formData.documento);
-      if (cleanDoc.length !== 11) {
-        setError(`CPF inválido. Debe tener 11 números. Ejemplo: 12345678900`);
-        return false;
-      }
-      return true;
-    } else if (selectedCountry.code === "CO") {
-      const cleanDoc = cleanToNumbers(formData.documento);
-      if (cleanDoc.length < 7 || cleanDoc.length > 10) {
-        setError(`Cédula inválida. Debe tener entre 7 y 10 números. Ejemplo: 1234567890`);
-        return false;
-      }
-      return true;
-    } else if (selectedCountry.code === "MX") {
-      const cleanDoc = formData.documento.toUpperCase().replace(/\s/g, '');
-      if (cleanDoc.length < 10 || cleanDoc.length > 18) {
-        setError(`Identificación inválida. Debe tener entre 10 y 18 caracteres.`);
-        return false;
-      }
-      return true;
-    }
-    return true;
-  };
-
-  // 🔥 MODIFICADO: Manejar redirección después del registro exitoso
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     if (!aceptarTerminos) {
-      setError(t.register.termsError);
+      setError(t.register.termsError || "Debes aceptar los términos y condiciones");
       return;
     }
 
-    if (!validateDocument()) {
+    if (!formData.nombre.trim()) {
+      setError("Por favor, ingresa tu nombre");
       return;
     }
 
-    const cleanPhone = cleanToNumbers(formData.telefone);
-
-    if (cleanPhone.length === 0) {
-      setError("Por favor, ingrese un número de teléfono válido");
+    if (!formData.telefone || formData.telefone.length < 8) {
+      setError("Por favor, ingresa un número de teléfono válido");
       return;
     }
 
-    let cleanDocument = "";
-    if (selectedCountry.code === "BR") {
-      cleanDocument = cleanToNumbers(formData.documento);
-    } else if (selectedCountry.code === "CO") {
-      cleanDocument = cleanToNumbers(formData.documento);
-    } else if (selectedCountry.code === "MX") {
-      cleanDocument = formData.documento.toUpperCase().replace(/\s/g, '');
+    if (!formData.password || formData.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      return;
     }
 
     setLoading(true);
 
     try {
+      // Crear email a partir del teléfono (para evitar el campo email)
+      const email = `${formData.telefone}@jugadaplay.com`;
+
       const requestBody = {
-        email: formData.email,
+        email: email,
         password: formData.password,
         role: "player",
-        name: formData.nombre,
-        nickname: formData.nickname,
-        phone: cleanPhone,
-        phoneCountry: selectedCountry.dialCode,
-        documentType: selectedCountry.documentName,
-        documentNumber: cleanDocument,
-        country: selectedCountry.code,
+        name: formData.nombre.trim(),
+        nickname: formData.nickname.trim() || formData.nombre.trim(),
+        phone: formData.telefone,
+        phoneCountry: "+57", // Por defecto Colombia, ajustable
+        documentType: "Teléfono",
+        documentNumber: formData.telefone,
+        country: "CO", // Por defecto Colombia, ajustable
       };
 
       console.log("=== DATOS ENVIADOS AL BACKEND ===");
@@ -299,22 +143,20 @@ export default function RegistroJugador() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || t.register.registerError);
+        throw new Error(data.message || t.register.registerError || "Error al registrar");
       }
 
       // Guardar token y usuario
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // 🔥 VERIFICAR si hay una redirección pendiente
+      // Verificar redirección pendiente
       const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
-      
+
       if (redirectAfterRegistration) {
-        // Limpiar el item y redirigir
         localStorage.removeItem("redirectAfterRegistration");
         router.push(redirectAfterRegistration);
       } else {
-        // Redirigir al dashboard normal
         router.push("/jugador/dashboard");
       }
     } catch (err: any) {
@@ -347,11 +189,8 @@ export default function RegistroJugador() {
             </Link>
 
             <div className="flex items-center gap-2">
-              <label
-                htmlFor="locale-select"
-                className="text-gray-400 text-xs md:text-sm tracking-wide"
-              >
-                {t.header.language}
+              <label htmlFor="locale-select" className="text-gray-400 text-xs md:text-sm tracking-wide">
+                {t.header?.language || "Idioma"}
               </label>
               <select
                 id="locale-select"
@@ -378,21 +217,22 @@ export default function RegistroJugador() {
                 <div className="flex items-center gap-3">
                   <User className="w-6 h-6 text-yellow-500" />
                   <h1 className="text-2xl font-light tracking-tight text-white">
-                    {t.register.title}{" "}
-                    <span className="text-yellow-500 font-medium">{t.register.player}</span>
+                    {t.register?.title || "Crear cuenta"}{" "}
+                    <span className="text-yellow-500 font-medium">{t.register?.player || "Jugador"}</span>
                   </h1>
                 </div>
                 <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
                 <p className="text-gray-500 text-sm mt-3">
-                  {t.register.playerSubtitle}
+                  {t.register?.playerSubtitle || "Regístrate con tu teléfono y empieza a jugar"}
                 </p>
               </div>
 
               <div className="p-6 space-y-6">
-
                 {/* Nombre */}
                 <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">{t.register.fullName} *</label>
+                  <label className="block text-xs text-yellow-500 tracking-wider">
+                    {t.register?.fullName || "Nombre completo"} *
+                  </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                     <input
@@ -401,15 +241,17 @@ export default function RegistroJugador() {
                       value={formData.nombre}
                       onChange={handleChange}
                       required
-                      placeholder={t.register.fullNamePlaceholder}
+                      placeholder={t.register?.fullNamePlaceholder || "Tu nombre completo"}
                       className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
                   </div>
                 </div>
 
-                {/* Nickname */}
+                {/* Nickname (opcional) */}
                 <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">Nickname *</label>
+                  <label className="block text-xs text-yellow-500 tracking-wider">
+                    {t.register?.nickName || "Nickname"} <span className="text-gray-500 text-[10px]">(opcional)</span>
+                  </label>
                   <div className="relative">
                     <Award className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                     <input
@@ -417,93 +259,18 @@ export default function RegistroJugador() {
                       name="nickname"
                       value={formData.nickname}
                       onChange={handleChange}
-                      required
-                      placeholder="Ej: ElReYDelApostador"
+                      placeholder={t.register?.nickNamePlaceholder || "Ej: ElReY"}
                       className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
                   </div>
-                  <p className="text-gray-600 text-xs">Este nombre aparecerá en el ranking y en las salas de juego</p>
-                </div>
-
-                {/* Email */}
-                <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">{t.register.email} *</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      placeholder={t.register.emailPlaceholder}
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Selector de País */}
-                <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">País *</label>
-                  <div className="relative" ref={dropdownRef}>
-                    <button
-                      type="button"
-                      onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                      className="w-full flex items-center justify-between px-4 py-3 bg-black border border-yellow-500/30 rounded-lg hover:border-yellow-500/60 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-white text-sm font-medium">{selectedCountry.name}</span>
-                        <span className="text-yellow-500 text-xs">{selectedCountry.dialCode}</span>
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-yellow-500 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {showCountryDropdown && (
-                      <div className="absolute top-full left-0 mt-1 w-full bg-black border border-yellow-500/30 rounded-lg shadow-xl z-50 overflow-hidden">
-                        {countries.map((country) => (
-                          <button
-                            key={country.code}
-                            type="button"
-                            onClick={() => handleCountryChange(country)}
-                            className={`w-full px-4 py-2 text-left hover:bg-yellow-500/10 transition-colors flex items-center justify-between ${selectedCountry.code === country.code ? 'bg-yellow-500/20 text-yellow-500' : 'text-white'
-                              }`}
-                          >
-                            <span>{country.name}</span>
-                            <span className="text-xs text-gray-500">{country.dialCode}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Documento de identidad */}
-                <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">
-                    {selectedCountry.documentName} (Identificación) *
-                  </label>
-                  <div className="relative">
-                    <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
-                    <input
-                      type="text"
-                      name="documento"
-                      value={formData.documento}
-                      onChange={handleChange}
-                      required
-                      placeholder={selectedCountry.documentPlaceholder}
-                      className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all font-mono text-sm"
-                    />
-                  </div>
-                  <p className="text-gray-600 text-xs">
-                    {selectedCountry.code === "BR" && "Ejemplo: 123.456.789-00"}
-                    {selectedCountry.code === "CO" && "Ejemplo: 1.234.567"}
-                    {selectedCountry.code === "MX" && "Ejemplo: ABC123456XYZABC12"}
-                  </p>
+                  <p className="text-gray-600 text-xs">Este nombre aparecerá en el ranking</p>
                 </div>
 
                 {/* Teléfono */}
                 <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">{t.register.phone} *</label>
+                  <label className="block text-xs text-yellow-500 tracking-wider">
+                    {t.register?.phone || "Teléfono"} *
+                  </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                     <input
@@ -512,20 +279,18 @@ export default function RegistroJugador() {
                       value={formData.telefone}
                       onChange={handleChange}
                       required
-                      placeholder={selectedCountry.phonePlaceholder}
+                      placeholder={t.register?.phonePlaceholder || "3001234567"}
                       className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all font-mono text-sm"
                     />
                   </div>
-                  <p className="text-gray-600 text-xs">
-                    {selectedCountry.code === "CO" && "Ejemplo: (300) 425-4878"}
-                    {selectedCountry.code === "BR" && "Ejemplo: (11) 91234-5678"}
-                    {selectedCountry.code === "MX" && "Ejemplo: (55) 1234-5678"}
-                  </p>
+                  <p className="text-gray-600 text-xs">Ingresa solo números, sin espacios ni símbolos</p>
                 </div>
 
                 {/* Contraseña */}
                 <div className="space-y-2">
-                  <label className="block text-xs text-yellow-500 tracking-wider">{t.register.password} *</label>
+                  <label className="block text-xs text-yellow-500 tracking-wider">
+                    {t.register?.password || "Contraseña"} *
+                  </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-yellow-500/50" />
                     <input
@@ -535,7 +300,7 @@ export default function RegistroJugador() {
                       onChange={handleChange}
                       required
                       minLength={6}
-                      placeholder={t.register.passwordPlaceholder}
+                      placeholder={t.register?.passwordPlaceholder || "Mínimo 6 caracteres"}
                       className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-12 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all"
                     />
                     <button
@@ -546,7 +311,7 @@ export default function RegistroJugador() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  <p className="text-gray-600 text-xs">{t.register.passwordMinLength}</p>
+                  <p className="text-gray-600 text-xs">{t.register?.passwordMinLength || "Mínimo 6 caracteres"}</p>
                 </div>
 
                 {/* Términos */}
@@ -558,57 +323,11 @@ export default function RegistroJugador() {
                     className="mt-0.5 w-4 h-4 text-yellow-500 focus:ring-yellow-500 bg-black border-yellow-500/30 rounded"
                   />
                   <span className="text-gray-500 text-xs">
-                    {t.register.acceptTerms}{" "}
-                    <span className="text-yellow-500">{t.register.termsAndConditions}</span>{" "}
-                    {t.register.of} JugadaPlay
+                    {t.register?.acceptTerms || "Acepto los "}{" "}
+                    <span className="text-yellow-500">{t.register?.termsAndConditions || "Términos y Condiciones"}</span>{" "}
+                    {t.register?.of || "de"} JugadaPlay
                   </span>
                 </label>
-
-                {/* Error message */}
-                {error && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-500 text-sm text-center">
-                    {error}
-                  </div>
-                )}
-
-                {/* Beneficios */}
-                <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Award className="w-4 h-4 text-yellow-500" />
-                    <p className="text-yellow-500 text-xs font-medium">DEMUESTRA QUIÉN MANDA</p>
-                  </div>
-                  <div className="space-y-1 text-xs text-gray-400">
-                    <p>✓ Reta a tus amigos en tu bar favorito</p>
-                    <p>✓ Conviértete en el rey del pronóstico</p>
-                    <p>✓ Gana premios en tu bar</p>
-                    <p>✓ Sin comisiones ocultas</p>
-                  </div>
-                </div>
-
-                {/* Botón de registro */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`group relative w-full py-3 rounded-lg text-sm font-medium tracking-wide transition-all overflow-hidden ${!loading && aceptarTerminos
-                    ? "bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/25"
-                    : "bg-gray-900 text-gray-600 cursor-not-allowed"
-                    }`}
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    {loading ? t.register.registeringPlayer : t.register.registerPlayerButton}
-                  </span>
-                  {!loading && aceptarTerminos && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-white to-yellow-400 opacity-0 group-hover:opacity-100 blur-sm transition-opacity"></div>
-                  )}
-                </button>
-
-                <p className="text-center text-gray-600 text-xs">
-                  {t.register.alreadyHaveAccountPlayer}{" "}
-                  <Link href="/login" className="text-yellow-500 hover:text-yellow-400">
-                    {t.register.loginPlayer}
-                  </Link>
-                </p>
               </div>
             </form>
           </div>
