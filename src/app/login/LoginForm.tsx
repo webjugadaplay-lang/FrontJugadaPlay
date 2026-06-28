@@ -97,10 +97,15 @@ export default function LoginForm({ locale }: Props) {
       if (tipoUsuario === 'player') {
         // ✅ Para PLAYER: limpiar el teléfono (solo números)
         const phoneClean = identificador.replace(/\D/g, '');
+        if (phoneClean.length < 8) {
+          setError('Por favor, ingresa un número de teléfono válido (mínimo 8 dígitos)');
+          setLoading(false);
+          return;
+        }
         email = phoneClean; // Enviamos solo números
       } else {
-        // ✅ Para OWNER y ADMIN: enviar email normal
-        if (!identificador.includes('@')) {
+        // ✅ Para OWNER y ADMIN: validar email
+        if (!identificador.includes('@') || !identificador.includes('.')) {
           setError('Por favor, ingresa un email válido');
           setLoading(false);
           return;
@@ -118,7 +123,7 @@ export default function LoginForm({ locale }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,        // Para player: solo números (teléfono), para otros: email
+          email,
           password,
           role: dbRole,
         }),
@@ -133,7 +138,45 @@ export default function LoginForm({ locale }: Props) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // ... resto del código (redirecciones, QR, etc.)
+      // Verificar código pendiente de sala (QR)
+      const pendingCode = sessionStorage.getItem("pendingRoomCode");
+      if (pendingCode) {
+        sessionStorage.removeItem("pendingRoomCode");
+        try {
+          const token = localStorage.getItem("token");
+          const roomResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/find-by-code?code=${pendingCode}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const roomData = await roomResponse.json();
+
+          if (roomData.success && roomData.roomId) {
+            router.push(`/jugador/prediccion/${roomData.roomId}`);
+            return;
+          }
+        } catch (err) {
+          console.error("Error al buscar sala por código:", err);
+        }
+        router.push(`/entrar?code=${pendingCode}`);
+        return;
+      }
+
+      // Verificar URL de retorno
+      const redirectUrl = localStorage.getItem("redirectAfterLogin");
+      if (redirectUrl) {
+        localStorage.removeItem("redirectAfterLogin");
+        router.push(redirectUrl);
+        return;
+      }
+
+      // Redirigir según el rol
+      if (data.user.role === "admin") {
+        router.push("/admin/dashboard");
+      } else if (data.user.role === "owner" || data.user.role === "bar") {
+        router.push("/bar/dashboard");
+      } else {
+        router.push("/jugador/dashboard");
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
