@@ -43,7 +43,11 @@ export default function PagoPrediccion() {
           <div className="flex justify-between items-center h-20">
             <Link href={`/jugador/prediccion/${salaId}`} className="flex items-center space-x-3 group">
               <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
-              <Crown className="w-5 h-5 text-yellow-500" strokeWidth={1.5} />
+              <img
+                src="/logo-jugadaplay.svg"
+                alt="Jugada Play"
+                className="h-10 md:h-12 lg:h-14 w-auto object-contain"
+              />
             </Link>
             <span className="text-xs text-gray-500">PAGO SEGURO</span>
           </div>
@@ -72,12 +76,10 @@ export default function PagoPrediccion() {
                 <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-gray-500 text-xs">FLAMENGO vs VASCO</p>
-                      <p className="text-white text-sm mt-1">Tu predicción: 2 x 1</p>
+                      <p className="text-white text-sm mt-1">TOTAL A PAGAR</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-gray-500 text-xs">TOTAL A PAGAR</p>
-                      <p className="text-yellow-500 text-xl font-medium">R$ 5,00</p>
+                      <p className="text-yellow-500 text-xl font-medium">R$ 10,00</p>
                     </div>
                   </div>
                 </div>
@@ -91,8 +93,8 @@ export default function PagoPrediccion() {
                     <button
                       onClick={() => setMetodoPago("pix")}
                       className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${metodoPago === "pix"
-                          ? "border-yellow-500 bg-yellow-500/10"
-                          : "border-yellow-500/20 hover:border-yellow-500/40"
+                        ? "border-yellow-500 bg-yellow-500/10"
+                        : "border-yellow-500/20 hover:border-yellow-500/40"
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -105,8 +107,8 @@ export default function PagoPrediccion() {
                     <button
                       onClick={() => setMetodoPago("bar")}
                       className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${metodoPago === "bar"
-                          ? "border-yellow-500 bg-yellow-500/10"
-                          : "border-yellow-500/20 hover:border-yellow-500/40"
+                        ? "border-yellow-500 bg-yellow-500/10"
+                        : "border-yellow-500/20 hover:border-yellow-500/40"
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -143,8 +145,7 @@ export default function PagoPrediccion() {
                 {metodoPago === "bar" && (
                   <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4 text-center">
                     <Beer className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-                    <p className="text-white text-sm">Paga R$ 5,00 directamente en el bar</p>
-                    <p className="text-gray-400 text-xs mt-1">Muestra este comprobante al camarero</p>
+                    <p className="text-white text-sm">Paga R$ 10,00 directamente en el bar</p>
                   </div>
                 )}
 
