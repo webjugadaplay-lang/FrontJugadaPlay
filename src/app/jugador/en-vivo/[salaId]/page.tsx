@@ -271,6 +271,12 @@ export default function EnVivo() {
     setIsRefreshing(false);
   };
 
+  const handleAddPrediction = () => {
+    if (salaId) {
+      router.push(`/jugador/prediccion/${salaId}`);
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -433,6 +439,13 @@ export default function EnVivo() {
             </div>
           </div>
 
+          <button
+            onClick={handleAddPrediction}
+            className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/25 text-sm"
+          >
+            AGREGAR PREDICCIÓN
+          </button>
+
           {/* Ranking de jugadores */}
           <div className="bg-black/30 border border-yellow-500/20 rounded-2xl overflow-hidden">
             <div className="border-b border-yellow-500/20 px-6 py-4">
@@ -496,10 +509,10 @@ export default function EnVivo() {
                         <div className="flex justify-center w-24">
                           {item.status && (
                             <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
-                                item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
-                                  item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
-                                    item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
-                                      'bg-gray-500/20 text-gray-400'
+                              item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
+                                item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
+                                    'bg-gray-500/20 text-gray-400'
                               }`}>
                               {item.status}
                             </span>
