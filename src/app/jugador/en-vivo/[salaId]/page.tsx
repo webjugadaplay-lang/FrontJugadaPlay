@@ -467,13 +467,15 @@ export default function EnVivo() {
           </div>
 
           {/* 👈 BOTÓN AGREGAR PREDICCIÓN */}
-          <button
-            onClick={handleAddPrediction}
-            className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/25 text-sm whitespace-nowrap"
-          >
-            <PlusCircle className="w-4 h-4" />
-            {t.prediction.addPrediction}
-          </button>
+          <div className="flex justify-center mb-6">
+            <button
+              onClick={handleAddPrediction}
+              className="flex items-center justify-center gap-2 bg-yellow-500 text-black px-8 py-3 rounded-xl font-bold hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/25 text-base w-full md:w-auto min-w-[200px]"
+            >
+              <PlusCircle className="w-5 h-5" />
+              AGREGAR PREDICCIÓN
+            </button>
+          </div>
 
           {/* Ranking de jugadores */}
           <div className="bg-black/30 border border-yellow-500/20 rounded-2xl overflow-hidden">
