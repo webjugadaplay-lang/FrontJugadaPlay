@@ -14,8 +14,11 @@ import {
   Clock,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  PlusCircle
 } from "lucide-react";
+// 👈 IMPORTAR TRADUCCIONES
+import { translations, type Locale } from "@/messages";
 
 interface LiveRoomData {
   id: string;
@@ -53,10 +56,24 @@ interface LiveRoomData {
   total_prize?: number;
 }
 
+// 👈 FUNCIÓN PARA DETECTAR IDIOMA INICIAL
+function detectInitialLocale(): Locale {
+  if (typeof window === "undefined") return "pt-BR";
+  const savedLocale = localStorage.getItem("jugadaplay_locale");
+  if (savedLocale === "pt-BR" || savedLocale === "es") return savedLocale;
+  const browserLanguage = navigator.language || "";
+  if (browserLanguage.toLowerCase().startsWith("es")) return "es";
+  if (browserLanguage.toLowerCase().startsWith("pt")) return "pt-BR";
+  return "pt-BR";
+}
+
 export default function EnVivo() {
   const router = useRouter();
   const params = useParams();
   const salaId = params?.salaId as string;
+
+  // 👈 ESTADO PARA IDIOMA
+  const [locale, setLocale] = useState<Locale>("pt-BR");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -70,6 +87,19 @@ export default function EnVivo() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const previousScoresRef = useRef<{ home: number; away: number } | null>(null);
   const isPollingActiveRef = useRef(true);
+
+  // 👈 EFECTO PARA DETECTAR IDIOMA
+  useEffect(() => {
+    const detectedLocale = detectInitialLocale();
+    setLocale(detectedLocale);
+  }, []);
+
+  // 👈 EFECTO PARA GUARDAR IDIOMA
+  useEffect(() => {
+    localStorage.setItem("jugadaplay_locale", locale);
+  }, [locale]);
+
+  const t = translations[locale]; // 👈 OBTENER TRADUCCIONES
 
   const fetchLiveData = async (showLoadingIndicator = false, isAutoRefresh = false) => {
     if (!salaId || salaId === 'undefined' || salaId === 'null') {
@@ -282,7 +312,7 @@ export default function EnVivo() {
       <main className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Conectando a la sala en vivo...</p>
+          <p className="text-gray-400">{t.common.loading}</p>
         </div>
       </main>
     );
@@ -337,6 +367,34 @@ export default function EnVivo() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* 👈 SELECTOR DE IDIOMA AÑADIDO */}
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="locale-select-live"
+                  className="text-gray-400 text-xs md:text-sm tracking-wide hidden md:inline"
+                >
+                  {t.header.language}
+                </label>
+                <select
+                  id="locale-select-live"
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as Locale)}
+                  className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs md:text-sm px-3 py-2 rounded-sm outline-none"
+                >
+                  <option value="pt-BR">PT</option>
+                  <option value="es">ES</option>
+                </select>
+              </div>
+
+              {/* 👈 BOTÓN AGREGAR PREDICCIÓN */}
+              <button
+                onClick={handleAddPrediction}
+                className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/25 text-sm whitespace-nowrap"
+              >
+                <PlusCircle className="w-4 h-4" />
+                {t.prediction.addPrediction}
+              </button>
+
               <button
                 onClick={handleManualRefresh}
                 disabled={isRefreshing}
@@ -406,7 +464,7 @@ export default function EnVivo() {
             <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-yellow-500/10">
               <Clock className="w-4 h-4 text-yellow-500" />
               <span className="text-gray-400 text-sm">
-                {new Date(liveData.match_date).toLocaleString('es-ES', {
+                {new Date(liveData.match_date).toLocaleString(locale === "pt-BR" ? "pt-BR" : "es-ES", {
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',
@@ -438,13 +496,6 @@ export default function EnVivo() {
               </div>
             </div>
           </div>
-
-          <button
-            onClick={handleAddPrediction}
-            className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/25 text-sm"
-          >
-            AGREGAR PREDICCIÓN
-          </button>
 
           {/* Ranking de jugadores */}
           <div className="bg-black/30 border border-yellow-500/20 rounded-2xl overflow-hidden">
@@ -509,10 +560,10 @@ export default function EnVivo() {
                         <div className="flex justify-center w-24">
                           {item.status && (
                             <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
-                              item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
-                                item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
-                                  item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
-                                    'bg-gray-500/20 text-gray-400'
+                                item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
+                                  item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
+                                      'bg-gray-500/20 text-gray-400'
                               }`}>
                               {item.status}
                             </span>

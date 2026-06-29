@@ -259,7 +259,8 @@ const es = {
     invalidId: "ID DE SALA INVÁLIDO",
     predictionExists: "YA TIENES UNA PREDICCIÓN PARA ESTE PARTIDO",
     matchClosed: "ESTE PARTIDO YA NO ACEPTA PREDICCIONES",
-    matchFinished: "ESTE PARTIDO YA FINALIZÓ"
+    matchFinished: "ESTE PARTIDO YA FINALIZÓ",
+    addPrediction: "AGREGAR PREDICCIÓN"
   },
   currencyPrefix: "R$",
 };

@@ -261,7 +261,8 @@ const ptBR = {
     invalidId: "ID DE SALA INVÁLIDO",
     predictionExists: "VOCÊ JÁ TEM UMA PREVISÃO PARA ESTA PARTIDA",
     matchClosed: "ESTA PARTIDA NÃO ACEITA MAIS PREVISÕES",
-    matchFinished: "ESTA PARTIDA JÁ FOI ENCERRADA"
+    matchFinished: "ESTA PARTIDA JÁ FOI ENCERRADA",
+    addPrediction: "ADICIONAR PREVISÃO"
   },
   currencyPrefix: "R$",
 };
