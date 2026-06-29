@@ -39,8 +39,15 @@ export default function EntrarSalaPage() {
   }, [router]);
 
   const extractRoomIdFromUrl = (url: string): string | null => {
-    const uuidPattern = /\/bar\/sala\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
-    const match = url.match(uuidPattern);
+    // Patrón para /bar/sala/{uuid}
+    const barSalaPattern = /\/bar\/sala\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+    // Patrón para /jugador/prediccion/{uuid}
+    const jugadorPrediccionPattern = /\/jugador\/prediccion\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+
+    let match = url.match(barSalaPattern);
+    if (match) return match[1];
+
+    match = url.match(jugadorPrediccionPattern);
     return match ? match[1] : null;
   };
 
@@ -58,7 +65,7 @@ export default function EntrarSalaPage() {
 
     try {
       const parsedUser = JSON.parse(userData);
-      
+
       // Caso 2: Usuario autenticado pero NO es player
       if (parsedUser.role !== "player") {
         // Guardamos el roomId para después del registro
@@ -66,7 +73,7 @@ export default function EntrarSalaPage() {
         router.push("/register-player");
         return;
       }
-      
+
       // Caso 3: Usuario autenticado y es player → Ir directamente
       router.push(`/jugador/prediccion/${roomId}`);
     } catch (error) {
@@ -80,7 +87,7 @@ export default function EntrarSalaPage() {
     if (detectedCodes && detectedCodes.length > 0) {
       const scannedText = detectedCodes[0]?.rawValue;
       const roomId = extractRoomIdFromUrl(scannedText);
-      
+
       if (roomId) {
         setModoQR(false);
         procesarSalaId(roomId);
@@ -106,7 +113,7 @@ export default function EntrarSalaPage() {
 
     try {
       const token = localStorage.getItem("token");
-      
+
       // Verificar si el usuario está autenticado
       if (!token) {
         // Guardar el código para después del login
@@ -175,8 +182,8 @@ export default function EntrarSalaPage() {
 
           {!modoQR && (
             <div className="mb-8">
-              <button 
-                onClick={activarQR} 
+              <button
+                onClick={activarQR}
                 className="w-full flex items-center justify-center gap-3 p-6 bg-black/50 border border-yellow-500/20 rounded-lg hover:border-yellow-500/50 transition-all group"
               >
                 <QrCode className="w-6 h-6 text-yellow-500 group-hover:scale-110 transition-transform" />
@@ -189,27 +196,27 @@ export default function EntrarSalaPage() {
             <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6 mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-white font-medium">Escanear QR</h3>
-                <button 
-                  onClick={() => { 
-                    setModoQR(false); 
-                    setError(""); 
-                  }} 
+                <button
+                  onClick={() => {
+                    setModoQR(false);
+                    setError("");
+                  }}
                   className="text-gray-400 hover:text-yellow-500 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <Scanner 
-                onScan={handleScan} 
-                onError={handleError} 
-                constraints={{ facingMode: "environment" }} 
-                scanDelay={500} 
+              <Scanner
+                onScan={handleScan}
+                onError={handleError}
+                constraints={{ facingMode: "environment" }}
+                scanDelay={500}
               />
               <p className="text-gray-500 text-xs text-center mt-4">
                 Coloca el QR frente a la cámara
               </p>
-              
+
               {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
             </div>
           )}
@@ -217,16 +224,16 @@ export default function EntrarSalaPage() {
           <div className="bg-black/50 border border-yellow-500/20 rounded-lg p-6">
             <h3 className="text-white font-medium mb-4">Ingresar código manualmente</h3>
             <form onSubmit={(e) => { e.preventDefault(); procesarCodigoManual(); }}>
-              <input 
-                type="text" 
-                value={codigoSala} 
-                onChange={(e) => setCodigoSala(e.target.value.toUpperCase())} 
-                placeholder="Ejemplo: ABC123" 
-                className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white mb-4 focus:outline-none focus:border-yellow-500 transition-colors" 
+              <input
+                type="text"
+                value={codigoSala}
+                onChange={(e) => setCodigoSala(e.target.value.toUpperCase())}
+                placeholder="Ejemplo: ABC123"
+                className="w-full bg-black border border-yellow-500/30 rounded-lg px-4 py-3 text-white mb-4 focus:outline-none focus:border-yellow-500 transition-colors"
               />
-              <button 
-                type="submit" 
-                disabled={loading} 
+              <button
+                type="submit"
+                disabled={loading}
                 className="w-full py-3 bg-yellow-500 text-black font-medium rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Verificando..." : "Unirme"}
