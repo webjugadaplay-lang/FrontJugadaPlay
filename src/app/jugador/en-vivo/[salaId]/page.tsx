@@ -354,60 +354,29 @@ export default function EnVivo() {
     <main className="min-h-screen bg-black">
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-3">
-              <Link href="/jugador/dashboard" className="text-white hover:text-yellow-500 transition">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
+          <div className="flex items-center justify-between h-20 gap-4">
+            <Link href="/" className="flex items-center space-x-3 group">
+              <ArrowLeft className="w-5 h-5 text-yellow-500 group-hover:-translate-x-1 transition-transform" />
               <img
                 src="/logo-jugadaplay.svg"
                 alt="Jugada Play"
                 className="h-10 md:h-12 lg:h-14 w-auto object-contain"
               />
-            </div>
+            </Link>
 
-            <div className="flex items-center gap-4">
-              {/* 👈 SELECTOR DE IDIOMA AÑADIDO */}
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor="locale-select-live"
-                  className="text-gray-400 text-xs md:text-sm tracking-wide hidden md:inline"
-                >
-                  {t.header.language}
-                </label>
-                <select
-                  id="locale-select-live"
-                  value={locale}
-                  onChange={(e) => setLocale(e.target.value as Locale)}
-                  className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs md:text-sm px-3 py-2 rounded-sm outline-none"
-                >
-                  <option value="pt-BR">PT</option>
-                  <option value="es">ES</option>
-                </select>
-              </div>
-
-              {/* 👈 BOTÓN AGREGAR PREDICCIÓN */}
-              <button
-                onClick={handleAddPrediction}
-                className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/25 text-sm whitespace-nowrap"
+            <div className="flex items-center gap-2">
+              <label htmlFor="locale-select" className="text-gray-400 text-xs md:text-sm tracking-wide">
+                {t.header?.language || "Idioma"}
+              </label>
+              <select
+                id="locale-select"
+                value={locale}
+                onChange={(e) => setLocale(e.target.value as Locale)}
+                className="bg-black/80 border border-yellow-500/30 text-yellow-500 text-xs md:text-sm px-3 py-2 rounded-sm outline-none"
               >
-                <PlusCircle className="w-4 h-4" />
-                {t.prediction.addPrediction}
-              </button>
-
-              <button
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                className="p-2 hover:bg-white/10 rounded-lg transition"
-                title="Actualizar manualmente"
-              >
-                <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs font-bold text-green-500">EN VIVO</span>
-              </div>
+                <option value="pt-BR">PT</option>
+                <option value="es">ES</option>
+              </select>
             </div>
           </div>
         </div>
@@ -497,6 +466,15 @@ export default function EnVivo() {
             </div>
           </div>
 
+          {/* 👈 BOTÓN AGREGAR PREDICCIÓN */}
+          <button
+            onClick={handleAddPrediction}
+            className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/25 text-sm whitespace-nowrap"
+          >
+            <PlusCircle className="w-4 h-4" />
+            {t.prediction.addPrediction}
+          </button>
+
           {/* Ranking de jugadores */}
           <div className="bg-black/30 border border-yellow-500/20 rounded-2xl overflow-hidden">
             <div className="border-b border-yellow-500/20 px-6 py-4">
@@ -560,10 +538,10 @@ export default function EnVivo() {
                         <div className="flex justify-center w-24">
                           {item.status && (
                             <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'Excelente' ? 'bg-green-500/20 text-green-400' :
-                                item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
-                                  item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
-                                    item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
-                                      'bg-gray-500/20 text-gray-400'
+                              item.status === 'Bien' ? 'bg-blue-500/20 text-blue-400' :
+                                item.status === 'Regular' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  item.status === 'Imposible' ? 'bg-red-500/20 text-red-400 line-through' :
+                                    'bg-gray-500/20 text-gray-400'
                               }`}>
                               {item.status}
                             </span>
