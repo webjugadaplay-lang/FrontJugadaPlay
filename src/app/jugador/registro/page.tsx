@@ -1,7 +1,7 @@
 // app/jugador/registro/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react"; // ← Añadido Suspense
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { translations, type Locale } from "@/messages";
@@ -42,9 +42,10 @@ const formatPhoneNumber = (value: string, country: typeof countries[0]): string 
   return formatted;
 };
 
-export default function RegistroJugador() {
+// 🔥 Componente interno que usa useSearchParams (envuelto en Suspense)
+function RegistroContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // ← Ahora está dentro de Suspense
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [isLocaleReady, setIsLocaleReady] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -53,7 +54,6 @@ export default function RegistroJugador() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   
-  // Estado para el país seleccionado (solo Brasil)
   const [selectedCountry] = useState(countries[0]);
 
   const [formData, setFormData] = useState({
@@ -76,7 +76,7 @@ export default function RegistroJugador() {
     localStorage.setItem("jugadaplay_locale", locale);
   }, [locale, isLocaleReady]);
 
-  // Capturar el parámetro de redirección al cargar la página
+  // Capturar el parámetro de redirección
   useEffect(() => {
     const redirectUrl = searchParams.get('redirect');
     const existingRedirect = localStorage.getItem('redirectAfterRegistration');
@@ -92,7 +92,6 @@ export default function RegistroJugador() {
     const token = localStorage.getItem("token");
     const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
 
-    // Si ya está autenticado y hay redirección pendiente
     if (token && redirectAfterRegistration) {
       console.log('🔄 Usuario autenticado, redirigiendo a:', redirectAfterRegistration);
       localStorage.removeItem("redirectAfterRegistration");
@@ -100,7 +99,6 @@ export default function RegistroJugador() {
       return;
     }
 
-    // Si ya está autenticado pero no hay redirección pendiente
     if (token) {
       const userData = localStorage.getItem("user");
       if (userData) {
@@ -122,11 +120,9 @@ export default function RegistroJugador() {
     const { name, value } = e.target;
 
     if (name === 'telefone') {
-      // Aplicar formato brasileño al teléfono
       const formatted = formatPhoneNumber(value, selectedCountry);
       setFormData({ ...formData, [name]: formatted });
     } else if (name === 'nombre') {
-      // Capitalizar nombre
       const capitalized = value.replace(/\b\w/g, (char) => char.toUpperCase());
       setFormData({ ...formData, [name]: capitalized });
     } else {
@@ -139,7 +135,6 @@ export default function RegistroJugador() {
     setError("");
     setSuccessMessage("");
 
-    // Validaciones
     if (!aceptarTerminos) {
       setError(t.register?.termsError || "Debes aceptar los términos y condiciones");
       return;
@@ -150,7 +145,6 @@ export default function RegistroJugador() {
       return;
     }
 
-    // Limpiar el teléfono (solo números) para enviar al backend
     const cleanPhone = formData.telefone.replace(/\D/g, '');
     
     if (!cleanPhone || cleanPhone.length < 10) {
@@ -169,11 +163,11 @@ export default function RegistroJugador() {
       const requestBody = {
         name: formData.nombre.trim(),
         nickname: formData.nickname.trim() || formData.nombre.trim(),
-        phone: cleanPhone, // Solo números
-        phoneCountry: selectedCountry.dialCode, // +55
+        phone: cleanPhone,
+        phoneCountry: selectedCountry.dialCode,
         password: formData.password,
         role: "player",
-        country: selectedCountry.code, // "BR"
+        country: selectedCountry.code,
       };
 
       console.log("=== DATOS ENVIADOS AL BACKEND ===");
@@ -191,11 +185,9 @@ export default function RegistroJugador() {
         throw new Error(data.message || t.register?.registerError || "Error al registrar");
       }
 
-      // Guardar token y usuario
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Verificar redirección pendiente
       const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
       console.log('🔍 Redirección pendiente encontrada:', redirectAfterRegistration);
 
@@ -217,15 +209,15 @@ export default function RegistroJugador() {
 
   if (!isLocaleReady) {
     return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-yellow-500">Cargando...</div>
-      </main>
+      </div>
     );
   }
 
   return (
     <main className="min-h-screen bg-black">
-      {/* Header */}
+      {/* Header (sin cambios) */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-20 gap-4">
@@ -256,7 +248,7 @@ export default function RegistroJugador() {
         </div>
       </header>
 
-      {/* Contenido principal */}
+      {/* Contenido del formulario (sin cambios) */}
       <div className="pt-28 pb-20 px-6 min-h-screen flex items-center justify-center">
         <div className="container mx-auto max-w-md">
           <div className="relative">
@@ -264,7 +256,6 @@ export default function RegistroJugador() {
 
             <form onSubmit={handleSubmit} className="relative bg-black/80 backdrop-blur-sm border border-yellow-500/20 rounded-2xl overflow-hidden">
 
-              {/* Título */}
               <div className="border-b border-yellow-500/20 px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <User className="w-6 h-6 text-yellow-500" />
@@ -278,7 +269,6 @@ export default function RegistroJugador() {
                   {t.register?.playerSubtitle || "Regístrate con tu teléfono y empieza a jugar"}
                 </p>
                 
-                {/* Mensaje de redirección si existe */}
                 {searchParams.get('redirect') && (
                   <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                     <p className="text-yellow-500 text-xs text-center">
@@ -289,7 +279,7 @@ export default function RegistroJugador() {
               </div>
 
               <div className="p-6 space-y-6">
-                {/* Nombre */}
+                {/* Campos del formulario (sin cambios) */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">
                     {t.register?.fullName || "Nombre completo"} *
@@ -309,7 +299,6 @@ export default function RegistroJugador() {
                   </div>
                 </div>
 
-                {/* Nickname (opcional) */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">
                     {t.register?.nickName || "Nickname"} <span className="text-gray-500 text-[10px]">(opcional)</span>
@@ -329,7 +318,6 @@ export default function RegistroJugador() {
                   <p className="text-gray-600 text-xs">Este nombre aparecerá en el ranking</p>
                 </div>
 
-                {/* Teléfono con formato Brasil */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">
                     {t.register?.phone || "Teléfono"} *
@@ -352,7 +340,6 @@ export default function RegistroJugador() {
                   </p>
                 </div>
 
-                {/* Contraseña */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">
                     {t.register?.password || "Contraseña"} *
@@ -382,7 +369,6 @@ export default function RegistroJugador() {
                   <p className="text-gray-600 text-xs">{t.register?.passwordMinLength || "Mínimo 6 caracteres"}</p>
                 </div>
 
-                {/* Términos */}
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -398,21 +384,18 @@ export default function RegistroJugador() {
                   </span>
                 </label>
 
-                {/* Mensaje de error */}
                 {error && (
                   <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                     <p className="text-red-500 text-sm text-center">{error}</p>
                   </div>
                 )}
 
-                {/* Mensaje de éxito */}
                 {successMessage && (
                   <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
                     <p className="text-green-500 text-sm text-center">{successMessage}</p>
                   </div>
                 )}
 
-                {/* Botón de registro */}
                 <button
                   type="submit"
                   disabled={loading || !aceptarTerminos}
@@ -434,7 +417,6 @@ export default function RegistroJugador() {
                   )}
                 </button>
 
-                {/* Enlace a login */}
                 <p className="text-center text-gray-600 text-xs">
                   {t.register?.alreadyHaveAccount || "¿Ya tienes cuenta?"}{" "}
                   <Link href="/login" className="text-yellow-500 hover:text-yellow-400 transition-colors">
@@ -442,7 +424,6 @@ export default function RegistroJugador() {
                   </Link>
                 </p>
 
-                {/* Beneficios */}
                 <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
                   <p className="text-yellow-500 text-xs font-medium mb-2">
                     🎯 Beneficios de ser jugador
@@ -459,5 +440,18 @@ export default function RegistroJugador() {
         </div>
       </div>
     </main>
+  );
+}
+
+// 🔥 Componente principal que envuelve el contenido en Suspense
+export default function RegistroJugador() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-yellow-500">Cargando...</div>
+      </div>
+    }>
+      <RegistroContent />
+    </Suspense>
   );
 }
