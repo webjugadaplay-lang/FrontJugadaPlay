@@ -1,4 +1,5 @@
 // app/bar/sala/[id]/page.tsx
+// app/bar/sala/[id]/page.tsx
 "use client";
 
 import { useState, useEffect, use, useMemo, useCallback } from "react";
@@ -110,11 +111,14 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     [roomData?.room?.code, salaId]
   );
 
-  // 🔥 CAMBIADO: La URL para compartir ahora apunta a la predicción
-  const shareUrl = useMemo(() =>
-    `${process.env.NEXT_PUBLIC_FRONTEND_URL}/jugador/prediccion/${salaId}`,
-    [salaId]
-  );
+  // 🔥 NUEVO: La URL ahora incluye el parámetro de redirección
+  const shareUrl = useMemo(() => {
+    // URL base de la predicción
+    const baseUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/jugador/prediccion/${salaId}`;
+    // Añadir el parámetro de redirección para que después del registro vaya a la predicción
+    const redirectParam = encodeURIComponent(`/jugador/prediccion/${salaId}`);
+    return `${baseUrl}?redirect=${redirectParam}`;
+  }, [salaId]);
 
   const participantCount = roomData?.participants?.length || 0;
   const totalRecaudado = useMemo(() =>
@@ -168,26 +172,24 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     }
   }, [salaId]);
 
-  // 🔥 POLLING: Actualización automática cada 10 segundos (más frecuente para sala activa)
+  // POLLING: Actualización automática cada 10 segundos
   useEffect(() => {
     if (!salaId) return;
 
     // Cargar datos iniciales
     fetchRoomDetails(false);
 
-    // Configurar polling cada 10 segundos para la sala (más frecuente que el dashboard)
+    // Configurar polling cada 10 segundos para la sala
     const intervalId = setInterval(() => {
-      // Solo actualizar automáticamente si la sala está activa o cerrada
       if (roomData?.room?.status === 'active' || roomData?.room?.status === 'closed') {
         fetchRoomDetails(false);
       }
-    }, 10000); // 10 segundos - más rápido porque es una sala activa
+    }, 10000);
 
-    // Limpiar intervalo al desmontar
     return () => clearInterval(intervalId);
   }, [salaId, fetchRoomDetails, roomData?.room?.status]);
 
-  // 🔥 CAMBIADO: Generar QR con la URL de predicción en lugar de la URL del bar
+  // Generar QR con la URL que incluye el redirect
   useEffect(() => {
     if (!shareUrl || shareUrl.includes("LOADING") || !salaId) return;
 
@@ -207,20 +209,29 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
     setTimeout(() => setCopied(false), 2000);
   }, [codigoSala]);
 
-  // 🔥 NUEVO: Función para compartir la URL de predicción
+  // 🔥 MODIFICADO: Función para compartir la URL con el parámetro de redirección
   const handleShare = useCallback(async () => {
     try {
+      const shareMessage = `🎯 ¡Únete a la sala "${roomData?.room?.name || 'de apuestas'}"!
+      
+📋 Código: ${codigoSala}
+💰 Premio: R$ ${roomData?.room?.total_pool || 0}
+⚽ Predice el marcador y gana!
+
+🔗 Haz clic aquí para participar:
+${shareUrl}`;
+
       // Verificar si el navegador soporta Web Share API
       if (navigator.share) {
         await navigator.share({
-          title: `¡Únete a la sala ${roomData?.room?.name || 'de apuestas'}!`,
-          text: `Código: ${codigoSala} - Predice el marcador y gana R$ ${roomData?.room?.total_pool || 0}`,
+          title: `🎯 ¡Únete a la sala ${roomData?.room?.name || 'de apuestas'}!`,
+          text: shareMessage,
           url: shareUrl,
         });
       } else {
         // Fallback: copiar URL al portapapeles
         await navigator.clipboard.writeText(shareUrl);
-        setShareFeedback("¡URL copiada al portapapeles!");
+        setShareFeedback("✅ ¡URL copiada al portapapeles!");
         setTimeout(() => setShareFeedback(""), 3000);
       }
     } catch (error) {
@@ -229,12 +240,12 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      setShareFeedback("Error al compartir. Copia el código manualmente.");
+      setShareFeedback("❌ Error al compartir. Copia el código manualmente.");
       setTimeout(() => setShareFeedback(""), 3000);
     }
   }, [shareUrl, codigoSala, roomData]);
 
-  // 🔥 NUEVO: Función para descargar el QR
+  // Función para descargar el QR
   const handleDownloadQR = useCallback(() => {
     if (!qrCodeUrl) return;
     
@@ -257,7 +268,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       const data = await response.json();
 
       if (response.ok && data.success) {
-        await fetchRoomDetails(true); // Recargar con indicador
+        await fetchRoomDetails(true);
       } else {
         alert(data.message || "Error al cerrar predicciones");
       }
@@ -271,6 +282,18 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   const handleManualRefresh = useCallback(() => {
     fetchRoomDetails(true);
   }, [fetchRoomDetails]);
+
+  // 🔥 NUEVO: Función para copiar el enlace completo con parámetros
+  const handleCopyFullLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareFeedback("✅ ¡Enlace completo copiado al portapapeles!");
+      setTimeout(() => setShareFeedback(""), 3000);
+    } catch (error) {
+      setShareFeedback("❌ Error al copiar el enlace");
+      setTimeout(() => setShareFeedback(""), 3000);
+    }
+  }, [shareUrl]);
 
   // Estados de carga y error
   if (loading) {
@@ -309,7 +332,6 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               />
             </Link>
             <div className="flex items-center gap-4">
-              {/* Indicador de actualización automática */}
               <div className="hidden md:flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-xs text-gray-500">Auto cada 10s</span>
@@ -318,7 +340,6 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
               <span className="text-xs text-gray-500">ID: {salaId.substring(0, 8)}</span>
               <span className="text-sm text-yellow-500 tracking-wide">SALA: {codigoSala}</span>
 
-              {/* Botón de actualización manual */}
               <button
                 onClick={handleManualRefresh}
                 disabled={refreshing}
@@ -345,7 +366,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
       {/* Contenido principal */}
       <div className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
-          {/* Indicador de última actualización (sutil) */}
+          {/* Indicador de última actualización */}
           <div className="text-right mb-2">
             <span className="text-xs text-gray-600">
               Actualizado: {lastUpdate.toLocaleTimeString()}
@@ -375,7 +396,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
             </div>
           </div>
 
-          {/* 🔥 QR y código - MODIFICADO con botones de compartir y descargar */}
+          {/* QR y código - ACTUALIZADO con más opciones */}
           <div className="bg-black/50 border border-yellow-500/20 rounded-2xl p-6 mb-8">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="w-32 h-32 bg-black rounded-xl flex items-center justify-center border border-yellow-500/30 overflow-hidden">
@@ -402,30 +423,39 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                   </button>
                 </div>
                 <p className="text-gray-500 text-xs mt-2">
-                  Escanea el QR o comparte el código para que los jugadores se unan
+                  🔗 Al registrarse, será redirigido automáticamente a la predicción
                 </p>
                 {/* Feedback de compartir */}
                 {shareFeedback && (
-                  <p className="text-green-500 text-xs mt-1">{shareFeedback}</p>
+                  <p className="text-green-500 text-xs mt-1 animate-pulse">{shareFeedback}</p>
                 )}
               </div>
 
-              {/* 🔥 NUEVO: Botones de acción */}
+              {/* 🔥 NUEVO: Grupo de botones de acción */}
               <div className="flex flex-col gap-2 w-full md:w-auto">
                 <button
                   onClick={handleShare}
-                  className="flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black px-6 py-2 rounded-lg font-medium transition-all text-sm"
+                  className="flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black px-6 py-2.5 rounded-lg font-medium transition-all text-sm"
                 >
                   <Share2 className="w-4 h-4" />
-                  Compartir
+                  Compartir enlace
                 </button>
-                <button
-                  onClick={handleDownloadQR}
-                  className="flex items-center justify-center gap-2 border border-yellow-500/30 hover:border-yellow-500/50 text-yellow-500 px-6 py-2 rounded-lg font-medium transition-all text-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Descargar QR
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCopyFullLink}
+                    className="flex-1 flex items-center justify-center gap-2 border border-yellow-500/30 hover:border-yellow-500/50 text-yellow-500 px-4 py-2 rounded-lg font-medium transition-all text-sm"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copiar link
+                  </button>
+                  <button
+                    onClick={handleDownloadQR}
+                    className="flex-1 flex items-center justify-center gap-2 border border-yellow-500/30 hover:border-yellow-500/50 text-yellow-500 px-4 py-2 rounded-lg font-medium transition-all text-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    QR
+                  </button>
+                </div>
               </div>
 
               <div className="text-center">
@@ -436,7 +466,7 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
             </div>
           </div>
 
-          {/* Ranking y jugadores */}
+          {/* Ranking y jugadores - SIN CAMBIOS */}
           <div className="grid md:grid-cols-3 gap-6">
             {/* Lista de jugadores */}
             <div className="md:col-span-2 bg-black/30 border border-yellow-500/20 rounded-xl overflow-hidden">
@@ -523,6 +553,14 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
                 </p>
               )}
             </div>
+          </div>
+
+          {/* 🔥 NUEVO: Mensaje informativo sobre el flujo de registro */}
+          <div className="mt-6 bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4">
+            <p className="text-gray-400 text-xs text-center">
+              💡 Los jugadores que hagan clic en el enlace serán redirigidos automáticamente 
+              a la predicción después de registrarse o iniciar sesión.
+            </p>
           </div>
         </div>
       </div>

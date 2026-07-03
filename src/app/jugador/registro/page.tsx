@@ -1,9 +1,8 @@
 // app/jugador/registro/page.tsx
-// app/jugador/registro/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation"; // ← Añadir useSearchParams
 import Link from "next/link";
 import { translations, type Locale } from "@/messages";
 import { detectInitialLocale } from "@/lib/i18n";
@@ -50,6 +49,7 @@ const cleanNumber = (value: string): string => {
 
 export default function RegistroJugador() {
   const router = useRouter();
+  const searchParams = useSearchParams(); // ← Hook para leer parámetros de URL
   const [locale, setLocale] = useState<Locale>("pt-BR");
   const [isLocaleReady, setIsLocaleReady] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -78,23 +78,46 @@ export default function RegistroJugador() {
     localStorage.setItem("jugadaplay_locale", locale);
   }, [locale, isLocaleReady]);
 
-  // Verificar redirección pendiente
+  // ✅ NUEVO: Capturar el parámetro de redirección al cargar la página
   useEffect(() => {
+    // 1. Verificar si hay un parámetro 'redirect' en la URL
+    const redirectUrl = searchParams.get('redirect');
+    
+    // 2. Verificar si ya hay una redirección guardada en localStorage
+    const existingRedirect = localStorage.getItem('redirectAfterRegistration');
+    
+    // 3. Si hay un nuevo parámetro y es diferente al guardado, actualizarlo
+    if (redirectUrl && redirectUrl !== existingRedirect) {
+      console.log('📌 Redirección capturada desde URL:', redirectUrl);
+      localStorage.setItem('redirectAfterRegistration', redirectUrl);
+    }
+    
+    // 4. Si no hay parámetro pero hay una redirección guardada, mantenerla
+    // 5. Si no hay ninguna, no hacer nada
+  }, [searchParams]);
+
+  // Verificar redirección pendiente y autenticación
+  useEffect(() => {
+    // ✅ Obtener el token dentro del useEffect
     const token = localStorage.getItem("token");
     const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
 
+    // Si ya está autenticado y hay redirección pendiente
     if (token && redirectAfterRegistration) {
+      console.log('🔄 Usuario autenticado, redirigiendo a:', redirectAfterRegistration);
       localStorage.removeItem("redirectAfterRegistration");
       router.push(redirectAfterRegistration);
       return;
     }
 
+    // Si ya está autenticado pero no hay redirección pendiente
     if (token) {
       const userData = localStorage.getItem("user");
       if (userData) {
         try {
           const user = JSON.parse(userData);
           if (user.role === "player") {
+            // Si el usuario ya está autenticado y no hay redirección, ir al dashboard
             router.push("/jugador/dashboard");
           }
         } catch (e) {
@@ -154,11 +177,11 @@ export default function RegistroJugador() {
       const requestBody = {
         name: formData.nombre.trim(),
         nickname: formData.nickname.trim() || formData.nombre.trim(),
-        phone: cleanPhone, // Enviamos solo los números
-        phoneCountry: selectedCountry.dialCode, // Enviamos el código de país +55
+        phone: cleanPhone,
+        phoneCountry: selectedCountry.dialCode,
         password: formData.password,
         role: "player",
-        country: selectedCountry.code, // Enviamos "BR"
+        country: selectedCountry.code,
       };
 
       console.log("=== DATOS ENVIADOS AL BACKEND ===");
@@ -180,13 +203,19 @@ export default function RegistroJugador() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Verificar redirección pendiente
+      // ✅ IMPORTANTE: Verificar redirección pendiente ANTES de limpiar
       const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
+      console.log('🔍 Redirección pendiente encontrada:', redirectAfterRegistration);
 
       if (redirectAfterRegistration) {
+        console.log('🔄 Redirigiendo a:', redirectAfterRegistration);
+        // Limpiar la redirección antes de navegar
         localStorage.removeItem("redirectAfterRegistration");
+        // ✅ Usar window.location para una redirección más robusta
+        // o router.push como está actualmente
         router.push(redirectAfterRegistration);
       } else {
+        console.log('🏠 Sin redirección pendiente, yendo al dashboard');
         router.push("/jugador/dashboard");
       }
     } catch (err: any) {
