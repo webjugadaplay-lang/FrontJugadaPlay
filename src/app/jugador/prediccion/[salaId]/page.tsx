@@ -508,7 +508,7 @@ export default function PredecirMarcador() {
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20" : "bg-transparent"}`}>
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
-            <Link href="/" className="flex items-center">
+            <Link href="/jugador/dashboard" className="flex items-center">
               <img
                 src="/logo-jugadaplay.svg"
                 alt="Jugada Play"
