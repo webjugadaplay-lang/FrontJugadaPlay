@@ -70,6 +70,7 @@ export default function PredecirMarcador() {
   const [golesLocal, setGolesLocal] = useState(0);
   const [golesVisitante, setGolesVisitante] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [room, setRoom] = useState<Room | null>(null);
@@ -107,11 +108,12 @@ export default function PredecirMarcador() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 🔥 PRIMERO: Verificar autenticación y redirigir al login si es necesario
+  // 🔥 PRIMERO: Verificar autenticación
   useEffect(() => {
     if (!salaId) {
       setError("ID de sala inválido");
       setLoading(false);
+      setLoadingData(false);
       setAuthChecked(true);
       return;
     }
@@ -119,7 +121,10 @@ export default function PredecirMarcador() {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
 
-    // Si NO está autenticado, redirigir al LOGIN (no al registro)
+    console.log('🔍 Verificando autenticación...');
+    console.log('🔑 Token:', token ? '✅ Presente' : '❌ Ausente');
+    console.log('📌 Sala ID:', salaId);
+
     if (!token || !userData) {
       console.log('🔒 Usuario no autenticado, redirigiendo al login');
       const currentUrl = `/jugador/prediccion/${salaId}`;
@@ -130,97 +135,34 @@ export default function PredecirMarcador() {
       return;
     }
 
-    // Verificar que el usuario sea jugador
     try {
       const user = JSON.parse(userData);
+      console.log('👤 Usuario parseado:', user);
+      console.log('🎭 Rol del usuario:', user.role);
+      
       if (user.role !== "player") {
         console.log('🚫 Usuario no es jugador, redirigiendo al login');
         const currentUrl = `/jugador/prediccion/${salaId}`;
+        const redirectParam = encodeURIComponent(currentUrl);
         localStorage.setItem("redirectAfterLogin", currentUrl);
         setIsRedirecting(true);
-        router.push("/login");
+        router.push(`/login?redirect=${redirectParam}`);
         return;
       }
     } catch (e) {
-      console.log('❌ Error al parsear user data, redirigiendo al login');
+      console.log('❌ Error al parsear user data:', e);
       const currentUrl = `/jugador/prediccion/${salaId}`;
+      const redirectParam = encodeURIComponent(currentUrl);
       localStorage.setItem("redirectAfterLogin", currentUrl);
       setIsRedirecting(true);
-      router.push("/login");
+      router.push(`/login?redirect=${redirectParam}`);
       return;
     }
 
-    // Si llegamos aquí, el usuario está autenticado correctamente
     console.log('✅ Usuario autenticado como jugador');
     setAuthChecked(true);
     setLoading(false);
   }, [salaId, router]);
-
-  // Función para cargar los datos de la sala (solo después de autenticación)
-  const fetchRoomData = useCallback(async () => {
-    if (!salaId || !authChecked) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      
-      const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`;
-      const roomResponse = await fetch(roomUrl, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (roomResponse.status === 401 || roomResponse.status === 403) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        const currentUrl = `/jugador/prediccion/${salaId}`;
-        localStorage.setItem("redirectAfterLogin", currentUrl);
-        setIsRedirecting(true);
-        router.push("/login");
-        return;
-      }
-
-      const roomData = await roomResponse.json();
-      console.log('📦 DATOS DEL BACKEND:', roomData);
-
-      if (!roomResponse.ok || !roomData.success) {
-        throw new Error(roomData.message || "Error al cargar la sala");
-      }
-
-      // Combinar datos de room y fixture
-      const roomFromApi = roomData.data.room;
-      const fixtureFromApi = roomData.data.fixture;
-
-      const combinedRoom: Room = {
-        id: roomFromApi.id,
-        name: roomFromApi.name,
-        team_home: fixtureFromApi?.home_team || 'Equipo Local',
-        home_team_logo: fixtureFromApi?.home_team_logo || '',
-        team_away: fixtureFromApi?.away_team || 'Equipo Visitante',
-        away_team_logo: fixtureFromApi?.away_team_logo || '',
-        match_date: fixtureFromApi?.match_date || roomFromApi.match_date,
-        prediction_close_time: roomFromApi.prediction_close_time,
-        entry_fee: roomFromApi.entry_fee,
-        total_pool: roomFromApi.total_pool,
-        status: roomFromApi.status,
-        room_code: roomFromApi.code,
-        bar: {
-          name: 'Bar',
-          bar_name: 'Bar'
-        }
-      };
-
-      console.log('🏠 Sala combinada:', combinedRoom);
-      setRoom(combinedRoom);
-
-      // Cargar predicciones existentes
-      await fetchExistingPredictions();
-
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Error al cargar los datos");
-    } finally {
-      setLoading(false);
-    }
-  }, [salaId, router, authChecked]);
 
   // Función para cargar las predicciones existentes
   const fetchExistingPredictions = async () => {
@@ -261,12 +203,87 @@ export default function PredecirMarcador() {
     }
   };
 
-  // Cargar datos cuando la autenticación está verificada
+  // 🔥 SEGUNDO: Cargar datos de la sala SOLO después de autenticación
   useEffect(() => {
-    if (authChecked) {
-      fetchRoomData();
-    }
-  }, [authChecked, fetchRoomData]);
+    if (!authChecked || !salaId) return;
+
+    const fetchRoomData = async () => {
+      console.log('📡 Iniciando carga de datos de la sala...');
+      setLoadingData(true);
+      setError("");
+
+      try {
+        const token = localStorage.getItem("token");
+        
+        const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`;
+        console.log('📡 Fetching:', roomUrl);
+        
+        const roomResponse = await fetch(roomUrl, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        console.log('📡 Response status:', roomResponse.status);
+
+        if (roomResponse.status === 401 || roomResponse.status === 403) {
+          console.log('🔑 Token expirado, redirigiendo al login');
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          const currentUrl = `/jugador/prediccion/${salaId}`;
+          localStorage.setItem("redirectAfterLogin", currentUrl);
+          setIsRedirecting(true);
+          router.push("/login");
+          return;
+        }
+
+        const roomData = await roomResponse.json();
+        console.log('📦 DATOS DEL BACKEND:', roomData);
+
+        if (!roomResponse.ok || !roomData.success) {
+          console.log('❌ Error en la respuesta:', roomData.message);
+          throw new Error(roomData.message || "Error al cargar la sala");
+        }
+
+        // Combinar datos de room y fixture
+        const roomFromApi = roomData.data.room;
+        const fixtureFromApi = roomData.data.fixture;
+
+        const combinedRoom: Room = {
+          id: roomFromApi.id,
+          name: roomFromApi.name,
+          team_home: fixtureFromApi?.home_team || 'Equipo Local',
+          home_team_logo: fixtureFromApi?.home_team_logo || '',
+          team_away: fixtureFromApi?.away_team || 'Equipo Visitante',
+          away_team_logo: fixtureFromApi?.away_team_logo || '',
+          match_date: fixtureFromApi?.match_date || roomFromApi.match_date,
+          prediction_close_time: roomFromApi.prediction_close_time,
+          entry_fee: roomFromApi.entry_fee,
+          total_pool: roomFromApi.total_pool,
+          status: roomFromApi.status,
+          room_code: roomFromApi.code,
+          bar: {
+            name: 'Bar',
+            bar_name: 'Bar'
+          }
+        };
+
+        console.log('🏠 Sala combinada:', combinedRoom);
+        setRoom(combinedRoom);
+
+        // Cargar predicciones existentes
+        await fetchExistingPredictions();
+
+      } catch (err: any) {
+        console.error('❌ Error cargando sala:', err);
+        setError(err.message || "Error al cargar los datos");
+      } finally {
+        console.log('✅ Carga de datos completada');
+        setLoadingData(false);
+        setLoading(false);
+      }
+    };
+
+    fetchRoomData();
+  }, [authChecked, salaId, router]);
 
   // Función para limpiar el error de límite y resetear el marcador
   const clearLimitErrorAndReset = () => {
@@ -439,29 +456,34 @@ export default function PredecirMarcador() {
     );
   };
 
-  // Mostrar estado de redirección
+  // 🔥 ESTADOS DE CARGA - CORREGIDOS
   if (isRedirecting) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mx-auto mb-4" />
-          <p className="text-yellow-500">Redirigiendo al login...</p>
+          <p className="text-yellow-500">Redirigiendo...</p>
         </div>
       </main>
     );
   }
 
-  // Mostrar loading mientras verifica autenticación
-  if (loading || !authChecked) {
+  // 🔥 Mostrar loading mientras verifica autenticación O carga datos
+  if (loading || loadingData || !authChecked) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-yellow-500 animate-spin" />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mx-auto mb-4" />
+          <p className="text-yellow-500 text-sm">
+            {!authChecked ? 'Verificando autenticación...' : 'Cargando sala...'}
+          </p>
+        </div>
       </main>
     );
   }
 
-  // Si hay error y no es de autenticación
-  if (error || !room) {
+  // 🔥 Solo mostrar error si NO está cargando y realmente hay un error
+  if (error && !loadingData && !loading && !room) {
     return (
       <main className="min-h-screen bg-black">
         <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20" : "bg-transparent"}`}>
@@ -498,6 +520,18 @@ export default function PredecirMarcador() {
     );
   }
 
+  // 🔥 Si no hay sala pero está cargando o no hay error, mostrar loading
+  if (!room) {
+    return (
+      <main className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mx-auto mb-4" />
+          <p className="text-yellow-500 text-sm">Cargando sala...</p>
+        </div>
+      </main>
+    );
+  }
+
   const fechaPartido = new Date(room.match_date).toLocaleString(locale === "pt-BR" ? "pt-BR" : "es-CO");
   const isMatchClosed = new Date(room.prediction_close_time) < new Date();
   const isMatchFinished = room.status === "finished" || room.status === "closed";
@@ -508,7 +542,7 @@ export default function PredecirMarcador() {
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20" : "bg-transparent"}`}>
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
-            <Link href="/jugador/dashboard" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <img
                 src="/logo-jugadaplay.svg"
                 alt="Jugada Play"
