@@ -1,7 +1,7 @@
 // app/login/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, Eye, EyeOff, User, Building2, Shield, Phone } from "lucide-react";
@@ -11,7 +11,7 @@ type Props = {
   locale: Locale;
 };
 
-export default function LoginForm({ locale }: Props) {
+function LoginContent({ locale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
@@ -25,14 +25,35 @@ export default function LoginForm({ locale }: Props) {
 
   const t = translations[locale];
 
+  // 🔥 NUEVO: Capturar el parámetro redirect al cargar la página
+  useEffect(() => {
+    const redirectUrl = searchParams?.get('redirect');
+    console.log('📌 Login: parámetro redirect detectado:', redirectUrl);
+    
+    if (redirectUrl) {
+      // Guardar en localStorage para usar después del login
+      localStorage.setItem('redirectAfterLogin', redirectUrl);
+      console.log('💾 Login: redirect guardado en localStorage:', redirectUrl);
+    } else {
+      // Verificar si ya hay un redirect guardado
+      const existingRedirect = localStorage.getItem('redirectAfterLogin');
+      console.log('📌 Login: redirect existente en localStorage:', existingRedirect);
+    }
+  }, [searchParams]);
+
   // ✅ CORREGIDO: Verificar redirecciones
   useEffect(() => {
-    // ✅ Obtener el token dentro del useEffect
     const token = localStorage.getItem("token");
     const redirectUrl = localStorage.getItem("redirectAfterLogin");
     const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
 
+    console.log('🔍 Login: Verificando redirecciones...');
+    console.log('🔑 Token:', token ? '✅ Presente' : '❌ Ausente');
+    console.log('🔗 redirectAfterLogin:', redirectUrl);
+    console.log('🔗 redirectAfterRegistration:', redirectAfterRegistration);
+
     if (token && redirectAfterRegistration) {
+      console.log('🔄 Login: Redirigiendo por registro a:', redirectAfterRegistration);
       localStorage.removeItem("redirectAfterRegistration");
       setIsRedirecting(true);
       router.push(redirectAfterRegistration);
@@ -40,6 +61,7 @@ export default function LoginForm({ locale }: Props) {
     }
 
     if (token && redirectUrl) {
+      console.log('🔄 Login: Redirigiendo a:', redirectUrl);
       localStorage.removeItem("redirectAfterLogin");
       setIsRedirecting(true);
       router.push(redirectUrl);
@@ -51,6 +73,7 @@ export default function LoginForm({ locale }: Props) {
       if (userData) {
         try {
           const user = JSON.parse(userData);
+          console.log('👤 Usuario autenticado:', user.role);
           if (user.role === "admin") {
             router.push("/admin/dashboard");
           } else if (user.role === "owner" || user.role === "bar") {
@@ -137,7 +160,15 @@ export default function LoginForm({ locale }: Props) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Verificar código pendiente de sala (QR)
+      // 🔥 NUEVO: Verificar redirecciones después del login exitoso
+      const redirectAfterLogin = localStorage.getItem('redirectAfterLogin');
+      const redirectAfterRegistration = localStorage.getItem('redirectAfterRegistration');
+      
+      console.log('🔍 Login exitoso: Verificando redirecciones...');
+      console.log('🔗 redirectAfterLogin:', redirectAfterLogin);
+      console.log('🔗 redirectAfterRegistration:', redirectAfterRegistration);
+
+      // Verificar código pendiente de sala (QR) - Mayor prioridad
       const pendingCode = sessionStorage.getItem("pendingRoomCode");
       if (pendingCode) {
         sessionStorage.removeItem("pendingRoomCode");
@@ -150,6 +181,7 @@ export default function LoginForm({ locale }: Props) {
           const roomData = await roomResponse.json();
 
           if (roomData.success && roomData.roomId) {
+            console.log('🔄 Login: Redirigiendo por QR a sala:', roomData.roomId);
             router.push(`/jugador/prediccion/${roomData.roomId}`);
             return;
           }
@@ -160,15 +192,24 @@ export default function LoginForm({ locale }: Props) {
         return;
       }
 
-      // Verificar URL de retorno
-      const redirectUrl = localStorage.getItem("redirectAfterLogin");
-      if (redirectUrl) {
-        localStorage.removeItem("redirectAfterLogin");
-        router.push(redirectUrl);
+      // 🔥 NUEVO: Verificar redirección por registro (prioridad alta)
+      if (redirectAfterRegistration) {
+        console.log('🔄 Login: Redirigiendo por registro a:', redirectAfterRegistration);
+        localStorage.removeItem('redirectAfterRegistration');
+        router.push(redirectAfterRegistration);
+        return;
+      }
+
+      // Verificar URL de retorno del login
+      if (redirectAfterLogin) {
+        console.log('🔄 Login: Redirigiendo a:', redirectAfterLogin);
+        localStorage.removeItem('redirectAfterLogin');
+        router.push(redirectAfterLogin);
         return;
       }
 
       // Redirigir según el rol
+      console.log('🏠 Login: Sin redirección, yendo al dashboard según rol');
       if (data.user.role === "admin") {
         router.push("/admin/dashboard");
       } else if (data.user.role === "owner" || data.user.role === "bar") {
@@ -194,6 +235,12 @@ export default function LoginForm({ locale }: Props) {
     );
   }
 
+  // Obtener el redirect actual para pasarlo al registro
+  const currentRedirect = searchParams?.get('redirect') || '';
+  const registroUrl = currentRedirect 
+    ? `/jugador/registro?redirect=${currentRedirect}` 
+    : '/jugador/registro';
+
   return (
     <div className="container mx-auto max-w-md">
       <div className="relative">
@@ -208,6 +255,14 @@ export default function LoginForm({ locale }: Props) {
               <span className="text-yellow-500 font-medium">{t.login.title2}</span>
             </h1>
             <div className="w-12 h-[1px] bg-yellow-500/30 mt-2"></div>
+            {/* 🔥 NUEVO: Mostrar mensaje si hay redirección pendiente */}
+            {searchParams?.get('redirect') && (
+              <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-yellow-500 text-xs text-center">
+                  🔗 Serás redirigido automáticamente después del login
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="p-6 space-y-6">
@@ -327,9 +382,10 @@ export default function LoginForm({ locale }: Props) {
               )}
             </button>
 
+            {/* 🔥 CORREGIDO: Enlace al registro con el parámetro redirect */}
             <div className="text-center">
               <Link
-                href="/jugador/registro"
+                href={registroUrl}
                 className="inline-block w-full py-2.5 px-4 border border-yellow-500/30 text-yellow-500 font-medium rounded-lg hover:bg-yellow-500/10 hover:border-yellow-500 transition-all duration-200"
               >
                 {t.login.noAccount}
@@ -345,5 +401,18 @@ export default function LoginForm({ locale }: Props) {
         </form>
       </div>
     </div>
+  );
+}
+
+// 🔥 Componente principal con Suspense
+export default function LoginPage({ locale }: Props) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-yellow-500">Cargando...</div>
+      </div>
+    }>
+      <LoginContent locale={locale} />
+    </Suspense>
   );
 }
