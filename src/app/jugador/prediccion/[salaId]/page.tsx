@@ -1,4 +1,5 @@
 // app/jugador/prediccion/[salaId]/page.tsx
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -14,7 +15,9 @@ import {
   Clock,
   MapPin,
   Award,
-  CheckCircle
+  CheckCircle,
+  AlertCircle,
+  XCircle
 } from "lucide-react";
 import { translations, type Locale } from "@/messages";
 
@@ -73,6 +76,19 @@ export default function PredecirMarcador() {
   const [existingPredictions, setExistingPredictions] = useState<Prediction[]>([]);
   const [lastPrediction, setLastPrediction] = useState<Prediction | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  
+  // Estado para manejar el error de límite de predicciones
+  const [limitError, setLimitError] = useState<{
+    show: boolean;
+    message: string;
+    scoreHome: number;
+    scoreAway: number;
+  }>({
+    show: false,
+    message: "",
+    scoreHome: 0,
+    scoreAway: 0
+  });
 
   const t = translations[locale];
 
@@ -91,12 +107,10 @@ export default function PredecirMarcador() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 🔥 NUEVA FUNCIÓN: Guardar la URL de retorno y redirigir al login
+  // Guardar la URL de retorno y redirigir al login
   const redirectToLogin = useCallback(() => {
-    // Guardar la URL actual para redirigir después del login
     const currentUrl = `/jugador/prediccion/${salaId}`;
     localStorage.setItem("redirectAfterLogin", currentUrl);
-
     setIsRedirecting(true);
     router.push("/login");
   }, [salaId, router]);
@@ -140,7 +154,7 @@ export default function PredecirMarcador() {
     }
   };
 
-  // 🔥 FUNCIÓN PRINCIPAL MODIFICADA con manejo de autenticación
+  // Función principal con manejo de autenticación
   useEffect(() => {
     if (!salaId) {
       setError(t.prediction.invalidId);
@@ -183,7 +197,7 @@ export default function PredecirMarcador() {
           throw new Error(roomData.message || t.prediction.notFound);
         }
 
-        // 🔥 COMBINAR datos de room y fixture
+        // Combinar datos de room y fixture
         const roomFromApi = roomData.data.room;
         const fixtureFromApi = roomData.data.fixture;
 
@@ -223,6 +237,11 @@ export default function PredecirMarcador() {
     fetchData();
   }, [salaId, router, t, redirectToLogin]);
 
+  // Función para limpiar el error de límite y resetear el marcador
+  const clearLimitErrorAndReset = () => {
+    setLimitError({ show: false, message: "", scoreHome: 0, scoreAway: 0 });
+  };
+
   const handleSubmit = async () => {
     if (!salaId) {
       setError(t.prediction.invalidId);
@@ -234,7 +253,10 @@ export default function PredecirMarcador() {
       return;
     }
 
-    // 🔥 Verificar autenticación antes de enviar
+    // Limpiar errores anteriores
+    setError("");
+    setLimitError({ show: false, message: "", scoreHome: 0, scoreAway: 0 });
+
     const token = localStorage.getItem("token");
     if (!token) {
       redirectToLogin();
@@ -242,7 +264,6 @@ export default function PredecirMarcador() {
     }
 
     setSaving(true);
-    setError("");
 
     try {
       const entryFeeValue = typeof room.entry_fee === 'string'
@@ -270,7 +291,6 @@ export default function PredecirMarcador() {
         }
       );
 
-      // 🔥 Si el token expiró, redirigir al login
       if (response.status === 401 || response.status === 403) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -281,6 +301,18 @@ export default function PredecirMarcador() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Manejo específico para el error de límite de predicciones
+        if (data.message && data.message.includes('límite de 3 predicciones')) {
+          setLimitError({
+            show: true,
+            message: data.message,
+            scoreHome: golesLocal,
+            scoreAway: golesVisitante
+          });
+          setSaving(false);
+          return;
+        }
+        
         throw new Error(data.message || "Error al guardar");
       }
 
@@ -293,7 +325,91 @@ export default function PredecirMarcador() {
     }
   };
 
-  // 🔥 Mostrar estado de redirección
+  // Componente de error de límite responsivo
+  const LimitErrorBanner = () => {
+    if (!limitError.show) return null;
+
+    return (
+      <div className="mb-6 p-4 md:p-6 bg-red-500/10 border-2 border-red-500/50 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+          {/* Icono y título - siempre visible */}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex-shrink-0">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                <XCircle className="w-5 h-5 md:w-6 md:h-6 text-red-500" />
+              </div>
+            </div>
+            <div className="flex-1 md:flex-none">
+              <h3 className="text-red-500 font-semibold text-sm md:text-base">
+                Límite alcanzado
+              </h3>
+            </div>
+          </div>
+
+          {/* Mensaje - se adapta a móvil */}
+          <div className="flex-1 w-full md:w-auto">
+            <p className="text-red-400 text-xs md:text-sm leading-relaxed">
+              {limitError.message}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-gray-400">Marcador seleccionado:</span>
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 rounded-md">
+                <span className="text-white font-bold text-sm">{limitError.scoreHome}</span>
+                <span className="text-red-500 text-xs">vs</span>
+                <span className="text-white font-bold text-sm">{limitError.scoreAway}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Botón de acción - responsivo */}
+          <button
+            onClick={clearLimitErrorAndReset}
+            className="w-full md:w-auto px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-red-500/30 hover:border-red-500/50"
+          >
+            <AlertCircle className="w-4 h-4" />
+            <span>Cambiar marcador</span>
+          </button>
+        </div>
+
+        {/* Sugerencia de marcadores alternativos */}
+        <div className="mt-3 pt-3 border-t border-red-500/20">
+          <p className="text-gray-400 text-xs mb-2">
+            💡 Sugerencia: Elige otro marcador disponible
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { home: 0, away: 0 },
+              { home: 1, away: 0 },
+              { home: 0, away: 1 },
+              { home: 1, away: 1 },
+              { home: 2, away: 0 },
+              { home: 0, away: 2 }
+            ].map((score) => {
+              // No mostrar el marcador que ya está bloqueado
+              if (score.home === limitError.scoreHome && score.away === limitError.scoreAway) {
+                return null;
+              }
+              return (
+                <button
+                  key={`${score.home}-${score.away}`}
+                  onClick={() => {
+                    setGolesLocal(score.home);
+                    setGolesVisitante(score.away);
+                    clearLimitErrorAndReset();
+                  }}
+                  className="px-3 py-1 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 hover:text-white rounded-md text-xs transition-all duration-200 border border-gray-700/50 hover:border-yellow-500/30"
+                >
+                  {score.home} - {score.away}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Mostrar estado de redirección
   if (isRedirecting) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -313,7 +429,7 @@ export default function PredecirMarcador() {
     );
   }
 
-  // 🔥 Si hay error y no es de autenticación, mostrar mensaje con opción de reintentar
+  // Si hay error y no es de autenticación, mostrar mensaje con opción de reintentar
   if (error || !room) {
     return (
       <main className="min-h-screen bg-black">
@@ -340,7 +456,6 @@ export default function PredecirMarcador() {
               </Link>
               <button
                 onClick={() => {
-                  // 🔥 Intentar recargar o redirigir al login
                   const token = localStorage.getItem("token");
                   if (!token) {
                     redirectToLogin();
@@ -365,7 +480,7 @@ export default function PredecirMarcador() {
 
   return (
     <main className="min-h-screen bg-black">
-      {/* Header - igual */}
+      {/* Header */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/95 backdrop-blur-md border-b border-yellow-500/20" : "bg-transparent"}`}>
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-20 gap-4">
@@ -398,7 +513,7 @@ export default function PredecirMarcador() {
         </div>
       </header>
 
-      {/* Contenido principal - igual */}
+      {/* Contenido principal */}
       <div className="pt-28 pb-20 px-4 md:px-6">
         <div className="container mx-auto max-w-4xl">
 
@@ -410,6 +525,9 @@ export default function PredecirMarcador() {
             </h1>
             <div className="w-12 h-[1px] bg-yellow-500/30 mx-auto mt-3"></div>
           </div>
+
+          {/* Banner de error de límite - se muestra antes que todo */}
+          <LimitErrorBanner />
 
           {/* Mostrar contador de predicciones */}
           {existingPredictions.length > 0 && (
