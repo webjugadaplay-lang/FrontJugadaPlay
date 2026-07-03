@@ -77,7 +77,6 @@ export default function PredecirMarcador() {
   const [lastPrediction, setLastPrediction] = useState<Prediction | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   
-  // Estado para manejar el error de límite de predicciones
   const [limitError, setLimitError] = useState<{
     show: boolean;
     message: string;
@@ -107,7 +106,17 @@ export default function PredecirMarcador() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Guardar la URL de retorno y redirigir al login
+  // 🔥 NUEVO: Función para redirigir al registro con el parámetro redirect
+  const redirectToRegistration = useCallback(() => {
+    const currentUrl = `/jugador/prediccion/${salaId}`;
+    const redirectParam = encodeURIComponent(currentUrl);
+    const registroUrl = `/jugador/registro?redirect=${redirectParam}`;
+    console.log('🔄 Redirigiendo al registro:', registroUrl);
+    setIsRedirecting(true);
+    router.push(registroUrl);
+  }, [salaId, router]);
+
+  // Guardar la URL de retorno y redirigir al login (para usuarios ya registrados)
   const redirectToLogin = useCallback(() => {
     const currentUrl = `/jugador/prediccion/${salaId}`;
     localStorage.setItem("redirectAfterLogin", currentUrl);
@@ -154,7 +163,7 @@ export default function PredecirMarcador() {
     }
   };
 
-  // Función principal con manejo de autenticación
+  // 🔥 MODIFICADO: Función principal con manejo de autenticación mejorado
   useEffect(() => {
     if (!salaId) {
       setError(t.prediction.invalidId);
@@ -167,26 +176,31 @@ export default function PredecirMarcador() {
         const token = localStorage.getItem("token");
         const userData = localStorage.getItem("user");
 
+        // 🔥 NUEVO: Si no hay token, redirigir al REGISTRO (no al login)
         if (!token || !userData) {
-          redirectToLogin();
+          console.log('❌ Usuario no autenticado, redirigiendo al registro');
+          redirectToRegistration();
           return;
         }
 
         const user = JSON.parse(userData);
         if (user.role !== "player") {
-          redirectToLogin();
+          console.log('❌ Usuario no es jugador, redirigiendo al registro');
+          redirectToRegistration();
           return;
         }
 
+        // Si está autenticado como jugador, cargar los datos
         const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`;
         const roomResponse = await fetch(roomUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
         if (roomResponse.status === 401 || roomResponse.status === 403) {
+          console.log('🔑 Token expirado o inválido, redirigiendo al registro');
           localStorage.removeItem("token");
           localStorage.removeItem("user");
-          redirectToLogin();
+          redirectToRegistration();
           return;
         }
 
@@ -235,7 +249,7 @@ export default function PredecirMarcador() {
     };
 
     fetchData();
-  }, [salaId, router, t, redirectToLogin]);
+  }, [salaId, router, t, redirectToRegistration, redirectToLogin]);
 
   // Función para limpiar el error de límite y resetear el marcador
   const clearLimitErrorAndReset = () => {
@@ -253,13 +267,12 @@ export default function PredecirMarcador() {
       return;
     }
 
-    // Limpiar errores anteriores
     setError("");
     setLimitError({ show: false, message: "", scoreHome: 0, scoreAway: 0 });
 
     const token = localStorage.getItem("token");
     if (!token) {
-      redirectToLogin();
+      redirectToRegistration();
       return;
     }
 
@@ -294,14 +307,13 @@ export default function PredecirMarcador() {
       if (response.status === 401 || response.status === 403) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        redirectToLogin();
+        redirectToRegistration();
         return;
       }
 
       const data = await response.json();
 
       if (!response.ok) {
-        // Manejo específico para el error de límite de predicciones
         if (data.message && data.message.includes('límite de 3 predicciones')) {
           setLimitError({
             show: true,
@@ -332,7 +344,6 @@ export default function PredecirMarcador() {
     return (
       <div className="mb-6 p-4 md:p-6 bg-red-500/10 border-2 border-red-500/50 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
-          {/* Icono y título - siempre visible */}
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="flex-shrink-0">
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -346,7 +357,6 @@ export default function PredecirMarcador() {
             </div>
           </div>
 
-          {/* Mensaje - se adapta a móvil */}
           <div className="flex-1 w-full md:w-auto">
             <p className="text-red-400 text-xs md:text-sm leading-relaxed">
               {limitError.message}
@@ -361,7 +371,6 @@ export default function PredecirMarcador() {
             </div>
           </div>
 
-          {/* Botón de acción - responsivo */}
           <button
             onClick={clearLimitErrorAndReset}
             className="w-full md:w-auto px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-red-500/30 hover:border-red-500/50"
@@ -371,7 +380,6 @@ export default function PredecirMarcador() {
           </button>
         </div>
 
-        {/* Sugerencia de marcadores alternativos */}
         <div className="mt-3 pt-3 border-t border-red-500/20">
           <p className="text-gray-400 text-xs mb-2">
             💡 Sugerencia: Elige otro marcador disponible
@@ -385,7 +393,6 @@ export default function PredecirMarcador() {
               { home: 2, away: 0 },
               { home: 0, away: 2 }
             ].map((score) => {
-              // No mostrar el marcador que ya está bloqueado
               if (score.home === limitError.scoreHome && score.away === limitError.scoreAway) {
                 return null;
               }
@@ -415,7 +422,7 @@ export default function PredecirMarcador() {
       <main className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mx-auto mb-4" />
-          <p className="text-yellow-500">Redirigiendo al login...</p>
+          <p className="text-yellow-500">Redirigiendo al registro...</p>
         </div>
       </main>
     );
@@ -429,7 +436,6 @@ export default function PredecirMarcador() {
     );
   }
 
-  // Si hay error y no es de autenticación, mostrar mensaje con opción de reintentar
   if (error || !room) {
     return (
       <main className="min-h-screen bg-black">
@@ -458,14 +464,14 @@ export default function PredecirMarcador() {
                 onClick={() => {
                   const token = localStorage.getItem("token");
                   if (!token) {
-                    redirectToLogin();
+                    redirectToRegistration();
                   } else {
                     window.location.reload();
                   }
                 }}
                 className="text-sm text-gray-400 hover:text-yellow-500 transition-colors"
               >
-                {!localStorage.getItem("token") ? "Iniciar sesión" : "Reintentar"}
+                {!localStorage.getItem("token") ? "Registrarse" : "Reintentar"}
               </button>
             </div>
           </div>
@@ -517,7 +523,6 @@ export default function PredecirMarcador() {
       <div className="pt-28 pb-20 px-4 md:px-6">
         <div className="container mx-auto max-w-4xl">
 
-          {/* Título de la sección */}
           <div className="text-center mb-10">
             <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white">
               {t.prediction.title}{" "}
@@ -526,10 +531,8 @@ export default function PredecirMarcador() {
             <div className="w-12 h-[1px] bg-yellow-500/30 mx-auto mt-3"></div>
           </div>
 
-          {/* Banner de error de límite - se muestra antes que todo */}
           <LimitErrorBanner />
 
-          {/* Mostrar contador de predicciones */}
           {existingPredictions.length > 0 && (
             <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-center">
               <p className="text-yellow-500 text-sm">
@@ -541,9 +544,7 @@ export default function PredecirMarcador() {
 
           {/* Tarjeta del partido */}
           <div className="bg-black/50 border border-yellow-500/20 rounded-xl p-6 md:p-8 mb-8">
-            {/* Equipos y marcador */}
             <div className="grid grid-cols-3 gap-4 items-center mb-8">
-              {/* Local */}
               <div className="flex flex-col items-center text-center">
                 <img
                   src={room.home_team_logo || '/default-logo.png'}
@@ -575,14 +576,12 @@ export default function PredecirMarcador() {
                 </div>
               </div>
 
-              {/* VS - Columna central */}
               <div className="flex flex-col items-center justify-center">
                 <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-yellow-500/30 flex items-center justify-center mx-auto">
                   <span className="text-yellow-500 text-base md:text-xl font-bold">{t.prediction.vs}</span>
                 </div>
               </div>
 
-              {/* Visitante */}
               <div className="flex flex-col items-center text-center">
                 <img
                   src={room.away_team_logo || '/default-logo.png'}
@@ -615,7 +614,6 @@ export default function PredecirMarcador() {
               </div>
             </div>
 
-            {/* Información del partido */}
             <div className="border-t border-yellow-500/20 pt-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                 <div className="flex items-center justify-center gap-2 text-gray-400">
@@ -643,7 +641,6 @@ export default function PredecirMarcador() {
               )}
             </div>
 
-            {/* Advertencias */}
             {(isMatchClosed || isMatchFinished) && (
               <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
                 <p className="text-red-400 text-sm text-center flex items-center justify-center gap-2">
@@ -663,7 +660,6 @@ export default function PredecirMarcador() {
             )}
           </div>
 
-          {/* Botón de confirmación */}
           <button
             onClick={handleSubmit}
             disabled={saving || isMatchClosed || isMatchFinished}
