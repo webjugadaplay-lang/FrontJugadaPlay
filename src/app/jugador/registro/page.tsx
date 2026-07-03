@@ -1,4 +1,5 @@
 // app/jugador/registro/page.tsx
+// app/jugador/registro/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -11,6 +12,42 @@ import {
   User, Award, Phone, CheckCircle
 } from "lucide-react";
 
+// Configuración de países para jugadores (solo Brasil)
+const countries = [
+  {
+    code: "BR",
+    name: "Brasil",
+    dialCode: "+55",
+    phoneMask: "(##) #####-####",
+    phonePlaceholder: "(11) 91234-5678",
+  }
+];
+
+// Función para aplicar formato al número de teléfono
+const formatPhoneNumber = (value: string, country: typeof countries[0]): string => {
+  const numbers = value.replace(/\D/g, '');
+  if (!numbers) return '';
+
+  let formatted = '';
+  let numberIndex = 0;
+
+  for (let i = 0; i < country.phoneMask.length && numberIndex < numbers.length; i++) {
+    if (country.phoneMask[i] === '#') {
+      formatted += numbers[numberIndex];
+      numberIndex++;
+    } else {
+      formatted += country.phoneMask[i];
+    }
+  }
+
+  return formatted;
+};
+
+// Función para limpiar (solo dígitos)
+const cleanNumber = (value: string): string => {
+  return value.replace(/\D/g, '');
+};
+
 export default function RegistroJugador() {
   const router = useRouter();
   const [locale, setLocale] = useState<Locale>("pt-BR");
@@ -19,6 +56,9 @@ export default function RegistroJugador() {
   const [aceptarTerminos, setAceptarTerminos] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // Estado para el país seleccionado (solo Brasil)
+  const [selectedCountry] = useState(countries[0]);
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -40,18 +80,15 @@ export default function RegistroJugador() {
 
   // Verificar redirección pendiente
   useEffect(() => {
-    // ✅ Obtener el token dentro del useEffect
     const token = localStorage.getItem("token");
     const redirectAfterRegistration = localStorage.getItem("redirectAfterRegistration");
 
-    // Si ya está autenticado y hay redirección pendiente
     if (token && redirectAfterRegistration) {
       localStorage.removeItem("redirectAfterRegistration");
       router.push(redirectAfterRegistration);
       return;
     }
 
-    // Si ya está autenticado pero no hay redirección pendiente
     if (token) {
       const userData = localStorage.getItem("user");
       if (userData) {
@@ -73,12 +110,9 @@ export default function RegistroJugador() {
     const { name, value } = e.target;
 
     if (name === 'telefone') {
-      // Solo permitir números
-      const numbers = value.replace(/\D/g, '');
-      // Limitar a 10-11 dígitos (como ejemplo, ajustable)
-      if (numbers.length <= 11) {
-        setFormData({ ...formData, [name]: numbers });
-      }
+      // Aplicar formato brasileño al teléfono
+      const formatted = formatPhoneNumber(value, selectedCountry);
+      setFormData({ ...formData, [name]: formatted });
     } else if (name === 'nombre') {
       const capitalized = value.replace(/\b\w/g, (char) => char.toUpperCase());
       setFormData({ ...formData, [name]: capitalized });
@@ -101,8 +135,11 @@ export default function RegistroJugador() {
       return;
     }
 
-    if (!formData.telefone || formData.telefone.length < 8) {
-      setError("Por favor, ingresa un número de teléfono válido");
+    // Limpiar el teléfono (solo números) para enviar al backend
+    const cleanPhone = formData.telefone.replace(/\D/g, '');
+    
+    if (!cleanPhone || cleanPhone.length < 10) {
+      setError("Por favor, ingresa un número de teléfono válido (mínimo 10 dígitos)");
       return;
     }
 
@@ -114,14 +151,14 @@ export default function RegistroJugador() {
     setLoading(true);
 
     try {
-      // ✅ Enviar SOLO los campos que el usuario llena
       const requestBody = {
         name: formData.nombre.trim(),
         nickname: formData.nickname.trim() || formData.nombre.trim(),
-        phone: formData.telefone,
+        phone: cleanPhone, // Enviamos solo los números
+        phoneCountry: selectedCountry.dialCode, // Enviamos el código de país +55
         password: formData.password,
         role: "player",
-        // ❌ Eliminar email, phoneCountry, documentType, documentNumber, country
+        country: selectedCountry.code, // Enviamos "BR"
       };
 
       console.log("=== DATOS ENVIADOS AL BACKEND ===");
@@ -158,6 +195,7 @@ export default function RegistroJugador() {
       setLoading(false);
     }
   };
+
   if (!isLocaleReady) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -258,7 +296,7 @@ export default function RegistroJugador() {
                   <p className="text-gray-600 text-xs">Este nombre aparecerá en el ranking</p>
                 </div>
 
-                {/* Teléfono */}
+                {/* Teléfono con formato Brasil */}
                 <div className="space-y-2">
                   <label className="block text-xs text-yellow-500 tracking-wider">
                     {t.register?.phone || "Teléfono"} *
@@ -271,11 +309,13 @@ export default function RegistroJugador() {
                       value={formData.telefone}
                       onChange={handleChange}
                       required
-                      placeholder={t.register?.phonePlaceholder || "3001234567"}
+                      placeholder={selectedCountry.phonePlaceholder}
                       className="w-full bg-black border border-yellow-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-yellow-500/60 transition-all font-mono text-sm"
                     />
                   </div>
-                  <p className="text-gray-600 text-xs">Ingresa solo números, sin espacios ni símbolos</p>
+                  <p className="text-gray-600 text-xs">
+                    Formato: {selectedCountry.phoneMask} (Brasil)
+                  </p>
                 </div>
 
                 {/* Contraseña */}
