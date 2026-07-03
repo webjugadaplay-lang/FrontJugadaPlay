@@ -76,6 +76,7 @@ export default function PredecirMarcador() {
   const [existingPredictions, setExistingPredictions] = useState<Prediction[]>([]);
   const [lastPrediction, setLastPrediction] = useState<Prediction | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   
   const [limitError, setLimitError] = useState<{
     show: boolean;
@@ -106,23 +107,120 @@ export default function PredecirMarcador() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 🔥 NUEVO: Función para redirigir al registro con el parámetro redirect
-  const redirectToRegistration = useCallback(() => {
-    const currentUrl = `/jugador/prediccion/${salaId}`;
-    const redirectParam = encodeURIComponent(currentUrl);
-    const registroUrl = `/jugador/registro?redirect=${redirectParam}`;
-    console.log('🔄 Redirigiendo al registro:', registroUrl);
-    setIsRedirecting(true);
-    router.push(registroUrl);
+  // 🔥 PRIMERO: Verificar autenticación y redirigir al login si es necesario
+  useEffect(() => {
+    if (!salaId) {
+      setError("ID de sala inválido");
+      setLoading(false);
+      setAuthChecked(true);
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
+    // Si NO está autenticado, redirigir al LOGIN (no al registro)
+    if (!token || !userData) {
+      console.log('🔒 Usuario no autenticado, redirigiendo al login');
+      const currentUrl = `/jugador/prediccion/${salaId}`;
+      const redirectParam = encodeURIComponent(currentUrl);
+      localStorage.setItem("redirectAfterLogin", currentUrl);
+      setIsRedirecting(true);
+      router.push(`/login?redirect=${redirectParam}`);
+      return;
+    }
+
+    // Verificar que el usuario sea jugador
+    try {
+      const user = JSON.parse(userData);
+      if (user.role !== "player") {
+        console.log('🚫 Usuario no es jugador, redirigiendo al login');
+        const currentUrl = `/jugador/prediccion/${salaId}`;
+        localStorage.setItem("redirectAfterLogin", currentUrl);
+        setIsRedirecting(true);
+        router.push("/login");
+        return;
+      }
+    } catch (e) {
+      console.log('❌ Error al parsear user data, redirigiendo al login');
+      const currentUrl = `/jugador/prediccion/${salaId}`;
+      localStorage.setItem("redirectAfterLogin", currentUrl);
+      setIsRedirecting(true);
+      router.push("/login");
+      return;
+    }
+
+    // Si llegamos aquí, el usuario está autenticado correctamente
+    console.log('✅ Usuario autenticado como jugador');
+    setAuthChecked(true);
+    setLoading(false);
   }, [salaId, router]);
 
-  // Guardar la URL de retorno y redirigir al login (para usuarios ya registrados)
-  const redirectToLogin = useCallback(() => {
-    const currentUrl = `/jugador/prediccion/${salaId}`;
-    localStorage.setItem("redirectAfterLogin", currentUrl);
-    setIsRedirecting(true);
-    router.push("/login");
-  }, [salaId, router]);
+  // Función para cargar los datos de la sala (solo después de autenticación)
+  const fetchRoomData = useCallback(async () => {
+    if (!salaId || !authChecked) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      
+      const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`;
+      const roomResponse = await fetch(roomUrl, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (roomResponse.status === 401 || roomResponse.status === 403) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        const currentUrl = `/jugador/prediccion/${salaId}`;
+        localStorage.setItem("redirectAfterLogin", currentUrl);
+        setIsRedirecting(true);
+        router.push("/login");
+        return;
+      }
+
+      const roomData = await roomResponse.json();
+      console.log('📦 DATOS DEL BACKEND:', roomData);
+
+      if (!roomResponse.ok || !roomData.success) {
+        throw new Error(roomData.message || "Error al cargar la sala");
+      }
+
+      // Combinar datos de room y fixture
+      const roomFromApi = roomData.data.room;
+      const fixtureFromApi = roomData.data.fixture;
+
+      const combinedRoom: Room = {
+        id: roomFromApi.id,
+        name: roomFromApi.name,
+        team_home: fixtureFromApi?.home_team || 'Equipo Local',
+        home_team_logo: fixtureFromApi?.home_team_logo || '',
+        team_away: fixtureFromApi?.away_team || 'Equipo Visitante',
+        away_team_logo: fixtureFromApi?.away_team_logo || '',
+        match_date: fixtureFromApi?.match_date || roomFromApi.match_date,
+        prediction_close_time: roomFromApi.prediction_close_time,
+        entry_fee: roomFromApi.entry_fee,
+        total_pool: roomFromApi.total_pool,
+        status: roomFromApi.status,
+        room_code: roomFromApi.code,
+        bar: {
+          name: 'Bar',
+          bar_name: 'Bar'
+        }
+      };
+
+      console.log('🏠 Sala combinada:', combinedRoom);
+      setRoom(combinedRoom);
+
+      // Cargar predicciones existentes
+      await fetchExistingPredictions();
+
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Error al cargar los datos");
+    } finally {
+      setLoading(false);
+    }
+  }, [salaId, router, authChecked]);
 
   // Función para cargar las predicciones existentes
   const fetchExistingPredictions = async () => {
@@ -163,93 +261,12 @@ export default function PredecirMarcador() {
     }
   };
 
-  // 🔥 MODIFICADO: Función principal con manejo de autenticación mejorado
+  // Cargar datos cuando la autenticación está verificada
   useEffect(() => {
-    if (!salaId) {
-      setError(t.prediction.invalidId);
-      setLoading(false);
-      return;
+    if (authChecked) {
+      fetchRoomData();
     }
-
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const userData = localStorage.getItem("user");
-
-        // 🔥 NUEVO: Si no hay token, redirigir al REGISTRO (no al login)
-        if (!token || !userData) {
-          console.log('❌ Usuario no autenticado, redirigiendo al registro');
-          redirectToRegistration();
-          return;
-        }
-
-        const user = JSON.parse(userData);
-        if (user.role !== "player") {
-          console.log('❌ Usuario no es jugador, redirigiendo al registro');
-          redirectToRegistration();
-          return;
-        }
-
-        // Si está autenticado como jugador, cargar los datos
-        const roomUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/bar/rooms/${salaId}`;
-        const roomResponse = await fetch(roomUrl, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (roomResponse.status === 401 || roomResponse.status === 403) {
-          console.log('🔑 Token expirado o inválido, redirigiendo al registro');
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          redirectToRegistration();
-          return;
-        }
-
-        const roomData = await roomResponse.json();
-        console.log('📦 DATOS REALES DEL BACKEND:', roomData);
-
-        if (!roomResponse.ok || !roomData.success) {
-          throw new Error(roomData.message || t.prediction.notFound);
-        }
-
-        // Combinar datos de room y fixture
-        const roomFromApi = roomData.data.room;
-        const fixtureFromApi = roomData.data.fixture;
-
-        const combinedRoom: Room = {
-          id: roomFromApi.id,
-          name: roomFromApi.name,
-          team_home: fixtureFromApi?.home_team || 'Equipo Local',
-          home_team_logo: fixtureFromApi?.home_team_logo || '',
-          team_away: fixtureFromApi?.away_team || 'Equipo Visitante',
-          away_team_logo: fixtureFromApi?.away_team_logo || '',
-          match_date: fixtureFromApi?.match_date || roomFromApi.match_date,
-          prediction_close_time: roomFromApi.prediction_close_time,
-          entry_fee: roomFromApi.entry_fee,
-          total_pool: roomFromApi.total_pool,
-          status: roomFromApi.status,
-          room_code: roomFromApi.code,
-          bar: {
-            name: 'Bar',
-            bar_name: 'Bar'
-          }
-        };
-
-        console.log('🏠 Sala combinada:', combinedRoom);
-        setRoom(combinedRoom);
-
-        // Cargar predicciones existentes
-        await fetchExistingPredictions();
-
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || t.prediction.error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [salaId, router, t, redirectToRegistration, redirectToLogin]);
+  }, [authChecked, fetchRoomData]);
 
   // Función para limpiar el error de límite y resetear el marcador
   const clearLimitErrorAndReset = () => {
@@ -258,7 +275,7 @@ export default function PredecirMarcador() {
 
   const handleSubmit = async () => {
     if (!salaId) {
-      setError(t.prediction.invalidId);
+      setError("ID de sala inválido");
       return;
     }
 
@@ -272,7 +289,10 @@ export default function PredecirMarcador() {
 
     const token = localStorage.getItem("token");
     if (!token) {
-      redirectToRegistration();
+      const currentUrl = `/jugador/prediccion/${salaId}`;
+      localStorage.setItem("redirectAfterLogin", currentUrl);
+      setIsRedirecting(true);
+      router.push("/login");
       return;
     }
 
@@ -307,7 +327,10 @@ export default function PredecirMarcador() {
       if (response.status === 401 || response.status === 403) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        redirectToRegistration();
+        const currentUrl = `/jugador/prediccion/${salaId}`;
+        localStorage.setItem("redirectAfterLogin", currentUrl);
+        setIsRedirecting(true);
+        router.push("/login");
         return;
       }
 
@@ -337,7 +360,7 @@ export default function PredecirMarcador() {
     }
   };
 
-  // Componente de error de límite responsivo
+  // Componente de error de límite
   const LimitErrorBanner = () => {
     if (!limitError.show) return null;
 
@@ -422,13 +445,14 @@ export default function PredecirMarcador() {
       <main className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mx-auto mb-4" />
-          <p className="text-yellow-500">Redirigiendo al registro...</p>
+          <p className="text-yellow-500">Redirigiendo al login...</p>
         </div>
       </main>
     );
   }
 
-  if (loading) {
+  // Mostrar loading mientras verifica autenticación
+  if (loading || !authChecked) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-yellow-500 animate-spin" />
@@ -436,6 +460,7 @@ export default function PredecirMarcador() {
     );
   }
 
+  // Si hay error y no es de autenticación
   if (error || !room) {
     return (
       <main className="min-h-screen bg-black">
@@ -444,7 +469,7 @@ export default function PredecirMarcador() {
             <div className="flex justify-between items-center h-20 gap-4">
               <Link href="/entrar" className="flex items-center gap-2 text-yellow-500 hover:text-yellow-400 transition-colors">
                 <ArrowLeft className="w-5 h-5" />
-                <span className="text-sm hidden md:inline">{t.prediction.back}</span>
+                <span className="text-sm hidden md:inline">Volver</span>
               </Link>
               <Link href="/" className="flex items-center">
                 <img src="/logo-jugadaplay.svg" alt="Jugada Play" className="h-10 md:h-12 object-contain" />
@@ -455,23 +480,16 @@ export default function PredecirMarcador() {
         </header>
         <div className="min-h-screen flex items-center justify-center pt-20">
           <div className="text-center max-w-md px-4">
-            <p className="text-red-500 mb-4">{error || t.prediction.notFound}</p>
+            <p className="text-red-500 mb-4">{error || "Sala no encontrada"}</p>
             <div className="flex flex-col gap-3 items-center">
               <Link href="/entrar" className="text-yellow-500 hover:text-yellow-400 transition-colors">
-                {t.prediction.back}
+                Volver
               </Link>
               <button
-                onClick={() => {
-                  const token = localStorage.getItem("token");
-                  if (!token) {
-                    redirectToRegistration();
-                  } else {
-                    window.location.reload();
-                  }
-                }}
+                onClick={() => window.location.reload()}
                 className="text-sm text-gray-400 hover:text-yellow-500 transition-colors"
               >
-                {!localStorage.getItem("token") ? "Registrarse" : "Reintentar"}
+                Reintentar
               </button>
             </div>
           </div>
