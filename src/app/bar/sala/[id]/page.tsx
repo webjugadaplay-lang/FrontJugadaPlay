@@ -6,14 +6,14 @@ import { useState, useEffect, use, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { 
-  ArrowLeft, 
-  Users, 
-  Coins, 
-  Copy, 
-  Check, 
-  RefreshCw, 
-  QrCode, 
+import {
+  ArrowLeft,
+  Users,
+  Coins,
+  Copy,
+  Check,
+  RefreshCw,
+  QrCode,
   Clock,
   Share2,
   Download
@@ -212,10 +212,10 @@ export default function SalaActiva({ params }: { params: Promise<{ id: string }>
   // 🔥 MODIFICADO: Función para compartir la URL con el parámetro de redirección
   const handleShare = useCallback(async () => {
     try {
+      // 🔥 Mensaje más limpio SIN el premio y CON un solo enlace
       const shareMessage = `🎯 ¡Únete a la sala "${roomData?.room?.name || 'de apuestas'}"!
       
 📋 Código: ${codigoSala}
-💰 Premio: R$ ${roomData?.room?.total_pool || 0}
 ⚽ Predice el marcador y gana!
 
 🔗 Haz clic aquí para participar:
@@ -248,7 +248,7 @@ ${shareUrl}`;
   // Función para descargar el QR
   const handleDownloadQR = useCallback(() => {
     if (!qrCodeUrl) return;
-    
+
     const link = document.createElement('a');
     link.download = `qr-sala-${codigoSala}.png`;
     link.href = qrCodeUrl;
@@ -409,7 +409,7 @@ ${shareUrl}`;
                   </div>
                 )}
               </div>
-              
+
               <div className="text-center md:text-left flex-1">
                 <div className="flex items-center gap-2 justify-center md:justify-start">
                   <span className="text-gray-400 text-sm">Código de acceso:</span>
@@ -558,7 +558,7 @@ ${shareUrl}`;
           {/* 🔥 NUEVO: Mensaje informativo sobre el flujo de registro */}
           <div className="mt-6 bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4">
             <p className="text-gray-400 text-xs text-center">
-              💡 Los jugadores que hagan clic en el enlace serán redirigidos automáticamente 
+              💡 Los jugadores que hagan clic en el enlace serán redirigidos automáticamente
               a la predicción después de registrarse o iniciar sesión.
             </p>
           </div>
